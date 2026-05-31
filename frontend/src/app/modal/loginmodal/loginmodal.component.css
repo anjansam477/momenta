@@ -1,0 +1,27 @@
+.login-div {
+    display: flex;
+    flex-direction: column;
+    justify-content: center; 
+    align-items: center;
+    height: 100%;
+}
+
+.login-div p {
+    font-size: 18px;
+}
+
+.logo_sm {
+    margin-bottom: 30px;
+}
+
+.btn-g-register {
+    height: 60px;
+    font-size: 22px !important;
+    line-height: 40px !important;
+}
+
+@media(max-width:350px){
+    .btn-g-register {
+        font-size: 18px !important;
+    }
+}

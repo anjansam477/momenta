@@ -1,0 +1,39 @@
+<div class="prelogin-form">
+  <div class="logo_sm"><img src="assets/images/momenta/momenta-logo-horizontal.png"></div>
+  @if(status === 'unverified'){
+  <div class="mb-4">
+    <div class="send-email-text">
+    <p class="mb-3">
+      Oops! It seems like there's been a hiccup. Either the token you provided is invalid or your email has
+      already been verified.</p>
+    <p>No worries though, you can still proceed to the login page by clicking the link below. </p>
+    <button class="btn btn-primary button-xl w-100 mt-4" (click)="redirectToLogin()"><b>Proceed</b></button>
+    </div>
+  </div>
+  }
+  @else if(status == "verified"){
+  <div class="mb-4">
+    <div class="send-email-text">
+      <h1 class="fs-5" style="margin-bottom: 10px;">Congratulations! Your account has been successfully verified.</h1>
+      <p class="mb-3">Welcome to our vibrant hub of heartfelt moments and jubilant messages!</p>
+      <p> Click the button below to continue to the login page and start spreading boundless joy and cheer to those you
+        hold dear. Let your sentiments soar as you embark on this magical journey of spreading smiles across the globe!
+      </p>
+      <button class="btn btn-primary button-xl w-100 mt-4" (click)="redirectToLogin()"><b>Proceed</b></button>
+    </div>
+  </div>
+  }
+  @else{
+    <div class="mb-4 text-center"><img src="assets/images/default_background_images/send-email-img.svg"
+        class="img-fluid "></div>
+    <div class="send-email-text">
+      <p class="mb-3">Hello! You're just one step away from joining the ultimate experience of creating and sharing moments
+        and
+        news.</p>
+      <p>Kindly check your email for the verification message to proceed.</p>
+      <button class="btn btn-g-register w-100 mt-4" (click)="openGmail()"><img
+          src="assets/images/default_background_images/Gmail_Logo_512px.png" class="email-icon pe-0"> Proceed to
+        Gmail</button>
+    </div>
+  }
+</div>

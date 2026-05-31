@@ -1,0 +1,16 @@
+.signup-page{
+    overflow: hidden;
+}
+
+.btn.password{
+    border: 1px solid #E4E5E8;
+}
+
+.btn.password:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.btn.password:hover {
+    color: inherit;
+}

@@ -1,0 +1,93 @@
+<div class="prelogin-form">
+  <div class="logo_sm"><img src="assets/images/momenta/momenta-logo-horizontal.png"></div>
+  <div class="my-4">
+    <h4>Sign Up to Momenta</h4>
+    <p>Create your account</p>
+  </div>
+  <div class="">
+    <form (ngSubmit)="onSubmit()" [formGroup]="userData">
+      <div class="login-form-div">
+        <div class="mb-4 position-relative">
+
+          <input type="email" class="form-control ps__40" id="email" placeholder="Email" name="email"
+            formControlName="email"
+            [ngClass]="{ 'validation-input': userData.get('email')?.invalid && userData.get('email')?.touched || errorMessage}" />
+          <i class="bi bi-envelope login-input-icon" style="font-size: 16px;"></i>
+          <div class="validation-text"
+            *ngIf="userData.get('email')?.hasError('required') && userData.get('email')?.touched">
+            Email is required
+          </div>
+          <div class="validation-text"
+            *ngIf="userData.get('email')?.hasError('invalidEmail') && userData.get('email')?.touched && !userData.get('email')?.hasError('required')">
+            Invalid email format
+          </div>
+          <div class="validation-text" *ngIf="errorMessage">
+            {{this.errorMessage}}
+          </div>
+        </div>
+        <div class="mb-4 position-relative">
+          <input type="text" class="form-control ps__40" id="fname" placeholder="First Name" formControlName="fname"
+            [ngClass]="{ 'validation-input': userData.get('fname')?.invalid && userData.get('fname')?.touched}" />
+          <i class="bi bi-person login-input-icon"></i>
+          <div *ngIf="userData.get('fname')?.hasError('required') && userData.get('fname')?.touched"
+            class="validation-text">
+            First Name is required.
+          </div>
+          <div class="validation-text"
+            *ngIf="userData.get('fname')?.hasError('error') && userData.get('fname')?.touched &&!userData.get('fname')?.hasError('required')">
+            {{ userData.get('fname')?.getError('error') }}
+          </div>
+        </div>
+
+        <div class="mb-4 position-relative">
+          <input type="text" class="form-control ps__40" id="lname" placeholder="Last Name" formControlName="lname"
+            [ngClass]="{ 'validation-input': userData.get('lname')?.invalid && userData.get('lname')?.touched}" />
+          <i class="bi bi-person login-input-icon"></i>
+          <div *ngIf="userData.get('lname')?.hasError('required') && userData.get('lname')?.touched"
+            class="validation-text">
+            Last Name is required.
+          </div>
+          <div class="validation-text"
+            *ngIf="userData.get('lname')?.hasError('error') && userData.get('lname')?.touched && !userData.get('lname')?.hasError('required')">
+            {{ userData.get('lname')?.getError('error') }}
+          </div>
+        </div>
+        <div class="mb-4 position-relative">
+          <div class="">
+            <input type="{{ passwordFieldType }}" class="form-control ps__40 pe-5" id="password" placeholder="Password"
+              name="password" formControlName="password"
+              [ngClass]="{ 'validation-input': userData.get('password')?.invalid && userData.get('password')?.touched}" />
+            <i class="bi bi-lock login-input-icon"></i>
+            <div class="passwor_show_icon" (click)="togglePasswordVisibility()">
+              <i class="bi bi-eye-fill" *ngIf="passwordFieldType=='password'"></i>
+              <i class="bi bi-eye-slash" *ngIf="passwordFieldType=='text'"></i>
+            </div>
+          </div>
+          <div class="validation-text"
+            *ngIf="userData.get('password')?.hasError('required') && userData.get('password')?.touched">
+            Password is required
+          </div>
+          <div class="validation-text"
+            *ngIf="userData.get('password')?.hasError('error') && userData.get('password')?.touched && !userData.get('password')?.hasError('required')">
+            {{ userData.get('password')?.getError('error') }}
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary button-xl w-100"><b>Register</b></button>
+
+      </div>
+    </form>
+    <div class="partition">
+      <span>OR</span>
+    </div>
+    <a [href]="authBaseUrl">
+      <button class="btn btn-g-register mb-3 w-100"><i class="bi bi-google"></i>Register
+        with
+        Google</button>
+    </a>
+    <div class="text-center act-text">
+      <p> Already have an account? <a class="font-weight-500 ps-1 text-blue" routerLink="/login">Sign In</a></p>
+    </div>
+  </div>
+
+</div>

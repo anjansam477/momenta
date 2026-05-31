@@ -1,0 +1,145 @@
+:host {
+    display: block;
+    width: min(100%, 560px);
+}
+
+.login-page-card {
+    position: relative;
+    width: 100%;
+    padding: 44px;
+    border: 1px solid rgba(13, 34, 71, 0.08);
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 30px 80px rgba(19, 45, 59, 0.12);
+    overflow: hidden;
+}
+
+.login-page-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 88% 10%, rgba(16, 167, 164, 0.16), transparent 11rem),
+        radial-gradient(circle at 8% 98%, rgba(255, 104, 92, 0.12), transparent 12rem);
+}
+
+.brand-lockup,
+.login-copy,
+.google-login-button,
+.privacy-note {
+    position: relative;
+    z-index: 1;
+}
+
+.brand-lockup {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+
+.brand-lockup img {
+    width: min(100%, 350px);
+    height: auto;
+    display: block;
+}
+
+.login-copy {
+    text-align: center;
+}
+
+.eyebrow {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 13px;
+    color: #087c83;
+    background: rgba(16, 167, 164, 0.1);
+    border: 1px solid rgba(16, 167, 164, 0.16);
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 850;
+}
+
+.login-copy h1 {
+    margin: 22px 0 10px;
+    color: #071e38;
+    font-size: 36px;
+    line-height: 1.12;
+    font-weight: 900;
+    letter-spacing: 0;
+}
+
+.login-copy p {
+    max-width: 410px;
+    margin: 0 auto;
+    color: #5f7788;
+    font-size: 16px;
+    line-height: 1.55;
+    font-weight: 500;
+}
+
+.google-login-button {
+    width: 100%;
+    min-height: 58px;
+    margin-top: 34px;
+    border: 1px solid rgba(13, 34, 71, 0.12);
+    border-radius: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: #071e38;
+    background: #fff;
+    font-size: 18px;
+    line-height: 1;
+    font-weight: 850;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.google-login-button:hover {
+    transform: translateY(-1px);
+    border-color: rgba(16, 167, 164, 0.32);
+    box-shadow: 0 16px 30px rgba(13, 34, 71, 0.1);
+}
+
+.google-login-button .bi {
+    color: #0b5fbd;
+    font-size: 25px;
+}
+
+.privacy-note {
+    margin-top: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #6a7d91;
+    font-size: 13px;
+    line-height: 1.35;
+    text-align: center;
+}
+
+.privacy-note .bi {
+    color: #10a7a4;
+}
+
+@media (max-width: 576px) {
+    .login-page-card {
+        padding: 30px 20px;
+        border-radius: 22px;
+    }
+
+    .brand-lockup img {
+        width: min(100%, 280px);
+    }
+
+    .login-copy h1 {
+        font-size: 30px;
+    }
+
+    .google-login-button {
+        font-size: 16px;
+    }
+}

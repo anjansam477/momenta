@@ -1,0 +1,79 @@
+<div class="cst-modal create-wall-modal modal fade" data-bs-backdrop="static" #loginModal id="loginModal" tabindex="-1"
+aria-labelledby="loginModalLabel" aria-hidden="true">
+<div class="modal-dialog">
+  <div class="modal-content prelogin-form">
+    <div class="modal-header mx-auto mt-4 p-0">
+      <div class="logo_sm">
+        <img src="assets/images/momenta/momenta-logo-horizontal.png" />
+      </div>
+      <button type="button" class="btn-close" data-bs-dismiss="modal"
+          aria-label="Close" (click)="close()"></button>
+    </div>
+    <div class="modal-body pt-0">
+      <div class="my-4 login-div">
+        <h3>Welcome to Momenta</h3>
+        <p>{{message}}</p>
+      </div>
+      <!-- <form [formGroup]="loginForm" (ngSubmit)="login()">
+        <div class="login-form-div">
+          <div class="mb-4 position-relative">
+            <input type="email" class="form-control ps__40" id="email" formControlName="email" placeholder=" Email"
+              [ngClass]="{ 'validation-input': loginForm.get('email')?.invalid && loginForm.get('email')?.touched  || incorrect}" />
+            <i class="bi bi-envelope login-input-icon" style="font-size: 16px;"></i>
+            <div class="validation-text"
+              *ngIf="loginForm.get('email')?.hasError('required') && loginForm.get('email')?.touched">
+              Email is required
+            </div>
+            <div class="validation-text"
+              *ngIf="loginForm.get('email')?.hasError('invalidEmail') && loginForm.get('email')?.touched && !loginForm.get('email')?.hasError('required')">
+              Invalid email format
+            </div>
+          </div>
+          <div class="mb-2 position-relative">
+            <div>
+              <input formControlName="password" type="{{ passwordFieldType }}" class="form-control ps__40 pe-5"
+                id="password" placeholder="Password"
+                [ngClass]="{ 'validation-input': loginForm.get('password')?.invalid && loginForm.get('password')?.touched || incorrect }" />
+              <i class="bi bi-lock login-input-icon"></i>
+              <div class="passwor_show_icon" (click)="togglePasswordVisibility()">
+                <i class="bi bi-eye-fill" *ngIf="passwordFieldType=='password'"></i>
+                <i class="bi bi-eye-slash" *ngIf="passwordFieldType=='text'"></i>
+              </div>
+            </div>
+            <div class="validation-text"
+              *ngIf="loginForm.get('password')?.hasError('required') && loginForm.get('password')?.touched">
+              Password is required
+            </div>
+            <div class="validation-text"
+            *ngIf="!loginForm.get('password')?.hasError('required') && loginForm.get('password')?.touched && loginForm.get('password')?.hasError('error')">
+            Password is required
+          </div>
+            <div class="validation-text" *ngIf="incorrect">
+              {{errorMessage}}
+            </div>
+           
+          </div>
+          <button type="submit" class="btn btn-primary button-xl w-100 mt-3">
+            <b>Login</b></button>
+        </div>
+      </form>
+      <div class="partition">
+        <span>OR</span>
+      </div> -->
+      <a [href]="authBaseUrl" (click)="googleLogin()">
+        <button class="btn btn-g-register mb-3 w-100">
+          <i class="bi bi-google"></i>Login with Google
+        </button>
+      </a>
+      <!-- <div class="text-center act-text">
+        <p>
+          Don't have an account?
+          <a class="font-weight-500 ps-1 text-blue" routerLink="/register" data-bs-dismiss="modal"
+          aria-label="Close">Create an
+          account</a>
+        </p>
+      </div> -->
+    </div>
+  </div>
+</div>
+</div>
