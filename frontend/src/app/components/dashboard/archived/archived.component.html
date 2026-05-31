@@ -1,0 +1,60 @@
+<div class="your-posts g-0" (window:scroll)="onScroll()">
+    <div class="main-title">
+      <h2>Archived Moments</h2>
+    </div>
+    <hr class="solid-divider">
+    <hr class="white-divider">
+  
+    <div class="row walls gap-0">
+        @if (walls.length > 0) {
+            <ng-container>
+              <div class="col-xxl-3 col-lg-4 col-md-6" *ngFor="let wall of walls; let i = index">
+                <div class="card">
+                  <div class="card-img-top">
+                    <img [src]="wall.bgImg" class="card-img-top">
+                    <div class="fade"></div>
+                  </div>
+                  <div class="card-body">
+                    <h2>{{ wall.title }}</h2>
+                    <h4>{{ wall.type }}</h4>
+                    <h6>
+                      <span><i class="bi bi-clock"></i> Edited {{ dateTimeAgo[i] }}</span>
+                      <span><i class="bi bi-people"></i> {{ wall.interactions }}</span>
+                      <ng-container *ngIf="!isUserAllowed(wall); else nonReportedPosts">
+                        <span><i class="bi bi-chat-square-text"></i> {{ wall.posts.nonArchivedNonReportedCount }}
+                        post<span *ngIf="wall.posts.nonArchivedNonReportedCount > 1 || wall.posts.nonArchivedNonReportedCount == 0">s</span>
+                        </span>
+                      </ng-container>
+                      <ng-template #nonReportedPosts>
+                        <span><i class="bi bi-chat-square-text"></i> {{ wall.posts.nonArchivedCount }}
+                        post<span *ngIf="wall.posts.nonArchivedCount > 1 || wall.posts.nonArchivedCount == 0">s</span>
+                        </span>
+                      </ng-template>    
+                  </h6>
+                  </div>
+                  <div class="card-footer">
+                    <app-user-replacer [email]="wall.ownerEmail" [datetime] = "wall.createdAt" [component]="'dashboard'"></app-user-replacer>
+                  </div>
+                  <div class="custom-btn custom-btn-lg" (click)="restoreWall(wall)">
+                    <h5>Restore Moment <i class="bi bi-arrow-counterclockwise"></i></h5>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+        } @else {
+          <div class="row">
+                <div class="col no-posts">
+                  <div class="img-wrapper"><img src="assets/images/v3/no-posts.png" alt="No Posts Image"/></div>
+                  <h4>No archived moments</h4>
+                  <h6>Your archived moments will appear here</h6>
+                </div>
+          </div>
+        }
+
+        @if (loading && walls.length > 0) {
+            <div class="load-more col-12 text-center">
+              <img src="assets/animation/loading.gif" alt="Loading"/>
+            </div>
+        }
+    </div>
+</div>

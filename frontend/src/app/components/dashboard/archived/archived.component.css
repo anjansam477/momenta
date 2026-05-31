@@ -1,0 +1,7 @@
+.your-posts {
+    min-height: calc(100vh - 60px);
+}
+
+.card{
+    cursor: default;
+}

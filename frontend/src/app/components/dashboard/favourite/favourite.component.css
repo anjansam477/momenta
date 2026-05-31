@@ -1,0 +1,78 @@
+.your-posts {
+    min-height: calc(100vh - 60px);
+}
+
+.card-img-top .dropdown-item:active {
+    background-color: #10A7A4
+}
+
+.card-img-top .drop-down {
+    position: absolute;
+    cursor: pointer;
+    top: 14px;
+    right: 14px;
+    padding: 6px;
+    background-color: #000;
+    border: none;
+    justify-content: center;
+    opacity: 0;
+    border-radius: 10px;
+    z-index: 100;
+}
+
+.card-img-top .drop-down:focus {
+    opacity: 1;
+}
+
+.card-img-top .drop-down img {
+    height: 18px;
+    width: 4.5px
+}
+
+.card-img-top .drop-down :hover {
+    cursor: pointer
+}
+
+.card :hover .drop-down {
+    opacity: 1;
+    transform: 0.3 ease
+}
+
+.card-img-top .dropdown-toggle::after {
+    display: none;
+}
+
+.your-posts .dropdown .dropdown-item.active {
+    background-color: #2aaf91;
+    color: white;
+}
+
+.your-posts .dropdown .dropdown-item:focus {
+    background-color: #2aaf91;
+    color: white;
+}
+
+.your-posts .dropdown .dropdown-item {
+    cursor: pointer;
+}
+
+.fade-in-up {
+    opacity: 0;
+    animation: fadeInUp 0.6s ease-in-out forwards;
+}
+
+.hidden {
+    opacity: 0;
+}
+
+@keyframes fadeInUp {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

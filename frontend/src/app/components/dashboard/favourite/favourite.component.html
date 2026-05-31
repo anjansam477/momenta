@@ -1,0 +1,85 @@
+<div class="your-posts g-0">
+    <div class="main-title">
+        <h2>{{ wallFilter === 'favourite' ? 'Starred Moments' : wallFilter === 'saved' ? 'Saved moments' : 'Favourite Moments' }}</h2>
+        <div class="dropdown">
+            <button class="btn-white" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown"
+                    aria-haspopup="true" aria-expanded="false">
+                <i class="bi bi-funnel"></i>
+                <i class="bi bi-chevron-down"></i>
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                <li><a class="dropdown-item" [class.active]="wallFilter === 'all'" (click)="filterWalls('all')">All Moments</a></li>
+                <li><a class="dropdown-item" [class.active]="wallFilter === 'favourite'" (click)="filterWalls('favourite')">Starred Moments</a></li>
+                <li><a class="dropdown-item" [class.active]="wallFilter === 'saved'" (click)="filterWalls('saved')">Saved Moments</a></li>
+            </ul>
+        </div>
+    </div>
+    <hr class="solid-divider">
+    <hr class="white-divider">
+    <ng-container *ngIf="showWalls.length === 0">
+        <div class="row">
+            <div class="col no-posts">
+                <div class="img-wrapper"><img src="assets/images/v3/no-posts.png"/></div>
+                <h4>No moment created yet.</h4>
+                <h6>Your created moments and shared moments will appear here</h6>
+            </div>
+        </div>
+    </ng-container>
+        <div class="row walls gap-0" *ngIf="showWalls.length > 0">
+            <div class="col-xxl-3 col-lg-4 col-md-6 hidden" *ngFor="let wall of showWalls; let i = index" #wallCard>
+                <div class="card" (click)="openWall(wall)">
+                    @if (wall.isNew) {
+                        <div class="folded-corner">
+                            <span>NEW</span>
+                        </div>
+                    }
+                    <div class="card-img-top">
+                        <div class="dropdown">
+                            <button class="btn drop-down dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" (click)="$event.stopPropagation(); toggleDropdown(i)">
+                                <i class="bi bi-three-dots"></i>
+                            </button>
+                            <ul class="dropdown-menu" (click)="$event.stopPropagation(); closeDropdown()" [class.show]="openDropdownIndex === i">
+                                <li><a class="dropdown-item" (click)="copyLink(wall)"><i class="me-3 bi bi-link"></i>Copy Link</a></li>
+                                <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#shareModal" (click)="shareWall(wall)"><i class="me-3 bi bi-share-fill"></i>Share</a></li>
+                                <li><a class="dropdown-item" (click)="downloadWall(wall)"><i class="me-3 bi bi-download"></i> Download</a></li>
+                                @if (wall.saved) {
+                                    <li><a class="dropdown-item" (click)="removeWall(wall)"><i class="me-3 bi bi-trash"></i>Unsave</a></li>
+                                }
+                            </ul>
+                        </div>
+                        <img [src]="wall.theme?.bgImg || wall.bgImg" class="card-img-top">
+                        <div class="fade"></div>
+                    </div>
+                    <div class="card-body">
+                        <h2>{{wall.title}}</h2>
+                        <h4>{{wall.type}}</h4>
+                        <h6>
+                            <span><i class="bi bi-clock"></i> Edited {{ dateTimeAgo[i] }}</span>
+                            <span><i class="bi bi-people"></i> {{ wall.interactions }}</span>
+                            <ng-container *ngIf="!isUserAllowed(wall); else nonReportedPosts">
+                              <span><i class="bi bi-chat-square-text"></i> {{ wall.posts.nonArchivedNonReportedCount }}
+                              post<span *ngIf="wall.posts.nonArchivedNonReportedCount > 1 || wall.posts.nonArchivedNonReportedCount == 0">s</span>
+                              </span>
+                            </ng-container>
+                            <ng-template #nonReportedPosts>
+                              <span><i class="bi bi-chat-square-text"></i> {{ wall.posts.nonArchivedCount }}
+                              post<span *ngIf="wall.posts.nonArchivedCount > 1 || wall.posts.nonArchivedCount == 0">s</span>
+                              </span>
+                            </ng-template>    
+                        </h6>
+                    </div>
+                    <div class="card-footer">
+                        <app-user-replacer [email]="wall.ownerEmail" [datetime] = "wall.createdAt" [component]="'dashboard'"></app-user-replacer>
+                        <div class="bookmark" (click)="$event.stopPropagation(); toggleStar(wall)">
+                            <i class="bi" [ngClass]="wall.starred ? 'bi-star-fill' : 'bi-star'"></i>
+                        </div>
+                    </div>
+                    <div class="custom-btn custom-btn-lg">
+                        <h5>View Moment <i class="bi bi-arrow-right"></i></h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+</div>
+
+<app-sharemodal [sharedWallUrl]="sharedWallUrl" [wallTitle]="wallTitle"></app-sharemodal>

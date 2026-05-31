@@ -1,0 +1,114 @@
+<app-homepage-banner></app-homepage-banner>
+
+<div class="your-posts g-0">
+    <div class="main-title">
+        <div>
+            <h2>{{ filterTitle }}</h2>
+            <p class="section-kicker">Find the moments you created, manage, or recently opened.</p>
+        </div>
+        <div class="moment-filter-tabs">
+            <button type="button" [class.active]="wallFilter === 'recents'" (click)="filterChangeText('recents')">
+                <i class="bi bi-clock-history"></i>
+                Recent
+            </button>
+            <button type="button" [class.active]="wallFilter === 'all'" (click)="filterChangeText('all')">
+                <i class="bi bi-grid-1x2"></i>
+                All
+            </button>
+            <button type="button" [class.active]="wallFilter === 'my'" (click)="filterChangeText('my')">
+                <i class="bi bi-person-heart"></i>
+                Mine
+            </button>
+            <button type="button" [class.active]="wallFilter === 'shared'" (click)="filterChangeText('shared')">
+                <i class="bi bi-people"></i>
+                Managed
+            </button>
+        </div>
+    </div>
+    <div class="moments-results" [class.is-loading]="loading && showWalls.length === 0">
+        <ng-container *ngIf="showWalls.length === 0 && !loading">
+            <div class="empty-moments">
+                <div class="empty-art">
+                    <i class="bi bi-postcard-heart"></i>
+                </div>
+                <div>
+                    @if(wallFilter === 'recents'){
+                        <h4>No recent moments.</h4>
+                        <h6>Explore various moments and they'll appear here.</h6>
+                    } @else{
+                        <h4>No moment created yet.</h4>
+                        <h6>Your created moments and shared moments will appear here</h6>
+                    }
+                </div>
+            </div>
+        </ng-container>
+
+        <div class="loading-moments" *ngIf="loading && showWalls.length === 0" aria-live="polite">
+            <div class="loading-card" *ngFor="let item of [1,2,3,4]"></div>
+        </div>
+
+        <div class="row walls gap-0" *ngIf="showWalls.length > 0">
+            <div class="col-xxl-3 col-lg-4 col-md-6 hidden" *ngFor="let wall of showWalls; let i = index" #wallCard>
+                <div class="card" (click)="openWall(wall)">
+                    @if (wall.isNew) {
+                        <div class="folded-corner">
+                            <span>NEW</span>
+                        </div>
+                    }
+                        <div class="card-img-top">
+                            <div class="dropdown">
+                                <button class="btn drop-down dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" (click)="$event.stopPropagation(); toggleDropdown(i)">
+                                <i class="bi bi-three-dots"></i>
+                            </button>
+                            <ul class="dropdown-menu" (click)="$event.stopPropagation(); closeDropdown()" [class.show]="openDropdownIndex === i">
+                                <li><a class="dropdown-item" (click)="copyLink(wall)"><i class="me-3 bi bi-link"></i>Copy Link</a></li>
+                                <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#shareModal" (click)="shareWall(wall)"><i class="me-3 bi bi-share-fill"></i>Share</a></li>
+                                <li><a class="dropdown-item" (click)="downloadWall(wall)"><i class="me-3 bi bi-download"></i>Download</a></li>
+                                @if (userEmail && (userEmail == wall.ownerEmail || wall.maintainerEmails?.includes(userEmail))) {
+                                    <li><a class="dropdown-item" (click)="archiveWall(wall)"><i class="me-3 bi bi-trash"></i>Archive</a></li>
+                                }
+                            </ul>
+                        </div>
+                        <img [src]="wall.theme?.bgImg || wall.bgImg" class="card-img-top">
+                        <div class="fade"></div>
+                    </div>
+                    <div class="card-body">
+                        <h2>{{ wall.title }}</h2>
+                        <h4>{{ wall.type }}</h4>
+                        <h6>
+                            <span><i class="bi bi-clock"></i> Edited {{ dateTimeAgo[i] }}</span>
+                            <span><i class="bi bi-people"></i> {{ wall.interactions }}</span>
+                            <ng-container *ngIf="!isUserAllowed(wall); else nonReportedPosts">
+                              <span><i class="bi bi-chat-square-text"></i> {{ wall.posts.nonArchivedNonReportedCount }}
+                              post<span *ngIf="wall.posts.nonArchivedNonReportedCount > 1 || wall.posts.nonArchivedNonReportedCount == 0">s</span>
+                              </span>
+                            </ng-container>
+                            <ng-template #nonReportedPosts>
+                              <span><i class="bi bi-chat-square-text"></i> {{ wall.posts.nonArchivedCount }}
+                              post<span *ngIf="wall.posts.nonArchivedCount > 1 || wall.posts.nonArchivedCount == 0">s</span>
+                              </span>
+                            </ng-template>    
+                        </h6>
+                    </div>
+                    <div class="card-footer">
+                        <app-user-replacer [email]="wall.ownerEmail" [datetime] = "wall.createdAt" [component]="'dashboard'"></app-user-replacer>
+                        <div class="bookmark" (click)="$event.stopPropagation(); toggleStar(wall)">
+                            <i class="bi" [ngClass]="wall.starred ? 'bi-star-fill' : 'bi-star'"></i>
+                        </div>
+                    </div>
+                    <div class="custom-btn custom-btn-lg">
+                        <h5>View Moment <i class="bi bi-arrow-right"></i></h5>
+                    </div>
+                </div>
+            </div>
+
+            @if (loading && walls.length > 0) {
+                <div class="load-more col-12 text-center">
+                  <img src="assets/animation/loading.gif" alt="Loading"/>
+                </div>
+                            }
+        </div>
+    </div>
+</div>
+
+<app-sharemodal [sharedWallUrl]="sharedWallUrl" [wallTitle]="wallTitle"></app-sharemodal>
