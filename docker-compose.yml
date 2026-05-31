@@ -1,0 +1,178 @@
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: dockerfile
+    depends_on:
+      - mongo_madness
+    environment:
+      - ENV=docker
+      - KAFKA_BROKER=kafka:9092
+      - PORT=8071
+      - SERVICE_BASE_URL=http://localhost:8071
+      - UI_BASE_URL=http://localhost:4200
+      - NGINX_BASE_URL=http://localhost:4200
+      - CONNECTION_STRING=mongodb://mongo_madness:27017/momenta
+      - REDIS_HOST=redis-node-1
+      - REDIS_PORT=6379
+
+      - JWT_SECRET=${JWT_SECRET}
+      - DELIVERED_JWT_SECRET=${DELIVERED_JWT_SECRET}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - GIPHY_API_KEY=${GIPHY_API_KEY}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - DEFAULT_USER_PASS=${DEFAULT_USER_PASS}
+      - DISABLE_ACCESS_WHITELIST=${DISABLE_ACCESS_WHITELIST}
+    volumes:
+      - ./backend:/backend
+      - /backend/node_modules
+      - ./frontend/src/assets:/backend/assets
+      - ${MEDIA_FILE_PATH}:/root
+    command: bash -c "npm install && npm run dev"
+    ports:
+      - "8071:8071"
+    # expose:
+    #   - "8071"
+    restart: unless-stopped
+    networks:
+      - momenta-network
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+        reservations:
+          memory: 512M
+
+  ui:
+    build:
+      context: ./frontend
+      dockerfile: dockerfile
+    depends_on:
+      - api
+    volumes:
+      - ./frontend:/frontend
+      - /frontend/node_modules
+    command: npm run start
+    ports:
+      - "4200:4200"
+    restart: unless-stopped
+    networks:
+      - momenta-network
+
+  mongo_madness:
+    image: mongo:latest
+    environment:
+      - MONGODB_INITDB_ROOT_USERNAME=${MONGODB_INITDB_ROOT_USERNAME}
+      - MONGODB_INITDB_ROOT_PASSWORD=${MONGODB_INITDB_ROOT_PASSWORD}
+    command: mongod --port 27017 --wiredTigerCacheSizeGB 2
+    expose:
+      - 27017
+    volumes:
+      - type: volume
+        source: mongodb_data_volume
+        target: /data/db
+    restart: unless-stopped        
+    networks:
+      - momenta-network
+    deploy:
+      resources:
+        limits:
+          memory: 2.5G
+          cpus: "1.0"
+        reservations:
+          memory: 1G
+
+  mongo_madness_ui:
+    image: mongo-express:latest
+    container_name: mongo-express
+    environment:
+      - ME_CONFIG_MONGODB_URL=mongodb://mongo_madness:27017/${DB_SCHEMA}
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=${MONGODB_INITDB_ROOT_USERNAME}
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=${MONGODB_INITDB_ROOT_PASSWORD}
+      - ME_CONFIG_BASICAUTH_USERNAME=${DB_USERNAME}
+      - ME_CONFIG_BASICAUTH_PASSWORD=${DB_PASSWORD}
+      - ME_CONFIG_SITE_BASEURL=/${DB_BASEURL}
+    depends_on:
+      - mongo_madness
+    links:
+      - mongo_madness
+    ports:
+      - "8073:8081"
+    restart: unless-stopped   
+    networks:
+      - momenta-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+        reservations:
+          memory: 256M
+
+  redis-node-1:
+    image: redis:7.2.4
+    restart: unless-stopped
+    expose:
+      - "8074"
+    networks:
+      - momenta-network
+    hostname: redis-node-1
+    volumes:
+      - ./redis/redis.config:/redis/redis.conf
+    command: redis-server /redis/redis.conf --appendonly yes
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+        reservations:
+          memory: 1G 
+
+  # zookeeper:
+  #   image: wurstmeister/zookeeper:latest
+  #   ports:
+  #     - "8075:2181"
+  #   networks:
+  #     - momenta-network
+
+  # kafka:
+  #   image: wurstmeister/kafka:latest
+  #   ports:
+  #     - "8076:9092"
+  #   environment:
+  #     KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+  #     KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+  #     KAFKA_DELETE_TOPIC_ENABLE: 'true'
+  #     KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+  #     KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+  #     KAFKA_CREATE_TOPICS: "notification-events:1:1"
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   depends_on:
+  #     - zookeeper
+  #   networks:
+  #     - momenta-network
+
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: proxy-server
+  #   ports:
+  #     - "8070:80"
+  #   volumes:
+  #     - ./proxy.conf:/etc/nginx/nginx.conf
+  #   depends_on:
+  #     - api
+  #     - ui
+  #     - mongo_madness_ui
+  #   networks:
+  #     - momenta-network
+
+volumes:
+  mongodb_data_volume:
+
+networks:
+  momenta-network:
+    driver: bridge
