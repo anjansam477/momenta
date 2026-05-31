@@ -1,0 +1,137 @@
+<div class="post-container" [ngClass]="{'px__126': !checkWallCreator() || isPreview, 'post-p': currentPage === 'download'}">
+    <div class="column" *ngFor="let column of columns; let i = index; trackBy: trackByColumn">
+        <article class="post" [ngClass]="{'reported': (post.openReportCount ?? post.reportedBy?.length ?? 0)}" *ngFor="let post of column; trackBy: trackByPost" [id]="'post-' + post._id">
+            <div class="post-top"> 
+            @if(isOpen && showDropdown(post)){
+                    <div class="dropdown" *ngIf="currentPage !== 'download'">
+                        <button class="btn drop-down dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" (click)="toggleDropdown(post._id)">
+                            <i class="bi bi-three-dots"></i>
+                        </button>
+                        <ul class="dropdown-menu" (click)="$event.stopPropagation(); closeDropdown()" [class.show]="openDropdownIndex === post._id">
+                            <li *ngIf="!(post.openReportCount ?? post.reportedBy?.length ?? 0) && isArchived == false">
+                                <a *ngIf="sessionTrack(post)" (click)="openUpdatePost(post._id)" 
+                                data-bs-toggle="modal" data-bs-target="#postModal" class="dropdown-item">
+                                    Edit 
+                                </a>
+                            </li>
+                            <!-- <li *ngIf="!(post.openReportCount ?? post.reportedBy?.length ?? 0) && !sessionTrack(post)">
+                                <a class="dropdown-item" (click)="reportPost(post)" 
+                                [attr.data-bs-toggle]="loginBoolean ? null : 'modal'"
+                                [attr.data-bs-target]="loginBoolean ? null : '#loginModal'">
+                                    Report
+                                </a>
+                            </li> -->
+                            <li *ngIf="sessionTrack(post) || checkWallCreator()">
+                                <a class="dropdown-item" (click)="deletePost(post)">
+                                    Delete
+                                </a>
+                            </li>
+                            <li *ngIf="(post.openReportCount ?? post.reportedBy?.length ?? 0) && checkWallCreator()">
+                                <a class="dropdown-item" (click)="unreportPost(post)">
+                                    Unreport
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                }
+                <div class="media-container" *ngIf="post.media?.url || post.mediaUrl" (click)="$event.stopPropagation()" >
+                    <ng-container *ngIf="isImage(post.media?.type || post.mediaType, post.media?.url || post.mediaUrl) || isGif(post.media?.type || post.mediaType, post.media?.url || post.mediaUrl)">
+                        <img *ngIf="isImage(post.media?.type || post.mediaType, post.media?.url || post.mediaUrl)" [src]="mediaUrls[post.media?.url || post.mediaUrl]" alt="Image" />
+                        <img *ngIf="isGif(post.media?.type || post.mediaType, post.media?.url || post.mediaUrl)" [src]="mediaUrls[post.media?.url || post.mediaUrl]" alt="GIF" />
+                    </ng-container>
+                    <video *ngIf="isVideo(post.media?.type || post.mediaType)" #videoPlayer id="videoPlayer" [src]="mediaUrls[post.media?.url || post.mediaUrl]" controls (click)="stopVideo(videoPlayer)">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>            
+            </div>
+            <div class="post-body" *ngIf="post.content">
+                <p class="note" [innerHTML]="post.content | sanitizeAndCleanHtmlPipe"></p>
+            </div>
+            <div class="post_footer">
+                <div class="post-footer-grid">
+                    <div class="post-author">
+                        <app-user-replacer [email]="post.authorEmail || post.email" [datetime]="post.createdAt" [component]="'wall-posts'"></app-user-replacer>
+                    </div>
+                    <div class="post-reactions">
+                        <div class="react-wrapper">
+                            @if(isOpen){
+                            <div class="dropdown reactions" *ngIf="!(post.reactions['heart']?.length && post.reactions['like']?.length && post.reactions['wow']?.length && post.reactions['sad']?.length && post.reactions['laugh']?.length && post.reactions['celebrate']?.length) && !(post.openReportCount ?? post.reportedBy?.length ?? 0)">
+                                      <div class="btn dropdown-toggle add-reaction" type="button" id="reactionButton" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">
+                                        <i class="bi bi-plus-circle" title="Add reactions" *ngIf="currentPage !== 'download'"></i>
+                                      </div>
+                                    <div class="dropdown-menu reactions-bar" aria-labelledby="reactionButton">
+                                      <div class="dropdown-item reaction ps-2" (click)="react('heart',post._id)" [attr.data-bs-toggle]="loginBoolean ? null : 'modal'"
+                                      [attr.data-bs-target]="loginBoolean ? null : '#loginModal'" title="Heart"><i class="bi bi-heart reaction-icon"></i></div>
+                                      <div class="dropdown-item reaction" (click)="react('like',post._id)" [attr.data-bs-toggle]="loginBoolean ? null : 'modal'"
+                                      [attr.data-bs-target]="loginBoolean ? null : '#loginModal'" title="Like"><i class="bi bi-hand-thumbs-up reaction-icon"></i></div>
+                                      <div class="dropdown-item reaction" (click)="react('wow',post._id)" [attr.data-bs-toggle]="loginBoolean ? null : 'modal'"
+                                      [attr.data-bs-target]="loginBoolean ? null : '#loginModal'" title="Wow"><i class="bi bi-emoji-surprise reaction-icon"></i></div>
+                                      <div class="dropdown-item reaction" (click)="react('sad',post._id)" [attr.data-bs-toggle]="loginBoolean ? null : 'modal'"
+                                      [attr.data-bs-target]="loginBoolean ? null : '#loginModal'" title="Sad"><i class="bi bi-emoji-frown reaction-icon"></i></div>
+                                      <div class="dropdown-item reaction" (click)="react('laugh',post._id)" [attr.data-bs-toggle]="loginBoolean ? null : 'modal'"
+                                      [attr.data-bs-target]="loginBoolean ? null : '#loginModal'" title="Laugh"><i class="bi bi-emoji-laughing reaction-icon"></i></div>
+                                      <div class="dropdown-item reaction" (click)="react('celebrate',post._id)" [attr.data-bs-toggle]="loginBoolean ? null : 'modal'"
+                                      [attr.data-bs-target]="loginBoolean ? null : '#loginModal'" title="Celebrate"><i class="bi bi-stars reaction-icon"></i></div>
+                                    </div>
+                            </div>
+                            }
+                            <span class="react_badges" *ngIf="post.reactions['heart']?.length" (click)="react('heart',post._id)"
+                            [attr.data-bs-toggle]="loginBoolean ? null : 'modal'"
+                            [attr.data-bs-target]="loginBoolean ? null : '#loginModal'"
+                            [ngClass]="{'added-reaction': isReactionPresent('heart', post)}">
+                                <i class="bi bi-heart reaction-icon"></i>
+                                <span class="emoji_number">{{ post.reactions['heart'].length }}</span>
+                            </span>
+                            <span class="react_badges" *ngIf="post.reactions['like']?.length" (click)="react('like',post._id)"
+                            [attr.data-bs-toggle]="loginBoolean ? null : 'modal'"
+                            [attr.data-bs-target]="loginBoolean ? null : '#loginModal'"
+                            [ngClass]="{'added-reaction': isReactionPresent('like', post)}">
+                                <i class="bi bi-hand-thumbs-up reaction-icon"></i>
+                                <span class="emoji_number">{{ post.reactions['like'].length }}</span>
+                            </span>
+                            <span class="react_badges" *ngIf="post.reactions['wow']?.length" (click)="react('wow',post._id)"
+                            [attr.data-bs-toggle]="loginBoolean ? null : 'modal'"
+                            [attr.data-bs-target]="loginBoolean ? null : '#loginModal'"
+                            [ngClass]="{'added-reaction': isReactionPresent('wow', post)}">
+                                <i class="bi bi-emoji-surprise reaction-icon"></i>
+                                <span class="emoji_number">{{ post.reactions['wow'].length }}</span>
+                            </span>
+                            <span class="react_badges" *ngIf="post.reactions['sad']?.length" (click)="react('sad',post._id)"
+                            [attr.data-bs-toggle]="loginBoolean ? null : 'modal'"
+                            [attr.data-bs-target]="loginBoolean ? null : '#loginModal'"
+                            [ngClass]="{'added-reaction': isReactionPresent('sad', post)}">
+                                <i class="bi bi-emoji-frown reaction-icon"></i>
+                                <span class="emoji_number">{{ post.reactions['sad'].length }}</span>
+                            </span>
+                            <span class="react_badges" *ngIf="post.reactions['laugh']?.length" (click)="react('laugh',post._id)"
+                            [attr.data-bs-toggle]="loginBoolean ? null : 'modal'"
+                            [attr.data-bs-target]="loginBoolean ? null : '#loginModal'"
+                            [ngClass]="{'added-reaction': isReactionPresent('laugh', post)}">
+                                <i class="bi bi-emoji-laughing reaction-icon"></i>
+                                <span class="emoji_number">{{ post.reactions['laugh'].length }}</span>
+                            </span>
+                            <span class="react_badges" *ngIf="post.reactions['celebrate']?.length" (click)="react('celebrate',post._id)"
+                            [attr.data-bs-toggle]="loginBoolean ? null : 'modal'"
+                            [attr.data-bs-target]="loginBoolean ? null : '#loginModal'"
+                            [ngClass]="{'added-reaction': isReactionPresent('celebrate', post)}">
+                                <i class="bi bi-stars reaction-icon"></i>
+                                <span class="emoji_number">{{ post.reactions['celebrate'].length }}</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>       
+            </div>
+        </article>
+    </div>
+    @if (loading && posts.length > 0) {
+        <div class="load-more col-12 text-center">
+          <span class="moment-spinner" aria-label="Loading more posts"></span>
+        </div>
+    }
+</div>
+
+<app-postmodal [postIdSubject]="postIdSubject" (modalClosed)="onModalClosed()"></app-postmodal>
+
+<app-loginmodal></app-loginmodal>
+
+<app-messagemodal></app-messagemodal>
