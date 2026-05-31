@@ -1,0 +1,105 @@
+.profile-wrapper {
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.profile-picture {
+    border-radius: 50%;
+    width: 120px;
+    height: 120px;
+    overflow: hidden;
+    margin: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(16, 167, 164, 0.12);
+    color: #087c83;
+}
+
+.profile-picture img {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+
+}
+
+.profile-fallback-icon {
+    font-size: 54px;
+}
+
+.form-group {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.input-group input[type="text"] {
+    flex: 1;
+    padding: 8px 13px;
+    background: #f6f7fd !important;
+    color: #7d8ca3;
+    height: 45px;
+
+}
+
+.input-group button {
+    background: linear-gradient(184deg, rgb(92, 204, 179) 0%, rgb(42, 175, 145) 93%);
+    border: 0px;
+    border-radius: 4px !important;
+    color: #fff;
+    font-size: 16px;
+    line-height: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease-in-out;
+    padding: 0px 6px;
+
+}
+
+
+label {
+    font-weight: bold;
+}
+
+.edit-button {
+    background: linear-gradient(184deg, rgb(92, 204, 179) 0%, rgb(42, 175, 145) 93%);
+    width: 32px;
+    color: #fff;
+    height: 32px;
+    border-radius: 50%;
+    text-align: center;
+    font-size: 16px;
+    cursor: pointer;
+    line-height: 36px;
+
+}
+
+.profile-button-wrapper {
+    display: flex;
+    gap: 4px;
+    position: absolute;
+    left: 58%;
+    bottom: 6%;
+}
+
+.modal-header{
+    background-image: linear-gradient(to right, rgba(255, 104, 92, 0.9), rgba(16, 167, 164, 0.9));
+}
+
+.modal-header h1{
+    color: white;
+    margin-bottom: 0px;
+}
+
+.done-icon{
+    color:#4875f7;
+    font-size: 16px;
+    padding-left: 5px;
+}
+
+
+.settings-modal .modal-content{
+    height: fit-content;
+    min-height: auto;
+} 

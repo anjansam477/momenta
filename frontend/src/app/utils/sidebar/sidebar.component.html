@@ -1,0 +1,54 @@
+<div>
+    <div class="sidebar-wrapper" [ngClass]="{'sidebar-active': isOpen}">
+        <div class="sidebar">
+    
+            <a class="logo-wrapper" (click)="openDashboard()" style="cursor: pointer;">
+                <img src="assets/images/momenta/momenta-icon.png">
+                <img class="momenta-text-logo" src="assets/images/momenta/momenta-wordmark.png">
+            </a>
+            <hr class="divider">
+            <ul>
+                <li routerLinkActive="active" routerLink="/home/dashboard" title="Dashboard">
+                    <div class="Dashboard">
+                        <a>
+                            <i class="bi bi-house-door-fill nav-icon"></i>
+                            <span class="nav-item">Dashboard</span>
+                        </a>
+                    </div>
+                </li>
+                <li routerLinkActive="active" routerLink="/home/shared" title="Shared Moments">
+                    <div class="Shared Moments">
+                        <a>
+                            <i class="bi bi-share-fill nav-icon"></i>
+                            <span class="nav-item">Shared Moments</span>
+                        </a>
+                    </div>
+                </li>
+                <li routerLinkActive="active" routerLink="/home/received" title="Received Moments">
+                    <div class="Received Moments">
+                        <a>
+                            <i class="bi bi-inbox-fill nav-icon"></i>
+                            <span class="nav-item">Received Moments</span>
+                        </a>
+                    </div>
+                </li>
+                <li routerLinkActive="active" routerLink="/home/favourite" title="Favorite Moments">
+                    <div class="Starred Moments">
+                        <a>
+                            <i class="bi bi-star-fill nav-icon"></i>
+                            <span class="nav-item">Favourite Moments</span>
+                        </a>
+                    </div>
+                </li>
+                <li routerLinkActive="active" routerLink="/home/archived" title="Archived Moments">
+                    <div class="Archived">
+                        <a>
+                            <i class="bi bi-archive-fill nav-icon"></i>
+                            <span class="nav-item">Archived Moments</span>
+                        </a>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>

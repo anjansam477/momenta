@@ -1,0 +1,58 @@
+<div class="cst-modal share-modal modal fade" data-bs-backdrop="static" #shareModal id="shareModal" tabindex="-1"
+    aria-labelledby="shareModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header modal__header__bg"> Share Moment <i class="bi bi-x-lg" data-bs-dismiss="modal"></i></div>
+
+                <div class="modal-body">
+                    <qrcode #qrcodeElement (qrCodeURL)="onChangeURL($event)" class="qrcode" [qrdata]="sharedWallUrl"
+                        [colorLight]="'#ffffffff'" [allowEmptyString]="true" [width]="270" [errorCorrectionLevel]="'M'"
+                        [imageSrc]="'assets/images/momenta/momenta-icon.png'" [imageHeight]="72" [imageWidth]="75">
+                    </qrcode>
+
+                    <div class="qrcode-btns ">
+                        <button class="btn btn-secondary mx-2" (click)="copyQRCodeToClipboard()"
+                            [disabled]="isqrCopied"><i class="bi bi-copy"></i></button>
+                        <button class="btn btn-secondary mx-2" (click)="saveAsImage()"><i
+                                class="bi bi-download"></i></button>
+                    </div>
+                    @if(isqrCopied){
+                    <p class="modal-para mt-2" style=" color:green">{{qrCopied}}</p>}
+                    @else{
+                    <p class="modal-para mt-2" style="color:rgb(225, 17, 17)">{{qrCopied}}</p>
+                    }
+                    <div class="partition mt-3">
+                        <span>OR</span>
+                    </div>
+                    <div class="social-media-links container-fluid mt-1">
+                        <div class="social-media-logo row mb-4">
+                            <div class="circle col" (click)="shareFacebook()" data-bs-toggle="tooltip" title="Facebook">
+                                <i class="bi bi-facebook"></i>
+                            </div>
+                            <div class="circle col" (click)="shareTwitter()" data-bs-toggle="tooltip" title="Twitter">
+                                <i class="bi bi-twitter-x"></i>
+                            </div>
+                            <div class="circle col" (click)="shareLinkedIn()" data-bs-toggle="tooltip"
+                                title="LinkedIn/ Paste on new post">
+                                <i class="bi bi-linkedin"></i>
+                            </div>
+                            <div class="circle col" (click)="shareWhatsApp()" data-bs-toggle="tooltip" title="WhatsApp">
+                                <i class="bi bi-whatsapp"></i>
+                            </div>
+                            <div class="circle col" (click)="shareGmail()" data-bs-toggle="tooltip" title="Gmail">
+                                <i class="bi bi-envelope-fill"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary button-xl w-100 mt-2" (click)="copyLink()" [disabled]="isLinkCopied">
+                        <b><i class="me-2 link bi bi-link"></i>{{ isLinkCopied ? 'Link Copied' : 'Copy link' }}</b>
+                    </button>
+                    @if(isLinkCopied){
+                    <p class="modal-para mt-2" style=" color:green">{{linkCopied}}</p>}
+                    @else{
+                    <p class="modal-para mt-2" style="color:rgb(225, 17, 17)">{{linkCopied}}</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>

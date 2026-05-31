@@ -1,0 +1,36 @@
+.profile-pic{
+    top: 2px !important;
+}
+
+.add__user_email, .add__user_name{
+    margin-left: 12px !important;
+}
+
+.user-list-item{
+    padding: 5px 0;
+}
+
+.avatar,
+.user-pic,
+.add_people-pic {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.avatar-fallback {
+    width: 100%;
+    height: 100%;
+    min-width: 24px;
+    min-height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: #087c83;
+    background: rgba(16, 167, 164, 0.14);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0;
+}

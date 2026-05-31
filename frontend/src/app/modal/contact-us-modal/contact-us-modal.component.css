@@ -1,0 +1,17 @@
+.form-result h4{
+    margin-bottom: 20px;
+}
+
+.form-result p{
+    color: rgb(114, 106, 106);
+    font-size: 16px;
+    font-weight: 400;
+    text-align: justify;
+}
+
+.response-message {
+    font-size: 14px;
+    line-height: 24px;
+    font-weight: 400;
+    color: #04b001d0;
+}

@@ -1,0 +1,7 @@
+<div class="cst-modal message-modal modal fade" #messageModal id="messageModal">
+  <div class="modal-dialog">
+      <div class="modal-body" [ngClass]="{'login-body':currentPage === 'login' || currentPage === 'verification' || currentPage === 'forgot-password' || currentPage === 'register'}">
+        {{ message }}
+      </div>
+  </div>
+</div>

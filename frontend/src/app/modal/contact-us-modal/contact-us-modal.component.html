@@ -1,0 +1,54 @@
+<div class="cst-modal modal fade" data-bs-backdrop="static" #contactUsModal id="contactUsModal" tabindex="-1"
+    aria-labelledby="contactUsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content prelogin-form">
+            <div class="modal-header mx-auto mt-4 p-0">
+                <div class="logo_sm">
+                    <img src="assets/images/momenta/momenta-logo-horizontal.png" />
+                </div>
+                @if(!isMailSend){
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" (click)="closeModal()"></button>
+                }
+            </div>
+            @if(!isMailSend){
+            <div class="modal-body pt-0 px-4">
+                <div class="mt-2 mb-4">
+                    <h4>Need help?</h4>
+                    <p>Feel free to write your questions or concerns below.</p>
+                </div>
+                <form [formGroup]="contactForm" (ngSubmit)="sendMessage()">
+                    <div class="login-form-div">
+                        <div class="mb-4 position-relative">
+                            <textarea class="form-control ps__40" id="message" formControlName="message" rows="6"
+                                placeholder="Message" style="height: auto;"
+                                [ngClass]="{ 'validation-input': contactForm.get('message')?.invalid && contactForm.get('message')?.touched}"></textarea>
+                            <i class="bi bi-chat-text login-input-icon" style="font-size: 16px; top: 8px;"></i>
+                            <div *ngIf="contactForm.get('message')?.hasError('required') && contactForm.get('message')?.touched"
+                                class="validation-text">
+                                Message is required.
+                            </div>
+                            <div class="validation-text"
+                                *ngIf="contactForm.get('message')?.hasError('error') && contactForm.get('message')?.touched && !contactForm.get('message')?.hasError('required')">
+                                {{ contactForm.get('message')?.getError('error') }}
+                            </div>
+                            <div class="validation-text">{{errorMessage}}</div>
+                        </div>
+                            <p class="response-message">{{mailProcessing}}</p>
+                        <button type="submit" class="btn btn-primary button-xl w-100 mt-3">
+                            <b>Send</b></button>
+                    </div>
+                </form>
+            </div>
+            }
+            @else{
+            <div class="modal-body pt-0 px-4 form-result">
+                <div class="mt-2 mb-4">
+                    <h4>Thank you for reaching out!</h4>
+                    <p>Your email has been successfully sent. Our support team will review your query promptly and provide assistance as quickly as possible.</p>
+                    <button class="btn btn-primary button-xl w-100 mt-3" (click)="closeModal()">Ok</button>
+                </div>
+            </div>
+            }
+        </div>
+    </div>
+</div>

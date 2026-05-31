@@ -1,0 +1,65 @@
+.message-modal {
+    width: 30%;
+    top: 90%;
+    left: 69%;
+    z-index: 1050;
+}
+
+.modal-dialog {
+    width: 100%;
+    margin: 0 !important;
+}
+
+.modal-body {
+    color: white;
+    background-color: #386ebfd2;
+    padding: 10px;
+}
+
+.login-body {
+    color: black;
+    background-color: rgba(255, 255, 255, 0.738);
+}
+
+@media only screen and (max-width: 990px) {
+    .message-modal {
+        width: 38%;
+        left: 61%;
+    }
+}
+
+@media only screen and (max-width: 775px) {
+    .message-modal {
+        width: 45%;
+        left: 53%;
+    }
+}
+
+@media only screen and (max-width: 650px) {
+    .message-modal {
+        width: 47%;
+        left: 50%;
+    }
+}
+
+@media only screen and (max-width: 576px) {
+    .message-modal {
+        width: 55%;
+        left: 43%;
+    }
+}
+
+@media only screen and (max-width: 500px) {
+    .message-modal {
+        width: 63%;
+        left: 34%;
+    }
+}
+
+@media only screen and (max-width: 400px) {
+    .message-modal {
+        width: 75%;
+        left: 20%;
+    }
+}
+

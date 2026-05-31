@@ -1,0 +1,92 @@
+<section class="moment-hero" [class.public-view]="!checkWallCreator() || isPreview || currentPage === 'download'">
+  <button type="button" class="hero-back" aria-label="Back" *ngIf="currentPage !== 'download' && (!checkWallCreator() || isPreview)" (click)="closePreview()">
+    <i class="bi bi-arrow-left"></i>
+  </button>
+
+  <div class="moment-hero-copy">
+    @if(checkWallCreator() && !isPreview && currentPage !== 'download') {
+      <div *ngIf="!isEditingTitle" class="editable-heading">
+        <h1 (dblclick)="editTitle()">{{ wallTitle }}</h1>
+        <button type="button" class="inline-edit" aria-label="Edit title" (click)="editTitle()">
+          <i class="bi bi-pencil"></i>
+        </button>
+      </div>
+      <div class="inline-editor title-container" *ngIf="isEditingTitle" @fadeInOut>
+        <input [(ngModel)]="newTitle" class="editor-input" (input)="adjustWidth($event)" aria-label="Moment title" />
+        <button type="button" class="editor-action save" aria-label="Save title" (click)="saveTitle()"><i class="bi bi-check-lg"></i></button>
+        <button type="button" class="editor-action cancel" aria-label="Cancel title edit" (click)="cancelEdit()"><i class="bi bi-x-lg"></i></button>
+      </div>
+
+      <div *ngIf="!isEditingDescription" class="editable-description">
+        <p (dblclick)="editDescription()">{{ wallDescription }}</p>
+        <button type="button" class="inline-edit" aria-label="Edit description" (click)="editDescription()">
+          <i class="bi bi-pencil"></i>
+        </button>
+      </div>
+      <div class="inline-editor description-container" *ngIf="isEditingDescription" @fadeInOut>
+        <input [(ngModel)]="newDescription" class="editor-textarea" (input)="adjustWidth($event)" aria-label="Moment description" />
+        <button type="button" class="editor-action save" aria-label="Save description" (click)="saveDescription()"><i class="bi bi-check-lg"></i></button>
+        <button type="button" class="editor-action cancel" aria-label="Cancel description edit" (click)="cancelEdit()"><i class="bi bi-x-lg"></i></button>
+      </div>
+    } @else {
+      <h1>{{ wallTitle }}</h1>
+      <p>{{ wallDescription }}</p>
+    }
+  </div>
+
+  <div class="moment-hero-actions" *ngIf="currentPage !== 'download'">
+    <button type="button" class="hero-action secondary"
+      *ngIf="canAddPost && wallNotExpired && isOpen"
+      [disabled]="!myPost"
+      data-bs-toggle="modal"
+      [attr.data-bs-target]="loginBoolean && myPost ? '#postModal' : null"
+      (click)="myPost ? editPost() : null">
+      <i class="bi bi-pencil-square"></i>
+      <span>Edit post</span>
+    </button>
+
+    <button type="button" class="hero-action primary"
+      *ngIf="canAddPost && wallNotExpired && isOpen"
+      data-bs-toggle="modal"
+      [attr.data-bs-target]="loginBoolean ? '#postModal' : '#loginModal'"
+      (click)="addPost()">
+      <i class="bi bi-plus-lg"></i>
+      <span>Add post</span>
+    </button>
+
+    <button type="button" class="hero-action quiet"
+      data-bs-toggle="modal"
+      data-bs-target="#slideshowModal"
+      [disabled]="!postsAvailable">
+      <i class="bi bi-play-fill"></i>
+      <span>Slideshow</span>
+    </button>
+
+    <button type="button" class="hero-icon-action" aria-label="Toggle audio" (click)="toggleMute()">
+      @if(!isMuted && audioPlaying) {
+        <i class="bi bi-volume-up-fill"></i>
+      } @else {
+        <i class="bi bi-volume-mute-fill"></i>
+      }
+    </button>
+  </div>
+
+  <div class="moment-hero-actions compact-actions" *ngIf="(!checkWallCreator() || isPreview) && currentPage !== 'download'">
+    <button type="button" class="hero-action quiet" data-bs-target="#shareModal" data-bs-toggle="modal">
+      <i class="bi bi-share"></i>
+      <span>Share</span>
+    </button>
+    <button type="button" class="hero-action quiet" (click)="download()">
+      <i class="bi bi-download"></i>
+      <span>Download</span>
+    </button>
+  </div>
+
+  <button type="button" class="hero-action primary download-fixed" *ngIf="currentPage === 'download'" (click)="downloadWall()">
+    <i class="bi bi-download"></i>
+    <span>Download</span>
+  </button>
+</section>
+
+<app-sharemodal [sharedWallUrl]="sharedWallUrl" [wallTitle]="wallTitle"></app-sharemodal>
+<app-slideshow></app-slideshow>

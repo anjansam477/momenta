@@ -1,0 +1,121 @@
+.add-btn{
+    width: 100%;
+    padding: 0px; 
+    height: 35px;
+    background-color: #bbe1ddba;
+    border-radius: 0px 0.33rem 0.33rem 0px;
+    border: none;
+    box-shadow: 1px 1px 4px -1px rgb(114, 114, 114);
+}
+
+.multi-user_profile{
+    width: 20px !important;
+    height: 20px !important;
+  }
+  
+  .user_profile1{
+    left: 8px !important;
+    top: 3px !important;
+  }
+  
+  .user_profile2{
+    left: 15px !important;
+    top: 10px !important;
+  }
+
+  .user_profile3{
+    left: 15px !important;
+    top: 8px !important;
+  }
+
+
+.user___img {
+    /* width: 42px; */
+    /* height: 42px; */
+    border-radius: 50%;
+    overflow: hidden;
+    background: rgb(183, 178, 178);
+    border: 2px solid #328976;
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* left: 12px;
+    top: 15px; */
+}
+
+.user___img img {
+    width: 100%;
+    height: 100%;
+    object-fit:contain;
+    vertical-align:top;
+}
+
+.list-heading{
+    font-size: small;
+    margin-top: 10px;
+    margin-left: 5px;
+    color:#483f9b;
+}
+
+.list-title{
+    box-shadow: 1px 1px 4px -1px rgb(114, 114, 114);
+    border-radius: 5px 0px 0px 5px;
+    padding-bottom: 5px !important;
+}
+
+
+.save-btn{
+    border-radius: 0px;
+    width: 140px;
+    margin-left: 53%;
+    border-radius: 0.33rem;
+    background-color: #dfe7ff82;
+    font-size: medium;
+}
+
+.no-people-text{
+    font-size: 14px;
+}
+
+
+.delete-list{
+    background-color: #e4e8efe3;
+    padding: 4px 15px;
+    font-size: 13px;
+    text-align: end;
+    cursor: pointer;
+    color: #313693;
+}
+
+.people-pic{
+    width: 30px;
+    height: 30px;
+    position: relative;
+    bottom: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.people-pic img{
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+}
+
+.people-fallback {
+    width: 100%;
+    height: 100%;
+    min-width: 20px;
+    min-height: 20px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #087c83;
+    background: rgba(16, 167, 164, 0.16);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0;
+}

@@ -1,0 +1,108 @@
+.share-modal .modal-dialog {
+    max-width: min(560px, calc(100vw - 28px));
+}
+
+.circle{
+    cursor: pointer;
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #087c83;
+    background: rgba(16, 167, 164, 0.12);
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.circle .bi {
+    font-size: 22px;
+}
+
+.circle:hover {
+    color: #fff;
+    background: #10a7a4;
+    transform: translateY(-1px);
+}
+
+button{
+    cursor: pointer;
+}
+
+.social-media-logo{
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    margin: 0 !important;
+}
+
+.modal-para{
+    margin-bottom: 0px; 
+    font-size: small;
+    text-align: center;
+}
+
+@media (max-width: 576px) {
+    .modal-para {
+      font-size: 14px;
+    }
+}
+  
+.qrcode{
+    text-align: center;
+    display: block;
+    margin: 0 auto;
+}
+
+.qrcode-btns{
+    text-align: center;
+    margin-top: 8px;
+}
+
+.qrcode-btns button{
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qrcode-btns button i{
+    font-size: 20px;
+}
+
+.qrcode-btns a{
+    text-decoration: none;
+    color: inherit;
+}
+
+.share-modal .modal-header{
+    background-image: linear-gradient(to right, rgba(255, 104, 92, 0.9), rgba(16, 167, 164, 0.9));
+}
+.share-modal .modal-header h1{
+    color: white;
+    margin-bottom: 0px;
+}
+
+.share-modal .modal-body {
+    padding: 20px 34px 30px;
+    position: relative;
+} 
+@media (max-width: 767px) {
+    .cst-modal .modal-body {
+        padding: 15px;
+    }
+}
+
+.share-modal .modal-content{
+    height: fit-content;
+    min-height: auto;
+} 
+
+.share-modal .button-xl {
+    min-height: 46px;
+    border-radius: 999px;
+}

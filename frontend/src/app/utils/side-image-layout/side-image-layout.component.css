@@ -1,0 +1,16 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.auth-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 48px 20px;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 202, 40, 0.2), transparent 18rem),
+    radial-gradient(circle at 84% 16%, rgba(16, 167, 164, 0.18), transparent 20rem),
+    radial-gradient(circle at 52% 88%, rgba(255, 104, 92, 0.14), transparent 18rem),
+    linear-gradient(135deg, #fff7f1 0%, #f7fdfc 52%, #ffffff 100%);
+}

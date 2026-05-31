@@ -1,0 +1,15 @@
+.sidebar-active {
+    width: 210px;
+}
+
+@media (max-width: 767px) {
+    .sidebar-active {
+        width: 320px;
+        left: 0px;
+    }
+}
+
+.sidebar{
+    background: none;
+    border: none;
+}

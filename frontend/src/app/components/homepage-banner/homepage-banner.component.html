@@ -1,0 +1,34 @@
+﻿<section class="momenta-hero">
+    <div class="hero-shell">
+        <div class="hero-copy">
+            <span class="hero-eyebrow"><i class="bi bi-stars"></i> Create a moment people remember</span>
+            <h1>Start a shared moment in seconds.</h1>
+            <p>Choose an occasion or create your own, then invite people to add messages, photos, reactions, and warmth.</p>
+
+            <div class="hero-actions">
+                <a class="hero-primary-action" [attr.data-bs-toggle]="loginBoolean ? 'modal': null"
+                    [attr.data-bs-target]="loginBoolean ? '#createWallModal' : null" (click)="openModal('')">
+                    <i class="bi bi-plus-lg"></i>
+                    <span>Create a custom moment</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="occasion-zone">
+            <div class="occasion-heading">
+                <span>Choose an occasion</span>
+                <small>{{ occasions.length }} ready starts</small>
+            </div>
+
+            <div class="occasion-grid">
+                <button *ngFor="let occasion of occasions" type="button" class="occasion-chip {{ occasion.color }}"
+                    data-bs-toggle="modal" data-bs-target="#createWallModal" (click)="openModal(occasion.name)">
+                    <i class="bi {{ occasion.icon || 'bi-gift' }}"></i>
+                    <span>{{ occasion.name }}</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<app-create-wall-modal [occasionSubject]="occasionSubject" [titleSubject]="titleSubject"></app-create-wall-modal>

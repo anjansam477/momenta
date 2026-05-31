@@ -1,0 +1,1 @@
+export const themes=['All', 'Birthday', 'Company Celebration', 'Congratulations','Festivals','Office Competition','Work Anniversary','Wedding Anniversary','Sympathy','Farewell','Thank you','Retirement'];

@@ -1,0 +1,298 @@
+:host {
+    display: block;
+}
+
+.moment-hero {
+    position: relative;
+    min-height: 252px;
+    padding: 104px 7vw 28px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 32px;
+    color: #142238;
+}
+
+.moment-hero::before {
+    content: "";
+    position: absolute;
+    inset: 84px 5vw 18px;
+    z-index: 0;
+    border: 1px solid rgba(15, 143, 139, 0.16);
+    border-radius: 28px;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.64)),
+        radial-gradient(circle at 18% 22%, rgba(255, 104, 92, 0.16), transparent 34%),
+        radial-gradient(circle at 86% 18%, rgba(15, 143, 139, 0.16), transparent 30%),
+        radial-gradient(circle at 68% 84%, rgba(255, 159, 28, 0.15), transparent 30%);
+    box-shadow: 0 28px 80px rgba(16, 48, 61, 0.16);
+    backdrop-filter: blur(14px);
+}
+
+.moment-hero.public-view {
+    min-height: 238px;
+    padding: 38px 7vw 28px calc(7vw + 76px);
+    align-items: center;
+}
+
+.moment-hero.public-view::before {
+    inset: 16px 5vw 18px;
+}
+
+.moment-hero-copy,
+.moment-hero-actions,
+.download-fixed,
+.hero-back {
+    position: relative;
+    z-index: 1;
+}
+
+.moment-hero.public-view .moment-hero-copy {
+    align-self: center;
+}
+
+.moment-hero h1,
+.editable-heading h1 {
+    max-width: 780px;
+    margin: 0 0 10px;
+    color: #142238;
+    font-size: 52px;
+    font-weight: 900;
+    line-height: 1.02;
+    letter-spacing: 0;
+    overflow-wrap: anywhere;
+}
+
+.moment-hero p,
+.editable-description p {
+    max-width: 680px;
+    margin: 0;
+    color: #526a82;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.55;
+}
+
+.editable-heading,
+.editable-description {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.inline-edit,
+.editor-action,
+.hero-back,
+.hero-icon-action {
+    border: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.inline-edit {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 auto;
+    border-radius: 12px;
+    background: rgba(15, 143, 139, 0.1);
+    color: #087c83;
+}
+
+.inline-editor {
+    width: fit-content;
+    max-width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 18px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 12px 32px rgba(16, 48, 61, 0.12);
+}
+
+.editor-input,
+.editor-textarea {
+    max-width: min(720px, 58vw);
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #142238;
+    font-family: inherit;
+    font-weight: 900;
+}
+
+.editor-input {
+    font-size: 42px;
+}
+
+.editor-textarea {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.editor-action {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 auto;
+    border-radius: 11px;
+    color: #fff;
+}
+
+.editor-action.save {
+    background: #0f8f8b;
+}
+
+.editor-action.cancel {
+    background: #ff685c;
+}
+
+.moment-hero-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.compact-actions {
+    align-self: start;
+}
+
+.hero-action {
+    min-height: 50px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+}
+
+.hero-action:hover:not(:disabled),
+.hero-icon-action:hover,
+.hero-back:hover,
+.inline-edit:hover {
+    transform: translateY(-1px);
+}
+
+.hero-action:disabled {
+    cursor: not-allowed;
+    opacity: 0.48;
+}
+
+.hero-action.primary {
+    background: #ff685c;
+    color: #fff;
+    box-shadow: 0 18px 40px rgba(255, 104, 92, 0.28);
+}
+
+.hero-action.secondary {
+    background: #fff;
+    color: #087c83;
+    border: 1px solid rgba(15, 143, 139, 0.18);
+}
+
+.hero-action.quiet {
+    background: rgba(255, 255, 255, 0.78);
+    color: #425872;
+    border: 1px solid rgba(66, 88, 114, 0.12);
+}
+
+.hero-icon-action,
+.hero-back {
+    width: 50px;
+    height: 50px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.82);
+    color: #087c83;
+    font-size: 21px;
+    box-shadow: 0 12px 30px rgba(16, 48, 61, 0.12);
+}
+
+.hero-back {
+    position: absolute;
+    top: 36px;
+    left: 7vw;
+}
+
+.download-fixed {
+    position: absolute;
+    right: 7vw;
+    top: 44px;
+}
+
+@media (max-width: 980px) {
+    .moment-hero {
+        grid-template-columns: 1fr;
+        min-height: 250px;
+        padding: 96px 24px 28px;
+    }
+
+    .moment-hero::before {
+        inset: 78px 14px 14px;
+        border-radius: 22px;
+    }
+
+    .moment-hero h1,
+    .editable-heading h1 {
+        font-size: 42px;
+    }
+
+    .moment-hero-actions {
+        justify-content: flex-start;
+    }
+
+    .moment-hero.public-view {
+        padding-left: 96px;
+    }
+}
+
+@media (max-width: 560px) {
+    .moment-hero {
+        padding: 132px 14px 22px;
+    }
+
+    .moment-hero::before {
+        inset: 124px 8px 12px;
+    }
+
+    .moment-hero h1,
+    .editable-heading h1 {
+        font-size: 34px;
+    }
+
+    .moment-hero p,
+    .editable-description p {
+        font-size: 16px;
+    }
+
+    .hero-action {
+        width: 100%;
+    }
+
+    .hero-icon-action {
+        width: 100%;
+    }
+
+    .moment-hero.public-view {
+        padding: 92px 14px 22px;
+    }
+
+    .moment-hero.public-view::before {
+        inset: 76px 8px 12px;
+    }
+
+    .hero-back {
+        top: 22px;
+        left: 14px;
+    }
+}

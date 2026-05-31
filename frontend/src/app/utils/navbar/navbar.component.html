@@ -1,0 +1,48 @@
+<div class="custom-nav shadow-sm">
+    <div class="row">
+        <div class="col-12 position-relative">
+
+            <div class="menubutton">
+                <button class="nav-menu-button" type="button" title="Toggle navigation" (click)="toggleSidebar()">
+                  <i class="bi bi-list"></i>
+                </button>
+            </div>
+            
+            <div class="ps-5">
+                <h5> Welcome, {{userName}}</h5>
+                <h6> Let's Create Beautiful Moments!</h6>
+            </div>
+            <div class="nav-right-side">
+                <app-notifications></app-notifications>
+                <div class="dropdown cst-dropdown">
+                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="profile-picture">
+                            <img *ngIf="image" [src]="image" referrerpolicy="no-referrer">
+                            <i *ngIf="!image" class="bi bi-person-fill profile-fallback-icon"></i>
+                        </div>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li class="user-detail">
+                            <div class="d-flex align-items-center">
+                                <span class="user-detail-avatar" style="margin-right: 5px;">
+                                    <img *ngIf="image" [src]="image" referrerpolicy="no-referrer">
+                                    <i *ngIf="!image" class="bi bi-person-fill"></i>
+                                </span>
+                                <div>
+                                    <h3>{{userName}}</h3>
+                                    <p>{{userData.email}}</p>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="hr-line"></li>
+                        <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#settingsModal"><i class="bi bi-gear"></i>Settings</a></li>
+                        <li><a class="dropdown-item" (click)="logout()"><i class="bi bi-box-arrow-in-right"></i>Logout</a></li>
+                    </ul>
+                </div>
+        
+            </div>
+        </div>
+    </div>
+</div>
+
+<app-settingsmodal></app-settingsmodal>
