@@ -1,0 +1,43 @@
+.cst-modal .modal-body h1 {
+    padding-left: 0px;
+}
+
+.create-wall-modal .modal-dialog {
+    max-width: min(720px, calc(100vw - 28px));
+}
+
+.create-wall-modal .modal-content {
+    min-height: auto;
+}
+
+.create-wall-modal .modal-body {
+    padding: 28px 34px 34px;
+}
+
+.create-wall-modal .wall-form {
+    display: grid;
+    gap: 18px;
+}
+
+.create-wall-modal .wall-form .mb-4 {
+    margin-bottom: 0 !important;
+}
+
+.create-wall-modal .form-control {
+    min-height: 48px;
+}
+
+.create-wall-modal textarea.form-control {
+    min-height: 104px;
+}
+
+.create-wall-modal .button-xl {
+    min-height: 50px;
+    border-radius: 999px;
+}
+
+.form-control:disabled {
+    background-color: #d4d4d4 !important;
+    color: #585f65;
+    cursor: not-allowed;
+}

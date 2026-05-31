@@ -1,0 +1,288 @@
+.moment-command-bar {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 100;
+    min-height: 72px;
+    padding: 12px 24px;
+    display: grid;
+    grid-template-columns: auto minmax(180px, 1fr) auto auto;
+    align-items: center;
+    gap: 18px;
+    background: rgba(255, 255, 255, 0.92);
+    border-bottom: 1px solid rgba(11, 43, 56, 0.08);
+    box-shadow: 0 18px 50px rgba(16, 48, 61, 0.08);
+    backdrop-filter: blur(18px);
+}
+
+.command-icon,
+.command-button {
+    border: 0;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform 160ms ease, background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.command-icon {
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    background: #eefafa;
+    color: #087c83;
+    font-size: 22px;
+}
+
+.command-icon:hover,
+.command-button:hover {
+    transform: translateY(-1px);
+}
+
+.moment-command-title {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    color: #15263c;
+}
+
+.moment-command-title span {
+    color: #087c83;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0;
+}
+
+.moment-command-title strong {
+    max-width: 34vw;
+    overflow: hidden;
+    color: #142238;
+    font-size: 18px;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.command-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.command-button {
+    min-height: 44px;
+    padding: 0 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 14px;
+    background: #f7fbfc;
+    color: #425872;
+    font-size: 14px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.command-button i {
+    color: #087c83;
+    font-size: 17px;
+}
+
+.manage-actions .command-button {
+    min-width: 154px;
+}
+
+.command-button.accent {
+    background: #fff5e2;
+    color: #8a5800;
+}
+
+.command-button.accent i {
+    color: #ff9f1c;
+}
+
+.command-button.is-active {
+    background: #0f8f8b;
+    color: #fff;
+    box-shadow: 0 12px 30px rgba(15, 143, 139, 0.22);
+}
+
+.command-button.is-active i {
+    color: #fff;
+}
+
+.component-container {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(720px, 100vw);
+    height: 100dvh;
+    background-color: #fff;
+    box-shadow: -28px 0 72px rgba(15, 37, 53, 0.22);
+    z-index: 1200;
+}
+
+.control-center {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #f8fbfb;
+}
+
+.control-center__header {
+    min-height: 96px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    color: #071e38;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(247, 255, 254, 0.94)),
+        radial-gradient(circle at 84% 18%, rgba(255, 202, 40, 0.22), transparent 38%),
+        radial-gradient(circle at 10% 80%, rgba(16, 167, 164, 0.18), transparent 34%);
+    border-bottom: 1px solid rgba(13, 34, 71, 0.08);
+}
+
+.control-center__header div {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.control-center__header span {
+    color: #087c83;
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.control-center__header strong {
+    margin-top: 5px;
+    color: #071e38;
+    font-size: 28px;
+    line-height: 1.1;
+    font-weight: 900;
+}
+
+.control-close {
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 40px;
+    color: #425872;
+    background: rgba(255, 255, 255, 0.78);
+}
+
+.control-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 12px 16px;
+    background: #fff;
+    border-bottom: 1px solid rgba(13, 34, 71, 0.08);
+}
+
+.control-tabs button {
+    min-width: 0;
+    min-height: 48px;
+    border: 0;
+    border-radius: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #526a82;
+    background: #f4f8f9;
+    font-weight: 900;
+}
+
+.control-tabs button.is-active {
+    color: #fff;
+    background: #0f8f8b;
+    box-shadow: 0 12px 24px rgba(15, 143, 139, 0.2);
+}
+
+.control-center__body {
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
+    border-top: 1px solid rgba(13, 34, 71, 0.05);
+}
+
+.control-center__body > * {
+    height: 100%;
+    display: block;
+}
+
+.control-center ::ng-deep .settings-hero,
+.control-center ::ng-deep .drawer-hero,
+.control-center ::ng-deep #schedule-delivery > .schedule-hero {
+    display: none;
+}
+
+@media (max-width: 980px) {
+    .moment-command-bar {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 10px;
+        padding: 10px 14px;
+    }
+
+    .primary-actions {
+        display: none;
+    }
+
+    .command-button span {
+        display: none;
+    }
+
+    .command-button {
+        width: 44px;
+        padding: 0;
+    }
+
+    .moment-command-title strong {
+        max-width: 48vw;
+    }
+}
+
+@media (max-width: 560px) {
+    .moment-command-bar {
+        min-height: 64px;
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .manage-actions {
+        grid-column: 1 / -1;
+        justify-content: space-between;
+    }
+
+    .command-button {
+        flex: 1;
+        width: auto;
+    }
+
+    .command-button span {
+        display: inline;
+        font-size: 12px;
+    }
+
+    .component-container {
+        top: 0;
+        height: 100dvh;
+    }
+
+    .control-tabs button span {
+        display: none;
+    }
+}

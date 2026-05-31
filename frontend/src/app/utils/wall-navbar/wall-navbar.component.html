@@ -1,0 +1,65 @@
+<nav class="moment-command-bar" aria-label="Moment actions">
+  <button type="button" class="command-icon back-command" aria-label="Back to dashboard" (click)="openDashboard()">
+    <i class="bi bi-arrow-left"></i>
+  </button>
+
+  <div class="moment-command-title">
+    <span>Momenta</span>
+    <strong>{{ wallTitle || 'Moment' }}</strong>
+  </div>
+
+  <div class="command-group primary-actions">
+    <button type="button" class="command-button" (click)="preview()">
+      <i class="bi bi-eye"></i>
+      <span>Preview</span>
+    </button>
+    <button type="button" class="command-button" data-bs-target="#shareModal" data-bs-toggle="modal">
+      <i class="bi bi-share"></i>
+      <span>Share</span>
+    </button>
+    <button type="button" class="command-button" (click)="download()">
+      <i class="bi bi-download"></i>
+      <span>Download</span>
+    </button>
+  </div>
+
+  <div class="command-group manage-actions">
+    <button type="button" class="command-button" [class.is-active]="activeControl" (click)="toggleControl('settings')">
+      <i class="bi bi-sliders2"></i>
+      <span>Control center</span>
+    </button>
+  </div>
+</nav>
+
+<section class="component-container control-center" *ngIf="activeControl" [@slideInOut] aria-label="Moment control center">
+  <header class="control-center__header">
+    <div>
+      <span>Control center</span>
+      <strong>{{ activeControl === 'settings' ? 'Settings' : activeControl === 'style' ? 'Style' : 'Schedule' }}</strong>
+    </div>
+    <button type="button" class="control-close" aria-label="Close control center" (click)="closeModal()">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </header>
+
+  <nav class="control-tabs" aria-label="Control sections">
+    <button type="button" [class.is-active]="activeControl === 'settings'" (click)="openControl('settings')">
+      <i class="bi bi-sliders2"></i>
+      <span>Settings</span>
+    </button>
+    <button type="button" [class.is-active]="activeControl === 'style'" (click)="openControl('style')">
+      <i class="bi bi-palette"></i>
+      <span>Style</span>
+    </button>
+    <button type="button" [class.is-active]="activeControl === 'schedule'" (click)="openControl('schedule')">
+      <i class="bi bi-send-check"></i>
+      <span>Schedule</span>
+    </button>
+  </nav>
+
+  <div class="control-center__body">
+    <app-settings *ngIf="activeControl === 'settings'" (closeModal)="closeModal()"></app-settings>
+    <app-background *ngIf="activeControl === 'style'" (closeModal)="closeModal()"></app-background>
+    <app-schedule-delivery *ngIf="activeControl === 'schedule'" (closeModal)="closeModal()"></app-schedule-delivery>
+  </div>
+</section>

@@ -1,0 +1,15 @@
+@if (isMomentReady) {
+  <app-wall-navbar *ngIf="checkWallCreator() && !isPreview"></app-wall-navbar>
+  <div class="moment-page wall-page" [ngStyle]="{'background-image': 'url(' + selectedBackground + ')'}">
+    <app-title-bar></app-title-bar>
+    <app-wall-posts></app-wall-posts>
+  </div>
+} @else {
+  <div class="moment-loading-shell">
+    <div class="moment-loading-card">
+      <span class="moment-loading-icon"><i class="bi bi-stars"></i></span>
+      <strong>Opening moment</strong>
+      <p>Getting the celebration ready...</p>
+    </div>
+  </div>
+}
