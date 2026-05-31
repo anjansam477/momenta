@@ -1,0 +1,45 @@
+<div class="gif-modal container-fluid">
+    <div class="wrapper">
+        <div class="flex">
+            <div class="mb-2 position-relative">
+                <div>
+                    <input #searchInput type="text" placeholder="Search Stickers" class="form-control ps__40 pe-5"
+                        [(ngModel)]="searchTerm" (keyup.enter)="searchStickers()" (keypress)="onChange()" />
+                    <i class="bi bi-sticky login-input-icon"></i>
+                    <div class="passwor_show_icon" (click)="searchStickers()">
+                        <i class="bi bi-search"></i>
+                    </div>
+                </div>
+                <div class="validation-text">
+                    {{errorMessage}}
+                </div>
+            </div>
+        </div>
+        <div class="searched_content">
+            @defer(on timer(2s)){
+            @if(recievedSticker && !loader){
+            <div *ngFor="let sticker of stickers" class="pic">
+                <img [src]="sticker.images.original.url" alt="Sticker" (click)="selectSticker(sticker)">
+            </div>
+            }
+            @else if(loader){
+                <div class="pic">
+                    <img
+                        src="https://img.pikbest.com/png-images/20190918/cartoon-snail-loading-loading-gif-animation_2734139.png!bw700" />
+                </div>
+            }
+            @else{
+            <div class="pic" style="text-align: center;">
+                <img src="assets/images/extra_images/empty.png" style="width: 90%; height: auto; " />
+            </div>
+            }
+            }
+            @placeholder {
+            <div class="pic">
+                <img
+                    src="https://img.pikbest.com/png-images/20190918/cartoon-snail-loading-loading-gif-animation_2734139.png!bw700" />
+            </div>
+            }
+        </div>
+    </div>
+</div>

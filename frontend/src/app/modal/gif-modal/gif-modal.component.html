@@ -1,0 +1,45 @@
+<div class="gif-modal container-fluid">
+    <div class="wrapper">
+        <div class="flex">
+            <div class="position-relative mb-2">
+                <div>
+                    <input #searchInput type="text" placeholder="Search GIFs" class="form-control ps__40 pe-5"
+                        [(ngModel)]="searchTerm" (keyup.enter)="searchGifs()" (keypress)="onChange()" />
+                    <i class="bi bi-filetype-gif login-input-icon"></i>
+                    <div class="passwor_show_icon" (click)="searchGifs()">
+                        <i class="bi bi-search"></i>
+                    </div>
+                </div>
+                <div class="validation-text">
+                    {{errorMessage}}
+                </div>
+            </div>
+        </div>
+        <div class="searched_content">
+            @defer(on timer(2s)){
+                @if(recievedGifs && !loader){
+                    <div *ngFor="let gif of gifs" class="pic">
+                        <img [src]="gif.images.original.url" alt="GIF" (click)="selectGif(gif)">
+                    </div>
+                }
+                @else if(loader){
+                    <div class="pic">
+                        <img
+                            src="https://img.pikbest.com/png-images/20190918/cartoon-snail-loading-loading-gif-animation_2734139.png!bw700" />
+                    </div>
+                }
+                @else{
+                    <div class="pic" style="text-align: center;" >
+                        <img src="assets/images/extra_images/empty.png" style="width: 90%; height: auto; "/>
+                    </div>
+                }
+            }
+            @placeholder{
+            <div class="pic">
+                <img
+                    src="https://img.pikbest.com/png-images/20190918/cartoon-snail-loading-loading-gif-animation_2734139.png!bw700" />
+            </div>
+            }
+        </div>
+    </div>
+</div>
