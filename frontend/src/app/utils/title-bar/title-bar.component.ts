@@ -1,22 +1,27 @@
-import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, Renderer2, ViewChild } from '@angular/core';
+﻿import { ChangeDetectorRef, Component, DestroyRef, ElementRef, OnDestroy, OnInit, Renderer2, ViewChild, inject , ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
 import { DownloadService } from '../../services/downloadservice/download.service';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
 import { SharemodalComponent } from '../../modal/sharemodal/sharemodal.component';
 import { UI_BASE_URL } from '../../environment-config';
 import { AudioService } from '../../services/audioservice/audio.service';
-import { Subscription, filter } from 'rxjs';
+import { filter } from 'rxjs';
 import { SlideshowComponent } from '../../modal/slideshow/slideshow.component';
 import { FormsModule } from '@angular/forms';
 import { WallService } from '../../services/wallservice/wall.service';
 import { ToastrService } from 'ngx-toastr';
 import { trigger, state, style, transition, animate } from '@angular/animations';
+import { handleHttpError } from '../error-handler.util';
+import { isWallCreator } from '../wall.util';
+import { Wall } from '../../shared/models';
+import { Params } from '@angular/router';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-title-bar',
   standalone: true,
-  imports: [CommonModule, SharemodalComponent,SlideshowComponent, FormsModule ],
+  imports: [SharemodalComponent,SlideshowComponent, FormsModule ],
   templateUrl: './title-bar.component.html',
   styleUrl: './title-bar.component.css',
   animations: [
@@ -33,12 +38,12 @@ export class TitleBarComponent implements OnInit,OnDestroy{
   wallDescription: string = '';
   loginBoolean: boolean = false;
   wallCreatorMails!: string[];
-  isOpen: any;
+  isOpen: boolean = true;
   wallNotExpired: boolean = false;
   currentPage: string | undefined;
-  openDate: any;
-  closeDate: any;
-  isArchived: any;
+  openDate: string | Date | null = null;
+  closeDate: string | Date | null = null;
+  isArchived: boolean = false;
   isPreview!: boolean;
   anyoneCanPost: boolean = false;
   canAddPost: boolean = true;
@@ -48,17 +53,10 @@ export class TitleBarComponent implements OnInit,OnDestroy{
   isMuted:boolean = false;
   audioPlaying:boolean=true;
   audio:string="";
-  muteStateSubscription!: Subscription;
-  routeUrlSubscription!: Subscription;
-  routeParamsSubscription!: Subscription;
-  isPreviewSubscription!: Subscription;
-  audioFileSubscription!: Subscription;
   postsAvailable: boolean = false;
   myPost: boolean = false;
-
-  myPostSubscription!: Subscription;
-  postsAvailableSubscription!: Subscription;
-  timeCheckInterval!: any;
+  timeCheckInterval!: ReturnType<typeof setInterval>;
+  private readonly destroyRef = inject(DestroyRef);
   isEditingTitle: boolean = false;
   isEditingDescription: boolean = false;
   newTitle: string = this.wallTitle;
@@ -81,60 +79,51 @@ export class TitleBarComponent implements OnInit,OnDestroy{
   ngOnInit(): void {
     this.isLoggedIn();
     this.audioPlaying = this.audioService.isAudioPlaying();
-    this.muteStateSubscription = this.audioService.getMuteStateSubject().subscribe(
+    this.audioService.getMuteStateSubject().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(
       (muteState: boolean) => {
         this.isMuted = muteState;
       }
     );
-    
-    this.routeUrlSubscription = this.route.url.subscribe((urlSegments) => {
+
+    this.route.url.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((urlSegments) => {
       this.currentPage = urlSegments[0].path;
     });
 
-    this.routeParamsSubscription =this.route.params.subscribe((params: any) => {
+    this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params: Params) => {
       this.wallId = params['momentId'] ?? params['wallId'];
       this.fetchWallDetails();
       this.sharedWallUrl = `${this.baseUrl}/moment/${this.wallId}`;
     });
 
-    this.isPreviewSubscription=this.sharedService.getIsPreview().subscribe((data)=>{
+    this.sharedService.getIsPreview().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data)=>{
       this.isPreview = data;
       if(this.audioService.isAudioMuted()){
         this.audioService.muteAudio();
         this.isMuted=this.audioService.isAudioMuted();
       }
-    })
+    });
 
-    this.audioFileSubscription = this.audioService.getAudioFileSubject().subscribe((audioFile: string) => {
+    this.audioService.getAudioFileSubject().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((audioFile: string) => {
       if(audioFile!=='')
         this.audioPlaying = true;
       else
         this.audioPlaying= false;
       this.cdr.detectChanges();
     });
-    
 
-    this.postsAvailableSubscription = this.sharedService.getPostAvailable().subscribe({
+    this.sharedService.getPostAvailable().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data)=>{
         this.postsAvailable = data;
       },
-      error: (err)=>{
-        if(err.status!==401){
-          this.toastr.error(err.error.message)
-        }
-      }
+      error: (err)=>{ handleHttpError(err, this.toastr); }
     });
 
-    this.myPostSubscription = this.sharedService.getMyPost().subscribe({
+    this.sharedService.getMyPost().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data)=>{
         this.myPost = data;
       },
-      error: (err)=>{
-        if(err.status!==401){
-          this.toastr.error(err.error.message)
-        }
-      }
-    })
+      error: (err)=>{ handleHttpError(err, this.toastr); }
+    });
 
     this.timeCheckInterval = setInterval(() => {
       this.isNotExpired();
@@ -142,27 +131,7 @@ export class TitleBarComponent implements OnInit,OnDestroy{
   }
 
   ngOnDestroy(): void {
-    if (this.muteStateSubscription) {
-      this.muteStateSubscription.unsubscribe();
-    }
-    if (this.routeUrlSubscription) {
-      this.routeUrlSubscription.unsubscribe();
-    }
-    if (this.routeParamsSubscription) {
-      this.routeParamsSubscription.unsubscribe();
-    }
-    if (this.isPreviewSubscription) {
-      this.isPreviewSubscription.unsubscribe();
-    }
-    if (this.audioFileSubscription) {
-      this.audioFileSubscription.unsubscribe();
-    }
-    if(this.postsAvailable){
-      this.postsAvailableSubscription.unsubscribe();
-    }
-    if(this.myPost){
-      this.myPostSubscription.unsubscribe();
-    }
+    clearInterval(this.timeCheckInterval);
     this.removeClickListener();
   }
 
@@ -200,18 +169,17 @@ export class TitleBarComponent implements OnInit,OnDestroy{
     this.sharedService.getWallDetails().pipe(
       filter(wallData => !!wallData)
     ).subscribe({
-      next: (wallData: any) => {
+      next: (wallData: Wall) => {
         this.wallTitle = wallData.title;
         this.wallDescription = wallData.description;
-        // maintainerEmails are now in wall_members — fall back to ownerEmail only
         this.wallCreatorMails = wallData.maintainerEmails?.length
           ? [...wallData.maintainerEmails, wallData.ownerEmail]
           : [wallData.ownerEmail];
-        this.openDate = wallData.openDate;
-        this.closeDate = wallData.closeDate;
+        this.openDate = wallData.openDate ?? null;
+        this.closeDate = wallData.closeDate ?? null;
         this.isArchived = wallData.status === 'archived';
         this.isOpen = wallData.status === 'active';
-        this.anyoneCanPost = wallData.anyoneCanPost;
+        this.anyoneCanPost = wallData.anyoneCanPost ?? false;
         this.postAccess = wallData.postAccess || {};
         this.audio = wallData.theme?.audio || wallData.audio || '';
 
@@ -253,12 +221,7 @@ export class TitleBarComponent implements OnInit,OnDestroy{
   }
 
   checkWallCreator(): boolean {
-    const userEmail = localStorage.getItem('email') || '';
-
-    if (this.wallCreatorMails && Array.isArray(this.wallCreatorMails)) {
-      return this.wallCreatorMails.some(email => typeof userEmail === 'string' && email === userEmail);
-    }
-    return false;
+    return isWallCreator(localStorage.getItem('email'), this.wallCreatorMails);
   }
   
 
@@ -309,15 +272,11 @@ export class TitleBarComponent implements OnInit,OnDestroy{
   saveTitle() {
     if(this.wallTitle!==this.newTitle){
       this.wallService.updateWall(this.wallId, {title: this.newTitle}).subscribe({
-        next: (data)=>{          
+        next: (data)=>{
           this.wallTitle = this.newTitle;
           this.isEditingTitle = false;
           this.removeClickListener();
-        }, error:(err)=>{
-          if(err.status!==401){
-            this.toastr.error(err.error.message)
-          }
-        }
+        }, error:(err)=>{ handleHttpError(err, this.toastr); }
       })
     } else {
       this.isEditingTitle = false;
@@ -345,11 +304,7 @@ export class TitleBarComponent implements OnInit,OnDestroy{
           this.wallDescription = this.newDescription;
           this.isEditingDescription = false;
           this.removeClickListener();
-        }, error:(err)=>{
-          if(err.status!==401){
-            this.toastr.error(err.error.message)
-          }
-        }
+        }, error:(err)=>{ handleHttpError(err, this.toastr); }
       })
     } else {
       this.isEditingDescription = false;
@@ -364,8 +319,9 @@ export class TitleBarComponent implements OnInit,OnDestroy{
     this.newDescription = this.wallDescription;
   }
 
-  adjustWidth(event: any) {
-    const target = event.target;
+  adjustWidth(event: Event | { target: HTMLInputElement | HTMLTextAreaElement }) {
+    const target = (event as Event).target as HTMLInputElement | HTMLTextAreaElement
+      ?? (event as { target: HTMLInputElement | HTMLTextAreaElement }).target;
     const content = target.value;
     let minWidth: number;
     let charWidth: number;

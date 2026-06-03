@@ -1,20 +1,23 @@
-import { Component } from '@angular/core';
-import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+﻿import { Component, DestroyRef, inject, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { UserService } from '../../services/userservice/user.service';
-import { CommonModule } from '@angular/common';
 import { customEmailValidator } from '../../validators/email-validator';
 import { Router, RouterLink } from '@angular/router';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
 import { APP_EMAIL } from '../../environment-config';
+import { markAllFieldsAsTouched } from '../../utils/form.util';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-resetPassword',
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, RouterLink,CommonModule],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './resetPassword.component.html',
   styleUrl: './resetPassword.component.css'
 })
 export class ResetPasswordComponent {
+  private readonly destroyRef = inject(DestroyRef);
   resetStatus:boolean=false;
   forgotPasswordForm!: FormGroup;
   errorMessage:string='';
@@ -46,7 +49,7 @@ export class ResetPasswordComponent {
     if(this.forgotPasswordForm.valid && this.errorMessage===''){
       const trimmedEmail = this.forgotPasswordForm.value.email.trim();
       this.userService.forgotPassword({email: trimmedEmail}).subscribe({
-        next: (res: any) => {
+        next: (_res: unknown) => {
           this.resetStatus = true;
           this.userEmail=trimmedEmail;
           this.closeModal();
@@ -63,12 +66,7 @@ export class ResetPasswordComponent {
   }
 
   markAllFieldsAsTouched(): void {
-    Object.keys(this.forgotPasswordForm.controls).forEach(field => {
-      const control = this.forgotPasswordForm.get(field);
-      if (control) {
-        control.markAsTouched({ onlySelf: true });
-      }
-    });
+    markAllFieldsAsTouched(this.forgotPasswordForm);
   }
 
   redirectToLogin(){
@@ -76,7 +74,7 @@ export class ResetPasswordComponent {
   }
 
   subscribeToFormChanges(): void {
-    this.forgotPasswordForm.get('email')?.valueChanges.subscribe(() => {
+    this.forgotPasswordForm.get('email')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.errorMessage = '';
     });
   }
@@ -86,7 +84,7 @@ export class ResetPasswordComponent {
       this.sharedService.setUserEmail(this.forgotPasswordForm.value.email);
       const trimmedEmail = this.forgotPasswordForm.value.email.trim();
       this.userService.generateToken({email: trimmedEmail}).subscribe({
-        next: (res: any) => {
+        next: (_res: unknown) => {
           this.router.navigateByUrl('/verification/pending');
         },
         error: (error) => {

@@ -1,6 +1,7 @@
-import { ChangeDetectorRef, Component, EventEmitter, Output } from '@angular/core';
+﻿import { ChangeDetectorRef, Component, DestroyRef, EventEmitter, Output, inject , ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
 import { UI_BASE_URL } from '../../environment-config';
 import { filter } from 'rxjs';
@@ -8,14 +9,26 @@ import { BackgroundComponent } from '../../components/background/background.comp
 import { ScheduleDeliveryComponent } from '../../components/schedule-delivery/schedule-delivery.component';
 import { SettingsComponent } from '../../components/settings/settings.component';
 import { animate, state, style, transition, trigger } from '@angular/animations';
+import { Wall } from '../../shared/models';
+import { Params } from '@angular/router';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-wall-navbar',
   standalone: true,
-  imports: [CommonModule, BackgroundComponent, ScheduleDeliveryComponent, SettingsComponent],
+  imports: [FormsModule, BackgroundComponent, ScheduleDeliveryComponent, SettingsComponent],
   templateUrl: './wall-navbar.component.html',
   styleUrl: './wall-navbar.component.css',
   animations: [
+    trigger('fadeSearch', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateY(-8px)' }),
+        animate('180ms ease', style({ opacity: 1, transform: 'translateY(0)' }))
+      ]),
+      transition(':leave', [
+        animate('140ms ease', style({ opacity: 0, transform: 'translateY(-6px)' }))
+      ])
+    ]),
     trigger('slideInOut', [
       state('void', style({ transform: 'translateX(100%)', opacity: 0 })),
       state('*', style({ transform: 'translateX(0)', opacity: 1 })),
@@ -29,13 +42,13 @@ export class WallNavbarComponent {
   wallTitle: string = '';
   wallDescription: string = '';
   loginBoolean: boolean = false;
-  wallCreator: any;
-  isOpen: any;
-  wallNotExpired: any;
-  currentPage: any;
-  openDate: any;
-  closeDate: any;
-  isArchived: any;
+  wallCreator: string = '';
+  isOpen: boolean = true;
+  wallNotExpired: boolean = true;
+  currentPage: string = '';
+  openDate: string | Date | null = null;
+  closeDate: string | Date | null = null;
+  isArchived: boolean = false;
   isPreview: boolean= false;
   sharedWallUrl: string = '';
   baseUrl: string = UI_BASE_URL; 
@@ -46,10 +59,14 @@ export class WallNavbarComponent {
     private cdr: ChangeDetectorRef
   ) {}
 
+  searchOpen = false;
+  searchQuery = '';
+
   showSettings = false;
   showBackground = false;
   showScheduleDelivery = false;
   activeControl: 'settings' | 'style' | 'schedule' | null = null;
+  private readonly destroyRef = inject(DestroyRef);
 
   openSettings() {
     this.toggleControl('settings');
@@ -77,6 +94,18 @@ export class WallNavbarComponent {
     this.showScheduleDelivery = this.activeControl === 'schedule';
   }
 
+  toggleSearch() {
+    this.searchOpen = !this.searchOpen;
+    if (!this.searchOpen) {
+      this.searchQuery = '';
+      this.sharedService.setPostSearchQuery('');
+    }
+  }
+
+  onSearchInput() {
+    this.sharedService.setPostSearchQuery(this.searchQuery);
+  }
+
   closeModal() {
     this.activeControl = null;
     this.showSettings = false;
@@ -87,7 +116,7 @@ export class WallNavbarComponent {
   ngOnInit(): void {
     this.isLoggedIn();
 
-    this.route.params.subscribe((params: any) => {
+    this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params: Params) => {
       this.wallId = params['momentId'] ?? params['wallId'];
       this.fetchWallDetails();
       this.sharedWallUrl = `${this.baseUrl}/moment/${this.wallId}`;
@@ -96,13 +125,13 @@ export class WallNavbarComponent {
 
   fetchWallDetails() {
     this.sharedService.getWallDetails().pipe(
-      filter(wallData => !!wallData)).subscribe({
-      next: (wallData: any) => {
+      filter(wallData => !!wallData), takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (wallData: Wall) => {
         this.wallTitle = wallData.title;
         this.wallDescription = wallData.description;
         this.wallCreator = wallData.ownerEmail;
-        this.openDate = wallData.openDate;
-        this.closeDate = wallData.closeDate;
+        this.openDate = wallData.openDate ?? null;
+        this.closeDate = wallData.closeDate ?? null;
         this.isArchived = wallData.isArchived;
         this.isOpen = wallData.isOpen;
         this.cdr.detectChanges();

@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
@@ -10,7 +9,7 @@ import { filter } from 'rxjs';
     standalone: true,
     templateUrl: './app.component.html',
     styleUrl: './app.component.css',
-    imports: [CommonModule, RouterOutlet, LoaderComponent],
+    imports: [RouterOutlet, LoaderComponent],
     changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppComponent {

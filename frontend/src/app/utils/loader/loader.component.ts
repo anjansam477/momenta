@@ -1,23 +1,24 @@
-import { Component } from '@angular/core';
+﻿import { Component, DestroyRef, inject, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { LoaderService } from '../../services/loaderservice/loader.service';
-import { CommonModule } from '@angular/common';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-loader',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './loader.component.html',
   styleUrl: './loader.component.css'
 })
 export class LoaderComponent {
-
+  private readonly destroyRef = inject(DestroyRef);
   isLoading: boolean = true
 
   constructor (private loaderService: LoaderService){}
 
   ngOnInit(){
-    this.loaderService.isLoading$.subscribe((isLoading)=>{
+    this.loaderService.isLoading$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((isLoading)=>{
       this.isLoading = isLoading;
-    })
+    });
   }
 }

@@ -1,28 +1,30 @@
-import { CommonModule } from '@angular/common';
-import {
+﻿import {
   ChangeDetectorRef,
   Component,
+  DestroyRef,
   EventEmitter,
-  OnDestroy,
   OnInit,
   Output,
   ViewChild,
-  ElementRef
-} from '@angular/core';
+  ElementRef,
+  inject,
+  ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
 import { filter, Subscription } from 'rxjs';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { animate, style, transition, trigger } from '@angular/animations';
 import { WallService } from '../../services/wallservice/wall.service';
+import { Wall } from '../../shared/models';
 import { NgxMaterialTimepickerComponent, NgxMaterialTimepickerModule, NgxMaterialTimepickerTheme } from 'ngx-material-timepicker';
 import { AddUserComponent } from '../data-transformation/add-user/add-user.component';
 import { format } from 'date-fns';
 import { AddDomainComponent } from '../data-transformation/add-domain/add-domain.component';
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-settings',
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     NgxMaterialTimepickerModule,
     AddUserComponent,
@@ -43,19 +45,22 @@ import { AddDomainComponent } from '../data-transformation/add-domain/add-domain
     ])
   ]
 })
-export class SettingsComponent implements OnInit, OnDestroy {
+export class SettingsComponent implements OnInit {
 
-  wallDetailsSubscription!: Subscription;
+  private readonly destroyRef = inject(DestroyRef);
   openingDateSub!: Subscription;
   closingDateSub!: Subscription;
-  wall: any;
-  originalWallData: any;
+  wall!: Wall;
+  originalWallData!: Wall;
   wallId!: string;
   wallForm: FormGroup;
+
+  activeViewTab: 'email' | 'domain' = 'email';
+  activePostTab: 'email' | 'domain' = 'email';
   @Output() closeModal = new EventEmitter<void>();
   minDate: Date = new Date();
   maxDate: Date | undefined;
-  closeMinDate: any;
+  closeMinDate: Date | null = null;
   minTime: string = "12:00 AM";
   maxTime: string = "";
   closeMinTime: string = "12:00 AM";
@@ -101,18 +106,13 @@ export class SettingsComponent implements OnInit, OnDestroy {
         emails: [],
         domains: []
       },
+      requireApproval: false,
       maintainerEmails: [],
       openingDate: new FormControl(),
       closingDate: new FormControl(),
       openDate: new FormControl(),
       closeDate: new FormControl()
     });
-  }
-
-  ngOnDestroy(): void {
-    if (this.wallDetailsSubscription) {
-      this.wallDetailsSubscription.unsubscribe();
-    }
   }
 
   ngOnInit(): void {
@@ -133,25 +133,26 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
 
   fetchWallDetails() {
-    this.wallDetailsSubscription = this.sharedDataService.getWallDetails().pipe(
-      filter(wallData => !!wallData)).subscribe({
-        next: (wallData: any) => {
+    this.sharedDataService.getWallDetails().pipe(
+      filter(wallData => !!wallData), takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: (wallData: Wall) => {
           this.originalWallData = JSON.parse(JSON.stringify(wallData));
           this.wall = wallData;
           this.wallId = wallData._id;
           this.wallForm.patchValue({
             isLocked: !wallData.isOpen,
             duration: !!(wallData.openDate || wallData.closeDate),
-            anyoneCanView: wallData.anyoneCanView,
-            anyoneCanPost: wallData.anyoneCanPost,
-            viewByEmail: wallData.viewAccess?.emails?.length > 0,
-            viewByDomain: wallData.viewAccess?.domains?.length > 0,
-            postByEmail: wallData.postAccess?.emails?.length > 0,
-            postByDomain: wallData.postAccess?.domains?.length > 0,
+            anyoneCanView: wallData.anyoneCanView ?? false,
+            anyoneCanPost: wallData.anyoneCanPost ?? false,
+            viewByEmail: (wallData.viewAccess?.emails?.length ?? 0) > 0,
+            viewByDomain: (wallData.viewAccess?.domains?.length ?? 0) > 0,
+            postByEmail: (wallData.postAccess?.emails?.length ?? 0) > 0,
+            postByDomain: (wallData.postAccess?.domains?.length ?? 0) > 0,
             viewAccess: wallData.viewAccess ?? { emails: [], domains: [] },
             postAccess: wallData.postAccess ?? { emails: [], domains: [] },
-            isMaintainer: wallData.maintainerEmails.length > 0,
-            maintainerEmails: wallData.maintainerEmails,
+            requireApproval: wallData.postConfig?.requireApproval ?? false,
+            isMaintainer: (wallData.maintainerEmails?.length ?? 0) > 0,
+            maintainerEmails: wallData.maintainerEmails ?? [],
             openDate: this.convertIsoToCustomFormat(wallData.openDate),
             openingDate: this.convertIsoToCustomFormat(wallData.openDate)?.date,
             closeDate: this.convertIsoToCustomFormat(wallData.closeDate),
@@ -196,6 +197,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getFormControlValue(controlName: string): any {
     return this.wallForm.get(controlName)?.value;
   }
@@ -212,10 +214,11 @@ export class SettingsComponent implements OnInit, OnDestroy {
       this.closingDateSub.unsubscribe();
     }
    
-    const updateWallSettings: any = {
+    const updateWallSettings: Partial<Wall> = {
       isOpen: !this.getFormControlValue('isLocked'),
       anyoneCanView: this.getFormControlValue('anyoneCanView'),
       anyoneCanPost: this.getFormControlValue('anyoneCanPost'),
+      postConfig: { requireApproval: this.getFormControlValue('requireApproval') },
       viewAccess: this.getFormControlValue('viewAccess'),
       postAccess: this.getFormControlValue('postAccess'),
       maintainerEmails: this.getFormControlValue('maintainerEmails'),
@@ -287,7 +290,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     this.wallForm.get(controlName)?.setValue(input.value ? new Date(`${input.value}T00:00:00`) : null);
   }
 
-  updateCombinedDateTime(time: any, dateType: string) {
+  updateCombinedDateTime(time: string, dateType: string) {
     let date;
     if (dateType === 'openDate') {
       date = new Date(this.getFormControlValue('openingDate'));
@@ -418,7 +421,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     if (this.convertIsoToCustomFormat(this.wall.closeDate)?.date)
       this.maxDate = this.convertIsoToCustomFormat(this.wall.closeDate)?.date
     if (this.convertIsoToCustomFormat(this.wall.closeDate)?.date)
-      this.closeMinDate = this.convertIsoToCustomFormat(this.wall.openDate)?.date
+      this.closeMinDate = this.convertIsoToCustomFormat(this.wall.openDate)?.date ?? null
     else
       this.closeMinDate = now;
   }
@@ -453,7 +456,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   }
 
 
-  convertIsoToCustomFormat(isoDateString: string): { date: Date, time: string } | null {
+  convertIsoToCustomFormat(isoDateString: string | Date | null | undefined): { date: Date, time: string } | null {
     if (!isoDateString) {
       return null;
     }
@@ -472,7 +475,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   }
 
 
-  convertCustomToIsoFormat(date: any, time: string): string | null {
+  convertCustomToIsoFormat(date: Date | string | null | undefined, time: string): string | null {
     if (!date || !time) {
       return null;
     }
@@ -496,41 +499,47 @@ export class SettingsComponent implements OnInit, OnDestroy {
   }
 
   isFormValueChanged(): boolean {
-    const keysToCompare = ['anyoneCanPost', 'anyoneCanView', 'isOpen', 'maintainerEmails', 'postAccess', 'viewAccess', 'openDate','closeDate'];
+    const keysToCompare = ['anyoneCanPost', 'anyoneCanView', 'isOpen', 'maintainerEmails', 'postAccess', 'viewAccess', 'openDate', 'closeDate', 'requireApproval'];
   
-    const areDatesEqual = (originalDate: any, formDate: any): boolean => {
+    type DateTimeValue = { date?: Date; time?: string } | null | undefined;
+    const areDatesEqual = (originalDate: DateTimeValue, formDate: DateTimeValue): boolean => {
       if (!originalDate && !formDate) return true;
       if (!originalDate || !formDate) return false;
-  
+
       return (
         originalDate.date?.toISOString() === formDate.date?.toISOString() &&
         originalDate.time === formDate.time
       );
     };
   
-    const areObjectsEqual = (obj1: any, obj2: any): boolean => {
+    const areObjectsEqual = (obj1: unknown, obj2: unknown): boolean => {
       if (obj1 === obj2) return true;
-      if ( typeof obj1 !== 'object' ||
-           typeof obj2 !== 'object' ||
-           obj1 === null || obj2 === null
-      ) { return false; }
-  
-      const keys1 = Object.keys(obj1);
-      const keys2 = Object.keys(obj2);
-      if (keys1.length !== keys2.length) return false;
-  
-      for (const key of keys1) {
-        if (!areObjectsEqual(obj1[key], obj2[key])) return false;
+      if (typeof obj1 !== 'object' || typeof obj2 !== 'object' || obj1 === null || obj2 === null) {
+        return false;
       }
-  
+      const o1 = obj1 as Record<string, unknown>;
+      const o2 = obj2 as Record<string, unknown>;
+      const keys1 = Object.keys(o1);
+      const keys2 = Object.keys(o2);
+      if (keys1.length !== keys2.length) return false;
+
+      for (const key of keys1) {
+        if (!areObjectsEqual(o1[key], o2[key])) return false;
+      }
+
       return true;
     };
   
     for (const key of keysToCompare) {
-      let originalValue = this.originalWallData[key];
+      let originalValue = (this.originalWallData as unknown as Record<string, unknown>)[key];
       let formValue;
   
-      if (key === 'isOpen') {
+      if (key === 'requireApproval') {
+        const originalVal = this.originalWallData.postConfig?.requireApproval ?? false;
+        const formVal = this.wallForm.get('requireApproval')?.value ?? false;
+        if (originalVal !== formVal) return true;
+        continue;
+      } else if (key === 'isOpen') {
         const isLocked = this.wallForm.get('isLocked')?.value;
         if (typeof isLocked !== 'boolean') {
           console.error(`isLocked is not a boolean value:`, isLocked);
@@ -541,7 +550,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
           return true;
         }
       } else if (key === 'openDate' || key === 'closeDate') {
-        originalValue = this.convertIsoToCustomFormat(originalValue);
+        originalValue = this.convertIsoToCustomFormat(originalValue as string | Date | null);
         formValue = this.wallForm.get(key)?.value;
   
         if (!originalValue && !formValue) { continue; }

@@ -1,13 +1,14 @@
-import { Component, effect } from '@angular/core';
+﻿import { NgClass } from '@angular/common';
+import { Component, effect , ChangeDetectionStrategy } from '@angular/core';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
-import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../services/authservice/auth.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive],
+  imports: [NgClass, RouterLink, RouterLinkActive],
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.css'
 })

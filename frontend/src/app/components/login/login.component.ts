@@ -1,32 +1,25 @@
-import { Component } from '@angular/core';
+﻿import { Component, DestroyRef, inject, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../services/authservice/auth.service';
+import { markAllFieldsAsTouched } from '../../utils/form.util';
 import { UserService } from '../../services/userservice/user.service';
 import { Router } from '@angular/router';
-import {
-  FormBuilder,
-  FormGroup,
-  FormsModule,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SERVICE_BASE_URL } from '../../environment-config';
-import { CommonModule } from '@angular/common';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
 import { noWhitespaceValidator } from '../../validators/no-whitespace-validator';
 import { customEmailValidator } from '../../validators/email-validator';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-login',
   standalone: true,
-  imports: [
-    FormsModule,
-    ReactiveFormsModule,
-    CommonModule,
-  ],
+  imports: [ReactiveFormsModule],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css',
 })
 export class LoginComponent {
+  private readonly destroyRef = inject(DestroyRef);
   authBaseUrl: String = SERVICE_BASE_URL + '/api/auth/google';
   loginForm!: FormGroup;
   passwordFieldType: string = 'password';
@@ -46,7 +39,6 @@ export class LoginComponent {
     this.subscribeToFormChanges();
   }
 
-  // added validation for form
   createForm(): void {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, customEmailValidator()]],
@@ -54,15 +46,13 @@ export class LoginComponent {
     });
   }
 
-  // execute functionality as soon as change in form details
   subscribeToFormChanges(): void {
-    this.loginForm.valueChanges.subscribe(() => {
+    this.loginForm.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.incorrect = false;
       this.errorMessage = '';
     });
   }
 
-  // toggle password visibility
   togglePasswordVisibility(): void {
     this.passwordFieldType =
       this.passwordFieldType === 'password' ? 'text' : 'password';
@@ -76,12 +66,12 @@ export class LoginComponent {
       const trimmedEmail = this.loginForm.value.email.trim().toLowerCase();
       const trimmedPassword = this.loginForm.value.password.trim();
       this.userService.loginUser({ email: trimmedEmail, password: trimmedPassword }).subscribe({
-        next: (res: any) => {
+        next: (res: { token?: string; name?: string }) => {
           if (res.token) {
             this.sharedService.setMessage("login");
             this.authService.storeToken(res.token);
             this.authService.storeEmail(trimmedEmail);
-            this.authService.storeName(res.name);
+            this.authService.storeName(res.name ?? '');
             this.router.navigate(['/home']);
             this.incorrect = false;
             this.loginForm.reset();
@@ -98,14 +88,8 @@ export class LoginComponent {
     }
   }
 
-  // checking if error in fields and highlight them
   markAllFieldsAsTouched(): void {
-    Object.keys(this.loginForm.controls).forEach(field => {
-      const control = this.loginForm.get(field);
-      if (control) {
-        control.markAsTouched({ onlySelf: true });
-      }
-    });
+    markAllFieldsAsTouched(this.loginForm);
   }
 
   // just setting the message
@@ -121,7 +105,7 @@ export class LoginComponent {
       const trimmedEmail = this.loginForm.value.email.trim().toLowerCase();
       this.sharedService.setUserEmail(trimmedEmail);
       this.userService.generateToken({ email: trimmedEmail }).subscribe({
-        next: (res: any) => {
+        next: () => {
           this.router.navigateByUrl('/verification/pending');
         },
         error: (error) => {

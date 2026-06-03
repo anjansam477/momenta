@@ -1,19 +1,20 @@
-import { AfterViewInit, Component, ElementRef, EventEmitter, OnInit, Output, ViewChild } from '@angular/core';
+﻿import { AfterViewInit, Component, ElementRef, EventEmitter, OnInit, Output, ViewChild , ChangeDetectionStrategy } from '@angular/core';
 import { GifsService } from '../../services/gifservice/gifs.service';
-import { CommonModule } from '@angular/common';
 import {FormsModule } from '@angular/forms';
+import { GiphyGif } from '../../shared/models';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-gif-modal',
   standalone: true,
-  imports: [CommonModule,FormsModule],
+  imports: [FormsModule],
   templateUrl: './gif-modal.component.html',
   styleUrl: './gif-modal.component.css'
 })
 export class GifModalComponent implements OnInit,AfterViewInit{
   @ViewChild('searchInput') searchInput!: ElementRef;
   searchTerm: string = '';
-  gifs: any[] = [];
+  gifs: GiphyGif[] = [];
   errorMessage:string="";
   recievedGifs:boolean=true;
   @Output() gifSelected = new EventEmitter<string>();
@@ -23,7 +24,7 @@ export class GifModalComponent implements OnInit,AfterViewInit{
 
   ngOnInit(): void {
     this.gifsService.trendingGifs().subscribe(
-      (response: any) => {
+      (response: GiphyGif[]) => {
         this.gifs = response;
       },
       error => {
@@ -52,7 +53,7 @@ export class GifModalComponent implements OnInit,AfterViewInit{
     }, 2000);
     
     this.gifsService.searchGifs(this.searchTerm).subscribe(
-      (response: any) => {
+      (response: GiphyGif[]) => {
         clearTimeout(timeout);
         this.gifs=[];
         this.loader = false;
@@ -75,7 +76,7 @@ export class GifModalComponent implements OnInit,AfterViewInit{
     );
   }
 
-  selectGif(gif: any) {
+  selectGif(gif: GiphyGif) {
     this.gifSelected.emit(gif.images.original.url);
   }
 

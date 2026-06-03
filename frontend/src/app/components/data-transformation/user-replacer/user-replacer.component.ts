@@ -1,23 +1,27 @@
-import { Component, Input } from '@angular/core';
+import { Component, DestroyRef, inject, Input, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UserService } from '../../../services/userservice/user.service';
 import { NotificationsService } from '../../../services/notificationservice/notifications.service';
 import { ActivatedRoute } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { NgClass, DatePipe } from '@angular/common';
 import { SharedDataService } from '../../../services/sharedDataService/shared-data.service';
 import { AuthService } from '../../../services/authservice/auth.service';
 import { combineLatest } from 'rxjs';
 import { getPostAuthorDisplayName } from '../../../shared/post/post-author.util';
+import { UserDetails } from '../../../shared/models';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-user-replacer',
   standalone: true,
-  imports: [CommonModule],
+  imports: [NgClass, DatePipe],
   templateUrl: './user-replacer.component.html',
   styleUrl: './user-replacer.component.css'
 })
 export class UserReplacerComponent {
+  private readonly destroyRef = inject(DestroyRef);
   @Input() email!: string;
-  @Input() datetime: Date | null = null;
+  @Input() datetime: string | Date | null = null;
   @Input() component!: string;
   currentPage = '';
   userName: string = '';
@@ -34,14 +38,14 @@ export class UserReplacerComponent {
   ngOnInit(): void {
     const userEmail = this.authService.getEmail();
   
-    this.route.url.subscribe((urlSegments: { path: string; }[]) => {
+    this.route.url.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((urlSegments: { path: string; }[]) => {
       this.currentPage = urlSegments[0].path;
     });
-  
+
     combineLatest([
       this.sharedService.userData$,
       this.sharedService.getUpdateUserProfile()
-    ]).subscribe(([updatedData, changedImage]) => {
+    ]).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(([updatedData, changedImage]) => {
       if (userEmail === this.email) {
         if (updatedData && Object.keys(updatedData).length > 0) {
           const newUserName = getPostAuthorDisplayName(updatedData.firstname, updatedData.lastname);
@@ -71,7 +75,7 @@ export class UserReplacerComponent {
 
   fetchUserDetails(): void {
     this.userService.fetchUserNamesByEmail(this.email).subscribe({
-      next: (userDetails: any) => {
+      next: (userDetails: UserDetails | null) => {
         if (userDetails) {
           this.userName = userDetails.fullName || this.email;
           this.profilePicture = userDetails.profilePicture || this.profilePicture;
@@ -85,7 +89,7 @@ export class UserReplacerComponent {
     });
   }
 
-  getTime(date: any) {
+  getTime(date: string | Date) {
     return this.notificationService.getTimeAgo(date);
   }
 
@@ -98,7 +102,8 @@ export class UserReplacerComponent {
     return source.slice(0, 2).toUpperCase();
   }
 
-  getDateTime(timestamp: any): string {
+  getDateTime(timestamp: string | Date | null | undefined): string {
+    if (!timestamp) return '';
     const date = new Date(timestamp);
     const now = new Date();
   
@@ -139,7 +144,8 @@ export class UserReplacerComponent {
     }
   }
   
-  isPast(datetime: any): boolean {
+  isPast(datetime: string | Date | null | undefined): boolean {
+    if (!datetime) return false;
     const date = new Date(datetime);
     const now = new Date();
     return date < now;

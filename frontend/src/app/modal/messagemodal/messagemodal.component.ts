@@ -1,18 +1,22 @@
-import { Component, OnChanges, OnInit, SimpleChanges, ViewChild } from '@angular/core';
+﻿import { NgClass } from '@angular/common';
+import { Component, DestroyRef, ElementRef, inject, OnInit, ViewChild, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
-import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-messagemodal',
   standalone: true,
-  imports: [CommonModule],
+  imports: [NgClass],
   templateUrl: './messagemodal.component.html',
   styleUrl: './messagemodal.component.css'
 })
 export class MessagemodalComponent{
+  private readonly destroyRef = inject(DestroyRef);
+  private triggerElement: HTMLElement | null = null;
   message: string = '';
-  @ViewChild('messageModal') messageModal: any;
+  @ViewChild('messageModal') messageModal!: ElementRef;
   currentPage : string = ''
 
   constructor(
@@ -21,16 +25,17 @@ export class MessagemodalComponent{
   ) {}
 
   ngOnInit(){
-    this.route.url.subscribe((urlSegments) => {
+    this.route.url.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((urlSegments) => {
       this.currentPage = urlSegments[0].path;
-    });    
+    });
   }
 
   openModal(): void {
     const context = this.sharedService.message();
     this.message = this.getMessage(context);
-  
+
     if (this.message !== '') {
+      this.triggerElement = document.activeElement as HTMLElement;
       this.openMessageModal();
     }
   }
@@ -42,6 +47,8 @@ export class MessagemodalComponent{
       this.sharedService.setMessage('');
       modalElement.classList.remove('show');
       document.body.classList.remove('modal-open');
+      this.triggerElement?.focus();
+      this.triggerElement = null;
     }
   }
 

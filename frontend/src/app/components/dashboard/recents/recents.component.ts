@@ -1,11 +1,13 @@
-import { CreateWallModalComponent } from "../../../modal/create-wall-modal/create-wall-modal.component";
-import { CommonModule } from '@angular/common';
-import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, HostListener, OnInit, QueryList, Renderer2, ViewChild, ViewChildren } from '@angular/core';
+﻿import { CreateWallModalComponent } from "../../../modal/create-wall-modal/create-wall-modal.component";
+import { FormsModule } from '@angular/forms';
+import { AfterViewInit, ChangeDetectorRef, Component, DestroyRef, ElementRef, HostListener, OnInit, QueryList, Renderer2, ViewChild, ViewChildren, inject , ChangeDetectionStrategy } from '@angular/core';
+import { NgClass } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ClipboardService } from 'ngx-clipboard';
 import { ToastrService } from 'ngx-toastr';
 import { UI_BASE_URL } from '../../../environment-config';
 import { MessagemodalComponent } from '../../../modal/messagemodal/messagemodal.component';
-import { Wall } from '../../../models/wall.model';
+import { Wall } from '../../../shared/models';
 import { AudioService } from '../../../services/audioservice/audio.service';
 import { AuthService } from '../../../services/authservice/auth.service';
 import { WallService } from '../../../services/wallservice/wall.service';
@@ -15,13 +17,17 @@ import { SharemodalComponent } from "../../../modal/sharemodal/sharemodal.compon
 import { UserReplacerComponent } from "../../data-transformation/user-replacer/user-replacer.component";
 import { HomepageBannerComponent } from "../../homepage-banner/homepage-banner.component";
 import { NotificationsService } from "../../../services/notificationservice/notifications.service";
+import { handleHttpError } from '../../../utils/error-handler.util';
+import { isWallCreatorOrMaintainer } from '../../../utils/wall-access.util';
+import { SAVE_TYPE, WALL_STATUS } from '../../../constants/wall.constants';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-recents',
     standalone: true,
     templateUrl: './recents.component.html',
     styleUrl: './recents.component.css',
-    imports: [CommonModule, SharemodalComponent, UserReplacerComponent, HomepageBannerComponent]
+    imports: [NgClass, FormsModule, SharemodalComponent, UserReplacerComponent, HomepageBannerComponent]
 })
 export class RecentsComponent implements OnInit, AfterViewInit {
   walls: Wall[] = [];
@@ -45,6 +51,18 @@ export class RecentsComponent implements OnInit, AfterViewInit {
   page = 1;
   pageSize = 16;
   loadMore = false;
+  wallSearchQuery = '';
+  private readonly destroyRef = inject(DestroyRef);
+
+  get filteredWalls(): Wall[] {
+    const q = this.wallSearchQuery.trim().toLowerCase();
+    if (!q) return this.showWalls;
+    return this.showWalls.filter(w =>
+      (w.title || '').toLowerCase().includes(q) ||
+      (w.description || '').toLowerCase().includes(q) ||
+      (w.ownerEmail || '').toLowerCase().includes(q)
+    );
+  }
 
   constructor(
     private router: Router,
@@ -69,6 +87,10 @@ export class RecentsComponent implements OnInit, AfterViewInit {
       this.loadStarredWalls();
       this.loadRecents();
     }
+    this.sharedService.getWallSearchQuery().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(q => {
+      this.wallSearchQuery = q;
+      this.cdr.detectChanges();
+    });
   }
 
   ngAfterViewInit() {
@@ -83,11 +105,7 @@ export class RecentsComponent implements OnInit, AfterViewInit {
       }
       this.cdr.detectChanges();
     },
-    error: (err)=>{
-      if(err.status!==401){
-        this.toastr.error(err.error.message)
-      }
-    }
+    error: (err)=>{ handleHttpError(err, this.toastr); }
   });
   }
 
@@ -106,12 +124,7 @@ export class RecentsComponent implements OnInit, AfterViewInit {
         }
         this.cdr.detectChanges();
       },
-      error: (err)=>{
-        this.loading = false;
-        if(err.status!==401){
-          this.toastr.error(err.error.message)
-        }
-      }
+      error: (err)=>{ this.loading = false; handleHttpError(err, this.toastr); }
     });
   }
 
@@ -148,15 +161,10 @@ export class RecentsComponent implements OnInit, AfterViewInit {
           }
           this.cdr.detectChanges();
         },
-        error: (err) => {
-          this.loading = false;
-          if(err.status!==401){
-            this.toastr.error(err.error.message)
-          }
-        }
+        error: (err) => { this.loading = false; handleHttpError(err, this.toastr); }
       });
     };
-  
+
     if (this.page === 1) {
       loadWithoutDelay();
     } else {
@@ -233,7 +241,7 @@ export class RecentsComponent implements OnInit, AfterViewInit {
     }
   }
 
-  getTime(date: any) {
+  getTime(date: string | Date) {
     return this.notificationService.getTimeAgo(date);
   }
 
@@ -250,7 +258,7 @@ export class RecentsComponent implements OnInit, AfterViewInit {
   }
 
   private filterWall(walls: Wall[]): Wall[] {
-    return walls.filter(wall => wall.status !== 'archived' && !wall.isArchived).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return walls.filter(wall => wall.status !== WALL_STATUS.ARCHIVED && !wall.isArchived).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   toggleStar(wall: Wall) {
@@ -260,15 +268,11 @@ export class RecentsComponent implements OnInit, AfterViewInit {
   unstarWall(wall: Wall) {
     wall.starred = false;
     if (this.userEmail) {
-      this.wallService.removeWall(wall._id, this.userEmail, 'favourite').subscribe({
+      this.wallService.removeWall(wall._id, this.userEmail, SAVE_TYPE.FAVOURITE).subscribe({
         next: () => {
         this.sharedService.setMessage('unstar');
       },
-      error: (err)=>{
-        if(err.status!==401){
-          this.toastr.error(err.error.message)
-        }
-      }
+      error: (err)=>{ handleHttpError(err, this.toastr); }
     });
     }
   }
@@ -276,14 +280,10 @@ export class RecentsComponent implements OnInit, AfterViewInit {
   starWall(wall: Wall) {
     wall.starred = true;
     if (this.userEmail) {
-      this.wallService.saveWall(wall._id, this.userEmail, 'favourite').subscribe({
+      this.wallService.saveWall(wall._id, this.userEmail, SAVE_TYPE.FAVOURITE).subscribe({
         next:() => {
         this.sharedService.setMessage('star');
-      },error: (err)=>{
-        if(err.status!==401){
-          this.toastr.error(err.error.message)
-        }
-      }});
+      }, error: (err)=>{ handleHttpError(err, this.toastr); }});
     }
   }
 
@@ -319,7 +319,7 @@ export class RecentsComponent implements OnInit, AfterViewInit {
 
   archiveWall(wall: Wall): void {
     wall.isArchived = true;
-    wall.status = 'archived';
+    wall.status = WALL_STATUS.ARCHIVED;
     if (this.userEmail) {
       this.wallService.ArchiveWall(wall._id).subscribe({
         next: () => {
@@ -328,23 +328,18 @@ export class RecentsComponent implements OnInit, AfterViewInit {
         this.showWalls = this.showWalls.filter(b => b._id !== wall._id);
         this.openDropdownIndex = null;
         this.displayWalls(this.walls, 0);
-      },error: (err)=>{
-        if(err.status!==401){
-          this.toastr.error(err.error.message)
-        }
-      }});
+      }, error: (err)=>{ handleHttpError(err, this.toastr); }});
     }
   }
 
-  isUserAllowed(wall: any): boolean {
-    const isOwner = wall.ownerEmail === this.userEmail;
-    const isMaintainer = wall.maintainerEmails?.includes(this.userEmail) ?? false;
-
-    return isOwner || isMaintainer;
+  isUserAllowed(wall: Wall): boolean {
+    return isWallCreatorOrMaintainer(wall, this.userEmail);
   }
 
 
   closeDropdown() {
     this.openDropdownIndex = -1;
   }
+
+
 }

@@ -1,19 +1,24 @@
-import { ChangeDetectorRef, Component, HostListener, OnInit, ViewChild } from '@angular/core';
+﻿import { ChangeDetectorRef, Component, DestroyRef, HostListener, OnInit, ViewChild, inject , ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MessagemodalComponent } from '../../../modal/messagemodal/messagemodal.component';
-import { Wall } from '../../../models/wall.model';
+import { Wall } from '../../../shared/models';
 import { AuthService } from '../../../services/authservice/auth.service';
 import { WallService } from '../../../services/wallservice/wall.service';
-import { CommonModule } from '@angular/common';
 import { NotificationsService } from '../../../services/notificationservice/notifications.service';
 import { UserReplacerComponent } from "../../data-transformation/user-replacer/user-replacer.component";
 import { ToastrService } from 'ngx-toastr';
+import { SharedDataService } from '../../../services/sharedDataService/shared-data.service';
+import { handleHttpError } from '../../../utils/error-handler.util';
+import { isWallCreatorOrMaintainer } from '../../../utils/wall-access.util';
+import { WALL_STATUS } from '../../../constants/wall.constants';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'app-archived',
     standalone: true,
     templateUrl: './archived.component.html',
     styleUrl: './archived.component.css',
-    imports: [CommonModule, UserReplacerComponent]
+    imports: [UserReplacerComponent]
 })
 export class ArchivedComponent implements OnInit {
   walls: Wall[] = [];
@@ -27,22 +32,39 @@ export class ArchivedComponent implements OnInit {
   loading = false;
   allLoaded = false;
   page = 1;
-  
+  wallSearchQuery = '';
+  private readonly destroyRef = inject(DestroyRef);
+
   constructor(
     private wallService: WallService,
     private authService: AuthService,
     private notificationService: NotificationsService,
     private cdr: ChangeDetectorRef,
-    private toastr: ToastrService
+    private toastr: ToastrService,
+    private sharedService: SharedDataService
   ) { }
 
   ngOnInit() {
     this.userEmail = this.authService.getEmail()|| '';
     this.loadWalls(this.userEmail);
     this.name = this.authService.getName();
+    this.sharedService.getWallSearchQuery().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(q => {
+      this.wallSearchQuery = q;
+      this.cdr.detectChanges();
+    });
   }
 
-  loadWalls(userEmail: any) {
+  get filteredWalls(): Wall[] {
+    const q = this.wallSearchQuery.trim().toLowerCase();
+    if (!q) return this.walls;
+    return this.walls.filter(w =>
+      (w.title || '').toLowerCase().includes(q) ||
+      (w.description || '').toLowerCase().includes(q) ||
+      (w.ownerEmail || '').toLowerCase().includes(q)
+    );
+  }
+
+  loadWalls(userEmail: string) {
     this.loading = true;
 
     const loadWithoutDelay = () => {
@@ -86,7 +108,7 @@ export class ArchivedComponent implements OnInit {
     }
   }
 
-  getTime(date:any){
+  getTime(date: string | Date) {
     return this.notificationService.getTimeAgo(date);
   }
 
@@ -95,35 +117,22 @@ export class ArchivedComponent implements OnInit {
     this.dateTimeAgo = this.walls.map(wall => this.getTime(wall.updatedAt));
   }
 
-  /**
-   * Filter archived and non archived walls
-   * @param walls all walls
-   * @returns 
-   */
   private filterWall(walls: Wall[]): Wall[] {
-    const filteredWall = walls.filter((wall) => wall.status === 'archived' || wall.isArchived);
+    const filteredWall = walls.filter((wall) => wall.status === WALL_STATUS.ARCHIVED || wall.isArchived);
     filteredWall.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return filteredWall;
   }
 
-  /**
-   * Unarchive respective wall and calls the filterwall method to filter this wall out of archived walls.
-   * @param wall 
-   */
   restoreWall(wall: Wall): void {
     this.wallId = wall._id.toString();
     wall.isArchived = false;
-    wall.status = 'active';
+    wall.status = WALL_STATUS.ACTIVE;
 
-    this.wallService.updateWall(this.wallId, {status: 'active'}).subscribe({
-      next: (res: any) => {
-      this.displayWalls(this.walls);
+    this.wallService.updateWall(this.wallId, {status: WALL_STATUS.ACTIVE}).subscribe({
+      next: () => {
+        this.displayWalls(this.walls);
       },
-      error: (error)=>{
-        if(error.status!==401){
-          this.toastr.error(error.error.message)
-        }
-      }
+      error: (err)=>{ handleHttpError(err, this.toastr); }
     });
   }
 
@@ -132,10 +141,7 @@ export class ArchivedComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
-  isUserAllowed(wall: any): boolean {
-    const isOwner = wall.ownerEmail === this.userEmail;
-    const isMaintainer = wall.maintainerEmails?.includes(this.userEmail) ?? false;
-
-    return isOwner || isMaintainer;
+  isUserAllowed(wall: Wall): boolean {
+    return isWallCreatorOrMaintainer(wall, this.userEmail);
   }
 }

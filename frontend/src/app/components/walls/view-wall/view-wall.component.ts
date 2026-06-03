@@ -1,25 +1,32 @@
-﻿import { ChangeDetectorRef, Component, OnDestroy, OnInit} from '@angular/core';
+﻿import { NgStyle } from '@angular/common';
+import { ChangeDetectorRef, Component, DestroyRef, OnDestroy, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { WallNavbarComponent } from '../../../utils/wall-navbar/wall-navbar.component';
-import { CommonModule } from '@angular/common';
 import { TitleBarComponent } from '../../../utils/title-bar/title-bar.component';
 import { ActivatedRoute, Router } from '@angular/router';
 import { WallService } from '../../../services/wallservice/wall.service';
 import { WallPostsComponent } from '../wall-posts/wall-posts.component';
 import { SharedDataService } from '../../../services/sharedDataService/shared-data.service';
+import { Params } from '@angular/router';
+import { Wall } from '../../../shared/models';
 import { Subscription, catchError, filter, of, timeout } from 'rxjs';
+
 import { BackgroundImageService } from '../../../services/backgroundimageservice/background-image.service';
 import { AnimationService } from '../../../services/animationservice/animation.service';
+import { isWallCreator } from '../../../utils/wall.util';
 import { AudioService } from '../../../services/audioservice/audio.service';
 import { ToastrService } from 'ngx-toastr';
+import { handleHttpError } from '../../../utils/error-handler.util';
 import { AuthService } from '../../../services/authservice/auth.service';
 import { CookieService } from 'ngx-cookie-service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-view-wall',
   standalone: true,
   imports: [
-    WallNavbarComponent, 
-    CommonModule, 
+    NgStyle,
+    WallNavbarComponent,
     TitleBarComponent,
     WallPostsComponent
   ],
@@ -38,7 +45,7 @@ export class ViewWallComponent implements OnInit ,OnDestroy{
   postAccess: { emails?: string[], domains?: string[] } = {};
   userEmail: string = '';
   private wallDetailsSubscription: Subscription | undefined;
-  private sharedWallDetailsSubscription: Subscription | undefined;
+  private readonly destroyRef = inject(DestroyRef);
   selectedBackground: string = '';
   selectedAnimation:string ='';
   selectedAudio:string='';
@@ -73,7 +80,7 @@ export class ViewWallComponent implements OnInit ,OnDestroy{
       this.authService.removeUserCookie();
     }
     
-    this.route.queryParams.subscribe((params:any) => {
+    this.route.queryParams.subscribe((params: Params) => {
       const token = params['token'];
       if (token) {
         sessionStorage.setItem('viewToken', token);
@@ -86,13 +93,13 @@ export class ViewWallComponent implements OnInit ,OnDestroy{
       }      
     });
 
-    this.sharedWallDetailsSubscription = this.sharedService.getWallDetails().pipe(
-      filter(wallData => !!wallData)
-    ).subscribe((wallData: any) => {
+    this.sharedService.getWallDetails().pipe(
+      filter(wallData => !!wallData), takeUntilDestroyed(this.destroyRef)
+    ).subscribe((wallData: Wall) => {
       this.applyMomentDetails(wallData);
     });
 
-    this.sharedService.getIsPreview().subscribe((data)=>{
+    this.sharedService.getIsPreview().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data)=>{
       this.isPreview = data;
       if (this.selectedAnimation) {
         this.animationService.startAnimation(this.selectedAnimation);
@@ -102,7 +109,7 @@ export class ViewWallComponent implements OnInit ,OnDestroy{
       }
     })
 
-    this.route.url.subscribe((urlSegments) => {
+    this.route.url.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((urlSegments) => {
       this.currentPage = urlSegments[0].path;
     });
 
@@ -117,10 +124,7 @@ export class ViewWallComponent implements OnInit ,OnDestroy{
     if (this.wallDetailsSubscription) {
       this.wallDetailsSubscription.unsubscribe();
     }
-    if (this.sharedWallDetailsSubscription) {
-      this.sharedWallDetailsSubscription.unsubscribe();
-    }
-    this.sharedService.setWallDetails(null); 
+    this.sharedService.setWallDetails(null);
   }
 
   fetchWallDetails() {
@@ -140,12 +144,12 @@ export class ViewWallComponent implements OnInit ,OnDestroy{
         return of(null);
       })
     ).subscribe({
-      next: (response: any) => {
+      next: (response: { wallDetails?: Wall } | Wall | null) => {
         if (!response) {
           return;
         }
 
-        const wallData = response.wallDetails ?? response;
+        const wallData: Wall = (response as { wallDetails?: Wall }).wallDetails ?? (response as Wall);
         if (!wallData?._id && !wallData?.title) {
           this.isMomentReady = true;
           return;
@@ -178,7 +182,7 @@ export class ViewWallComponent implements OnInit ,OnDestroy{
     });
   }
 
-  private applyMomentDetails(wallData: any): void {
+  private applyMomentDetails(wallData: Wall): void {
     this.selectedBackground = wallData.theme?.bgImg || wallData.bgImg || '';
     this.selectedAnimation = wallData.theme?.animationId || wallData.animationId || '';
     this.selectedAudio = wallData.theme?.audio || wallData.audio || '';
@@ -204,7 +208,7 @@ export class ViewWallComponent implements OnInit ,OnDestroy{
     this.cdr.detectChanges();
   }
   
-  verifyAccess(viewAccess: any, postAccess: any) {
+  verifyAccess(viewAccess: { emails?: string[]; domains?: string[] }, postAccess: { emails?: string[]; domains?: string[] }) {
     const allowedEmails = [...(viewAccess.emails || []), ...(postAccess.emails || [])];
     const allowedDomains = [...(viewAccess.domains || []), ...(postAccess.domains || [])];
     const userDomain = this.userEmail?.split('@')[1] || '';
@@ -222,11 +226,7 @@ export class ViewWallComponent implements OnInit ,OnDestroy{
   }
   
   checkWallCreator(): boolean {
-    if (this.wallCreatorMails && Array.isArray(this.wallCreatorMails)) {
-      return this.wallCreatorMails.some(email => typeof this.userEmail === 'string' && email === this.userEmail);
-    }
-    
-    return false;
+    return isWallCreator(this.userEmail, this.wallCreatorMails);
   }
 
   updateBackgroundImage(): void {
@@ -247,9 +247,7 @@ export class ViewWallComponent implements OnInit ,OnDestroy{
     this.backgroundService.getThemes().subscribe({
       next: (data) => {
       this.sharedService.setThemes(data);
-    }, error: (err)=>{
-      this.toastr.error(err.error.message);
-    }});
+    }, error: (err)=>{ handleHttpError(err, this.toastr); }});
   }
 
 }

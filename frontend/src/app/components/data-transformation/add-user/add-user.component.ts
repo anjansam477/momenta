@@ -1,21 +1,26 @@
-import { Component, OnInit, Output, EventEmitter, Input } from '@angular/core';
+﻿import { NgClass } from '@angular/common';
+import { Component, DestroyRef, inject, OnInit, Output, EventEmitter, Input, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidatorFn } from '@angular/forms';
-import { filter } from 'rxjs/operators';
+import { filter, take } from 'rxjs/operators';
 import { UserService } from '../../../services/userservice/user.service';
-import { CommonModule } from '@angular/common';
 import { SharedDataService } from '../../../services/sharedDataService/shared-data.service';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../services/authservice/auth.service';
 import { TagInputModule } from 'ngx-chips';
 import { Observable, of } from 'rxjs';
+import { UserDetails } from '../../../shared/models';
+import { Wall } from '../../../shared/models';
 import { animate, style, transition, trigger } from '@angular/animations';
 
-type TagModel = string | Record<string, any>;
+type TagModel = string | Record<string, string>;
+type UserTagModel = { email: string; name?: string; profilePicture?: string };
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-add-user',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TagInputModule],
+  imports: [NgClass, ReactiveFormsModule, TagInputModule],
   templateUrl: './add-user.component.html',
   styleUrl: './add-user.component.css',
   animations: [
@@ -32,8 +37,9 @@ type TagModel = string | Record<string, any>;
   ]
 })
 export class AddUserComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   searchForm!: FormGroup;
-  selectedUsers: any[] = [];
+  selectedUsers: UserDetails[] = [];
   showList = true;
   selectedEmails: string[] = [];
   errorMessage: string = '';
@@ -49,10 +55,10 @@ export class AddUserComponent implements OnInit {
   ownerEmail: string = "";
   splitPattern = new RegExp('[,\\s]+');
   emailValidator = this.emailValidatorfun();
-  searchResults: any[] = [];
+  searchResults: UserDetails[] = [];
   emailPattern = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
   excludedComponents = ['maintainer', 'viewByEmail', 'postByEmail'];
-  userSuggestionList!: any[];
+  userSuggestionList!: UserDetails[];
   info:string[]=[];
   showListTitle:string[]=[];
   btnText:string="";
@@ -77,9 +83,9 @@ export class AddUserComponent implements OnInit {
         this.fetchUserDetails(email);
       });
       this.searchResults = this.selectedUsers.sort((a, b) =>
-        a.email.localeCompare(b.email)
+        (a.email ?? '').localeCompare(b.email ?? '')
       );
-      this.searchForm.get('emailSearch')?.valueChanges.subscribe(query => {
+      this.searchForm.get('emailSearch')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(query => {
         this.searchPara(query);
       });
 
@@ -89,7 +95,7 @@ export class AddUserComponent implements OnInit {
 
   fetchUserDetails(email: string): void {
     this.userService.fetchUserNamesByEmail(email).subscribe({
-      next: (userDetails: any) => {
+      next: (userDetails: UserDetails | null) => {
         if (userDetails) {
           this.selectedUsers.push({
             email: userDetails.email,
@@ -111,12 +117,12 @@ export class AddUserComponent implements OnInit {
 
   fetchWallDetails() {
     this.sharedService.getWallDetails().pipe(
-      filter(wallData => !!wallData)).subscribe({
-        next: (wallData: any) => {
+      filter(wallData => !!wallData), take(1)).subscribe({
+        next: (wallData: Wall) => {
           this.ownerEmail = wallData.ownerEmail;
-          if (this.component == 'schedule-delivery' && wallData.maintainerEmails) {
+          if (this.component == 'schedule-delivery' && wallData.maintainerEmails?.length) {
             this.adminEmails.push(wallData.ownerEmail);
-            this.adminEmails.push(...wallData.maintainerEmails);
+            this.adminEmails.push(...(wallData.maintainerEmails ?? []));
           }
         },
         error: (err) => {
@@ -127,15 +133,15 @@ export class AddUserComponent implements OnInit {
   }
 
 
-  convertBufferToBase64(buffer: any): string {
-    return `data:${buffer.contentType};base64,${buffer.data.toString('base64')}`;
-
+  convertBufferToBase64(buffer: { contentType: string; data: number[] }): string {
+    const binaryString = buffer.data.map((b: number) => String.fromCharCode(b)).join('');
+    return `data:${buffer.contentType};base64,${btoa(binaryString)}`;
   }
 
-  removeUser(user: any): void {
+  removeUser(user: UserDetails): void {
     this.selectedUsers = this.selectedUsers.filter(selectedUser => selectedUser !== user);
     this.searchResults = this.searchResults.filter(selectedUser => selectedUser !== user);
-    this.selectedEmails = this.selectedEmails.filter(email => email !== user.email);
+    this.selectedEmails = this.selectedEmails.filter(email => email !== (user.email ?? ''));
     this.emailsChanged.emit(this.selectedEmails);
   }
 
@@ -151,8 +157,8 @@ export class AddUserComponent implements OnInit {
     const lowerCaseQuery = query.toLowerCase();
 
     this.searchResults = this.selectedUsers.filter(user =>
-      user.email.toLowerCase().includes(lowerCaseQuery) ||
-      user.fullName.toLowerCase().includes(lowerCaseQuery)
+      (user.email ?? '').toLowerCase().includes(lowerCaseQuery) ||
+      (user.fullName ?? '').toLowerCase().includes(lowerCaseQuery)
     );
   }
 
@@ -174,14 +180,14 @@ export class AddUserComponent implements OnInit {
     return of(tag);
   }
 
-  clearError(event: any) {
+  clearError(_event: unknown) {
     if(this.errorMessage)
       this.errorMessage="";
   }
 
 
   emailValidatorfun(): ValidatorFn {
-    return (control: AbstractControl): { [key: string]: any } | null => {
+    return (control: AbstractControl): Record<string, unknown> | null => {
       const email = control.value;
       const valid = this.emailPattern.test(email);
       return valid ? null : { invalidEmail: { value: email } };
@@ -192,11 +198,12 @@ export class AddUserComponent implements OnInit {
     if (!this.searchForm.get('search')?.value) {
       return;
     }
-    const invalidEmails: any[]=[];
-    this.searchForm.get('search')?.value.forEach((user: any) => {
-      if (!this.selectedEmails.includes(user.email) && this.selectUser(user.email)) {
+    const invalidEmails: TagModel[] = [];
+    this.searchForm.get('search')?.value.forEach((user: TagModel) => {
+      const u = user as UserTagModel;
+      if (!this.selectedEmails.includes(u.email) && this.selectUser(u.email)) {
         this.setUserDetails(user);
-        this.selectedEmails.push(user.email);
+        this.selectedEmails.push(u.email);
         this.searchResults=this.selectedUsers;
       }
       else{
@@ -222,18 +229,19 @@ export class AddUserComponent implements OnInit {
     this.errorMessage="";
   }
 
-  setUserDetails(user:any){
-        if (user) {
-          this.selectedUsers.push({
-            email: user.email,
-            fullName: user.name,
-            profilePicture: user.profilePicture
-          });
-        }
+  setUserDetails(user: TagModel) {
+    if (user) {
+      const u = user as UserTagModel;
+      this.selectedUsers.push({
+        email: u.email,
+        fullName: u.name,
+        profilePicture: u.profilePicture
+      });
+    }
   }
 
-  getInitials(user: any): string {
-    const source = user?.fullName || user?.name || user?.email || '?';
+  getInitials(user: UserDetails): string {
+    const source = user?.fullName ?? user?.userName ?? user?.email ?? '?';
     const words = source.trim().split(/\s+/).filter(Boolean);
     if (words.length >= 2) {
       return `${words[0][0]}${words[1][0]}`.toUpperCase();
@@ -249,18 +257,17 @@ export class AddUserComponent implements OnInit {
   }
 
 
-  getFilteredItems = (text: string): Observable<any[]> => {
+  getFilteredItems = (text: string): Observable<UserDetails[]> => {
     return new Observable(observer => {
       this.userService.searchNames(text).subscribe(results => {
         const currentUserEmail = this.authService.getEmail();
-        // this.userDetails = results;
         this.userSuggestionList = results
           .filter(item => item.email !== currentUserEmail)
           .map(user => {
             let profilePicture = '';
             
-            if (user.profilePicture) {
-              profilePicture = this.convertBufferToBase64(user.profilePicture);
+            if (user.profilePicture && typeof user.profilePicture === 'object') {
+              profilePicture = this.convertBufferToBase64(user.profilePicture as { contentType: string; data: number[] });
             } else if (user.profilePictureUrl) {
               profilePicture = user.profilePictureUrl;
             }
@@ -278,9 +285,7 @@ export class AddUserComponent implements OnInit {
 
   setContent(){
     switch(this.component){
-      case 'maintainer':  this.info[0]="Add maintainers by entering their emails.";
-                          this.info[1]="Maintainers can change settings and manage";
-                          this.info[2]="walls."
+      case 'maintainer':  this.info[0]="Add maintainers by entering their emails. They can change settings and manage the wall.";
                           this.showListTitle[0]="A Maintainer has been added";
                           this.showListTitle[1]=" Maintainers have been added";
                           this.btnText="Maintainers";
@@ -290,8 +295,7 @@ export class AddUserComponent implements OnInit {
                           this.showListTitle[1]=" People have view access";
                           this.btnText="Viewers";
                           break;
-      case 'postByEmail': this.info[0]="Add posters by email. They can post, edit and"
-                          this.info[1]="react."
+      case 'postByEmail': this.info[0]="Add posters by email. They can post, edit and react.";
                           this.showListTitle[0]="1 Person has post access";
                           this.showListTitle[1]=" People have post access";
                           this.btnText="Posters";
@@ -299,6 +303,7 @@ export class AddUserComponent implements OnInit {
       case 'schedule-delivery': this.info[0] = "Enter recipients to schedule the moment for them."
                                 this.showListTitle[1] = " People are scheduled for delivery";
                                 this.showListTitle[0]="1 Person is scheduled for delivery";
+                                this.btnText="Recipients";
                                 break;
     }
   }

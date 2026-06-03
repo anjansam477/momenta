@@ -1,19 +1,25 @@
-import { CommonModule } from '@angular/common';
-import {
+﻿import {
   ChangeDetectorRef,
   Component,
+  DestroyRef,
   ElementRef,
   HostListener,
+  OnInit,
   QueryList,
   Renderer2,
   ViewChild,
   ViewChildren,
-} from '@angular/core';
+  inject,
+  ChangeDetectionStrategy } from '@angular/core';
+import { NgClass } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ClipboardService } from 'ngx-clipboard';
 import { ToastrService } from 'ngx-toastr';
 import { UI_BASE_URL } from '../../../environment-config';
 import { MessagemodalComponent } from '../../../modal/messagemodal/messagemodal.component';
-import { Wall } from '../../../models/wall.model';
+import { Wall } from '../../../shared/models';
+import { isWallCreatorOrMaintainer } from '../../../utils/wall-access.util';
+import { SAVE_TYPE, WALL_STATUS } from '../../../constants/wall.constants';
 import { AudioService } from '../../../services/audioservice/audio.service';
 import { AuthService } from '../../../services/authservice/auth.service';
 import { WallService } from '../../../services/wallservice/wall.service';
@@ -24,13 +30,14 @@ import { SharemodalComponent } from '../../../modal/sharemodal/sharemodal.compon
 import { UserReplacerComponent } from "../../data-transformation/user-replacer/user-replacer.component";
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-favourite',
   standalone: true,
   templateUrl: './favourite.component.html',
   styleUrl: './favourite.component.css',
-  imports: [CommonModule, SharemodalComponent, UserReplacerComponent],
+  imports: [NgClass, SharemodalComponent, UserReplacerComponent],
 })
-export class FavouriteComponent {
+export class FavouriteComponent implements OnInit {
   walls: Wall[] = [];
   showWalls: Wall[] = [];
   wallId: string = '';
@@ -50,6 +57,8 @@ export class FavouriteComponent {
   loading = false;
   allLoaded = false;
   page = 1;
+  wallSearchQuery = '';
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor(
     private router: Router,
@@ -68,13 +77,27 @@ export class FavouriteComponent {
     this.userEmail = this.authService.getEmail()|| '';
     this.loadWalls(this.userEmail);
     this.name = this.authService.getName();
+    this.sharedService.getWallSearchQuery().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(q => {
+      this.wallSearchQuery = q;
+      this.cdr.detectChanges();
+    });
   }
 
-  loadWalls(userEmail: any) {
+  get filteredWalls(): Wall[] {
+    const q = this.wallSearchQuery.trim().toLowerCase();
+    if (!q) return this.showWalls;
+    return this.showWalls.filter(w =>
+      (w.title || '').toLowerCase().includes(q) ||
+      (w.description || '').toLowerCase().includes(q) ||
+      (w.ownerEmail || '').toLowerCase().includes(q)
+    );
+  }
+
+  loadWalls(userEmail: string) {
     this.loading = true;
 
     const loadWithoutDelay = () => {
-      this.wallService.getSavedWalls(userEmail, this.page, 'favourite').subscribe({
+      this.wallService.getSavedWalls(userEmail, this.page, SAVE_TYPE.FAVOURITE).subscribe({
         next: (result: Wall[]) => {
           this.loading = false;
           if (result.length > 0) {
@@ -129,7 +152,7 @@ export class FavouriteComponent {
     }
   }
 
-  getTime(date: any) {
+  getTime(date: string | Date) {
     return this.notificationService.getTimeAgo(date);
   }
 
@@ -160,17 +183,12 @@ export class FavouriteComponent {
     this.cdr.detectChanges();
   }
 
-  /**
-   * Filter archived and non archived walls
-   * @param walls all walls
-   * @returns
-   */
   private filterWall(walls: Wall[]): Wall[] {
-    const filteredWall = walls.filter((wall) => wall.status !== 'archived' && !wall.isArchived);
+    const filteredWall = walls.filter((wall) => wall.status !== WALL_STATUS.ARCHIVED && !wall.isArchived);
 
     filteredWall.forEach(wall => {
-      wall.starred = wall.saveType === 'favourite';
-      wall.saved = wall.saveType === 'saved';
+      wall.starred = wall.saveType === SAVE_TYPE.FAVOURITE;
+      wall.saved = wall.saveType === SAVE_TYPE.SAVED;
     });
   
     filteredWall.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -188,7 +206,7 @@ export class FavouriteComponent {
     this.clipboardService.copy(this.baseUrl + '/moment/' + this.wallId);
   }
 
-  toggleStar(wall: any) {
+  toggleStar(wall: Wall) {
     if (wall.starred) {
       this.unstarWall(wall);
     } else {
@@ -196,14 +214,14 @@ export class FavouriteComponent {
     }
   }
 
-  unstarWall(wall: any) {
+  unstarWall(wall: Wall) {
     wall.starred = false;
     this.wallId = wall._id.toString();
-    const saveType = 'favourite';
+    const saveType = SAVE_TYPE.FAVOURITE;
     if (this.userEmail) {
       this.wallService
         .removeWall(this.wallId, this.userEmail, saveType)
-        .subscribe((res: any) => {
+        .subscribe(() => {
           this.openDropdownIndex = null;
           this.sharedService.setMessage('unstar');
           this.walls = this.walls.filter(b => b._id !== wall._id);
@@ -216,11 +234,11 @@ export class FavouriteComponent {
   starWall(wall: Wall) {
     wall.starred = true;
     this.wallId = wall._id.toString();
-    const saveType = 'favourite';
+    const saveType = SAVE_TYPE.FAVOURITE;
     if (this.userEmail) {
       this.wallService
         .saveWall(this.wallId, this.userEmail, saveType)
-        .subscribe((res: any) => {
+        .subscribe(() => {
           this.openDropdownIndex = null;
           this.sharedService.setMessage('star');
         });
@@ -241,11 +259,11 @@ export class FavouriteComponent {
 
   removeWall(wall: Wall): void {
     this.wallId = wall._id.toString();
-    const saveType = 'saved';
+    const saveType = SAVE_TYPE.SAVED;
     if (this.userEmail) {
       this.wallService
         .removeWall(this.wallId, this.userEmail, saveType)
-        .subscribe((res: any) => {
+        .subscribe(() => {
           this.openDropdownIndex = null;
           this.walls = this.walls.filter((b) => b._id !== wall._id);
           this.showWalls = this.showWalls.filter((b) => b._id !== wall._id);
@@ -263,10 +281,10 @@ export class FavouriteComponent {
     this.wallFilter = filterText;
     this.resetAnimations();
     this.openDropdownIndex = null;
-    if (filterText === 'favourite') {
-      this.showWalls = this.walls.filter((wall) => wall.saveType === 'favourite' || wall.saveType === 'favourite');
-    } else if (filterText === 'saved') {
-      this.showWalls = this.walls.filter((wall) => wall.saveType === 'saved' || wall.saveType === 'saved');
+    if (filterText === SAVE_TYPE.FAVOURITE) {
+      this.showWalls = this.walls.filter((wall) => wall.saveType === SAVE_TYPE.FAVOURITE);
+    } else if (filterText === SAVE_TYPE.SAVED) {
+      this.showWalls = this.walls.filter((wall) => wall.saveType === SAVE_TYPE.SAVED);
     } else {
       this.showWalls = this.walls;
     }
@@ -275,11 +293,8 @@ export class FavouriteComponent {
     this.initAnimations(startIndex);
   }
 
-  isUserAllowed(wall: any): boolean {
-    const isOwner = wall.ownerEmail === this.userEmail;
-    const isMaintainer = wall.maintainerEmails && wall.maintainerEmails.includes(this.userEmail);
-  
-    return isOwner || isMaintainer;
+  isUserAllowed(wall: Wall): boolean {
+    return isWallCreatorOrMaintainer(wall, this.userEmail);
   }
 
   closeDropdown() {

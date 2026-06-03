@@ -1,21 +1,24 @@
-import { Component, effect, OnInit } from '@angular/core';
+﻿import { Component, DestroyRef, effect, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UserService } from '../../services/userservice/user.service';
-import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../services/authservice/auth.service';
 import { SERVICE_BASE_URL } from '../../environment-config';
-import { CommonModule } from '@angular/common';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
 import { customEmailValidator } from '../../validators/email-validator';
 import { noWhitespaceValidator } from '../../validators/no-whitespace-validator';
+import { markAllFieldsAsTouched } from '../../utils/form.util';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-loginmodal',
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, CommonModule],
+  imports: [ReactiveFormsModule],
   templateUrl: './loginmodal.component.html',
   styleUrl: './loginmodal.component.css',
 })
 export class LoginmodalComponent implements OnInit{
+  private readonly destroyRef = inject(DestroyRef);
   userData = {
     email: '',
     password: '',
@@ -51,7 +54,7 @@ export class LoginmodalComponent implements OnInit{
   }
 
   subscribeToFormChanges(): void {
-    this.loginForm.valueChanges.subscribe(() => {
+    this.loginForm.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.incorrect = false;
       this.errorMessage = '';
     });
@@ -67,11 +70,11 @@ export class LoginmodalComponent implements OnInit{
       const trimmedEmail = this.loginForm.value.email.trim();
       const trimmedPassword = this.loginForm.value.password.trim();
       this.userService.loginUser({ email: trimmedEmail, password: trimmedPassword }).subscribe({
-        next: (res: any) => {
+        next: (res: { token?: string; name?: string }) => {
           if (res.token) {
             this.authService.storeToken(res.token);
             this.authService.storeEmail(this.loginForm.value.email);
-            this.authService.storeName(res.name);
+            this.authService.storeName(res.name ?? '');
             this.sharedService.setMessage('login-modal');
             this.incorrect = false;
             setTimeout(() => {
@@ -92,12 +95,7 @@ export class LoginmodalComponent implements OnInit{
   }
 
   markAllFieldsAsTouched(): void {
-    Object.keys(this.loginForm.controls).forEach(field => {
-      const control = this.loginForm.get(field);
-      if (control) {
-        control.markAsTouched({ onlySelf: true });
-      }
-    });
+    markAllFieldsAsTouched(this.loginForm);
   }
 
   getMessage(context: string){

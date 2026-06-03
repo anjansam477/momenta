@@ -1,5 +1,6 @@
-﻿import { ChangeDetectorRef, Component, ElementRef, HostListener, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+﻿import { NgClass } from '@angular/common';
+import { ChangeDetectorRef, Component, DestroyRef, ElementRef, HostListener, inject, ViewChild, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { LoginmodalComponent } from '../../../modal/loginmodal/loginmodal.component';
 import { MessagemodalComponent } from '../../../modal/messagemodal/messagemodal.component';
 import { PostmodalComponent } from '../../../modal/postmodal/postmodal.component';
@@ -10,21 +11,27 @@ import { AuthService } from '../../../services/authservice/auth.service';
 import { MediaService } from '../../../services/mediaservice/media.service';
 import { PostService } from '../../../services/postservice/post.service';
 import { SharedDataService } from '../../../services/sharedDataService/shared-data.service';
-import { Subject, Observable, map, catchError, of, filter, shareReplay, debounceTime, distinctUntilChanged, takeUntil, Subscription } from 'rxjs';
+import { Subject, Observable, map, catchError, of, filter, shareReplay, debounceTime, distinctUntilChanged } from 'rxjs';
 import { Post } from '../../../models/post.model';
+import { Params } from '@angular/router';
+import { Wall } from '../../../shared/models';
 import { postPageSize } from '../../../environment-config';
+import { WALL_STATUS } from '../../../constants/wall.constants';
 import { UserReplacerComponent } from '../../data-transformation/user-replacer/user-replacer.component';
 import { SanitizeAndCleanHtmlPipe } from '../../../utils/custom-pipe/sanitize-and-clean-html.pipe';
 import { WallService } from '../../../services/wallservice/wall.service';
+import { isWallCreator } from '../../../utils/wall.util';
+import { handleHttpError } from '../../../utils/error-handler.util';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-wall-posts',
   standalone: true,
-  imports: [ 
-    CommonModule, 
-    LoginmodalComponent, 
-    PostmodalComponent, 
-    MessagemodalComponent, 
+  imports: [
+    NgClass,
+    LoginmodalComponent,
+    PostmodalComponent,
+    MessagemodalComponent,
     UserReplacerComponent,
     SanitizeAndCleanHtmlPipe
   ],
@@ -39,16 +46,16 @@ export class WallPostsComponent {
   wallTitle: string = '';
   wallDescription: string = '';
   posts: Post[] = [];
-  openDate!: Date;
+  openDate: string | Date | null = null;
   isArchived: boolean = false;
-  closeDate!: Date;
+  closeDate: string | Date | null = null;
   mediaUrls: { [key: string]: SafeUrl } = {};
   currentPage: string | undefined;
   wallCreatorMails!: string[];
   ownerMail: string = ''
   postId: string = '';
   @ViewChild(MessagemodalComponent) messageModalComponent!: MessagemodalComponent;
-  reaction!: [{postId: any, reaction:string[]}];
+  reaction!: [{ postId: string; reaction: string[] }];
   columns: Post[][] = [[], [], []];
   extraValue = '';
   loginBoolean = true;
@@ -57,15 +64,18 @@ export class WallPostsComponent {
   userEmail: string|null = '';
   nonArchivedNonReportedCount:number=0;
   nonArchivedCount:number=0;
-  private unsubscribe$ = new Subject<void>();
+  private readonly destroyRef = inject(DestroyRef);
   isOpen:boolean=true;
-  private wallDetailsSubscription: Subscription | undefined;
   openDropdownIndex: string | null = null;
   loading = false;
   allLoaded = false;
   page = 1;
   private postUpdatesInitialized = false;
   private pendingReactions = new Set<string>();
+  pendingPosts: Post[] = [];
+  requireApproval: boolean = false;
+  showPendingQueue: boolean = false;
+  searchQuery: string = '';
   
   constructor(
     private route: ActivatedRoute,
@@ -83,26 +93,31 @@ export class WallPostsComponent {
   ngOnInit(): void {
     this.isLoggedIn();
     if(this.loginBoolean || sessionStorage.getItem('viewToken')){
-      this.route.params.subscribe((params: any) => {
+      this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params: Params) => {
         this.wallId = params['momentId'] ?? params['wallId'];
         this.fetchWallDetails();
         this.fetchPosts();
       });
-  
-      this.route.url.subscribe((urlSegments) => {
+
+      this.route.url.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((urlSegments) => {
         this.currentPage = urlSegments[0].path;
       });
-  
-      this.sharedService.getIsPreview().subscribe((data)=>{
-        this.isPreview = data
-      })
+
+      this.sharedService.getIsPreview().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data)=>{
+        this.isPreview = data;
+      });
 
       this.updatePosts();
+      this.sharedService.getPostSearchQuery().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(q => {
+        this.searchQuery = q;
+        this.applySearchFilter();
+        this.cdr.detectChanges();
+      });
     }
   }
 
   ngAfterViewInit() {
-    this.route.queryParams.subscribe((params: any) => {
+    this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params: Params) => {
       const postId = params['postId'];
       this.extraValue = params['extraValue'];
       if (postId) {
@@ -111,10 +126,6 @@ export class WallPostsComponent {
     }); 
   }
 
-  ngOnDestroy() {
-    this.unsubscribe$.next();
-    this.unsubscribe$.complete();
-  }
   
   arrayBufferToBlob(buffer: Array<number>, contentType: string): string {
     const arrayBuffer = new Uint8Array(buffer).buffer;
@@ -260,23 +271,27 @@ export class WallPostsComponent {
   }
 
   fetchWallDetails() {
-    this.wallDetailsSubscription = this.sharedService.getWallDetails().pipe(
+    this.sharedService.getWallDetails().pipe(
       filter(wallData => !!wallData),
-      takeUntil(this.unsubscribe$)
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe({
-      next: (wallDetails: any) => {
+      next: (wallDetails: Wall) => {
         this.wallTitle = wallDetails.title;
         this.ownerMail = wallDetails.ownerEmail;
         this.wallCreatorMails = [...(wallDetails.maintainerEmails || [])];
         this.wallCreatorMails.push(wallDetails.ownerEmail);
         // Support both old isOpen and new status field
-        this.isOpen = wallDetails.status === 'active' || wallDetails.isOpen;
+        this.isOpen = wallDetails.status === WALL_STATUS.ACTIVE || wallDetails.isOpen;
+        this.requireApproval = wallDetails.postConfig?.requireApproval ?? false;
+        if (this.requireApproval && this.checkWallCreator()) {
+          this.fetchPendingPosts();
+        }
         this.nonArchivedCount = wallDetails.posts?.nonArchivedCount ?? 0,
         this.nonArchivedNonReportedCount = wallDetails.posts?.nonArchivedNonReportedCount ?? 0;
-        this.openDate = wallDetails.openDate;
-        this.closeDate = wallDetails.closeDate;
+        this.openDate = wallDetails.openDate ?? null;
+        this.closeDate = wallDetails.closeDate ?? null;
         // Support both old isArchived and new status field
-        this.isArchived = wallDetails.status === 'archived' || wallDetails.isArchived;
+        this.isArchived = !!(wallDetails.status === WALL_STATUS.ARCHIVED || wallDetails.isArchived);
         this.wallDescription = wallDetails.description;
         this.cdr.detectChanges();
       },
@@ -324,9 +339,7 @@ export class WallPostsComponent {
           }
         },
         error: (err) => {
-          if(err.status!==401){
-            this.toastr.error(err.error.message)
-          }
+          handleHttpError(err, this.toastr);
           this.loading = false;
         },
       });
@@ -358,8 +371,8 @@ export class WallPostsComponent {
     
   }
   
-  isReactionPresent(reactionType: string, post: any): boolean {
-    return post.reactions[reactionType]?.includes(this.userEmail);
+  isReactionPresent(reactionType: string, post: Post): boolean {
+    return post.reactions[reactionType]?.includes(this.userEmail ?? '');
   }
   
   react(reactionType: string, postId: string) {
@@ -392,9 +405,7 @@ export class WallPostsComponent {
       error: (err) => {
         this.pendingReactions.delete(reactionKey);
         this.updateReactionLocally(postId, reactionType, existingReaction);
-        if(err.status!==401){
-          this.toastr.error(err.error.message)
-        }
+        handleHttpError(err, this.toastr);
       }
     });
   }
@@ -424,22 +435,24 @@ export class WallPostsComponent {
     if (this.messageModalComponent) {
       this.messageModalComponent.closeModal();
     }
+    this.closeDropdown();
+    this.cdr.detectChanges();
   }
 
-  filterPosts(posts: any[]): any[] {
-    const isActivePost = (post: any) => post.status === 'active' || (!post.status && !post.isArchived);
+  filterPosts(posts: Post[]): Post[] {
+    const isActivePost = (post: Post) => post.status === 'active' || (!post.status && !post.isArchived);
     if (this.currentPage === 'download') {
       return posts.filter(post => isActivePost(post) && (post.openReportCount ?? post.reportedBy?.length ?? 0) === 0);
     }
     if (this.checkWallCreator()) {
-      return posts.filter((post: any) => isActivePost(post));
+      return posts.filter((post: Post) => isActivePost(post));
     } else {
-      return posts.filter((post: any) => isActivePost(post) && (post.openReportCount ?? post.reportedBy?.length ?? 0) === 0);
+      return posts.filter((post: Post) => isActivePost(post) && (post.openReportCount ?? post.reportedBy?.length ?? 0) === 0);
     }
   }
 
   preFetchFileUrls() {
-    this.posts.forEach((post: any) => {
+    this.posts.forEach((post: Post) => {
       const mediaType = post.media?.type || post.mediaType;
       const mediaUrl = post.media?.url || post.mediaUrl;
       if (mediaUrl && (
@@ -499,43 +512,38 @@ export class WallPostsComponent {
     this.postIdSubject.next(postId);
   }
 
-  openUpdatePost(post: any): void {
+  openUpdatePost(post: Post): void {
     this.sharedService.setSendEmail(false);
-    this.setPostId(post);
+    this.setPostId(post._id);
   }
 
-  // reportPost(post: Post) {
-  //   if(!this.isArchived){
-  //     if (this.userEmail) {
-  //       const wallId = this.wallId;  
-  //       this.postService.reportPost(wallId, post._id).subscribe({
-  //         next:(data) => {
-  //         this.sharedService.updateWallDetailsPartially({ posts: {
-  //             nonArchivedCount: this.nonArchivedCount, 
-  //             nonArchivedNonReportedCount:this.nonArchivedNonReportedCount - 1
-  //         }  });
-  //         this.posts = this.posts.map(p => p._id === post._id ? { ...p, ...data } : p);
-  //         this.updatePostInColumns(data)
-  //         this.posts = this.filterPosts(this.posts);
-  //         const allPostsReported = this.posts.every(p => (p.openReportCount ?? p.reportedBy?.length ?? 0) > 0);
-  //         if (this.posts.length === 0 || allPostsReported) {
-  //           this.sharedService.setPostAvailable(false);
-  //         }
-  //         const userHasPost = this.posts.some(p => p.email === this.userEmail);
-  //         if(!userHasPost){
-  //           this.sharedService.setMyPost(false);
-  //         }
-  //       },error: (err)=>{
-  //         if(err.status!==401){
-  //           this.toastr.error(err.error.message)
-  //         }
-  //       }
-  //     });
-  //     } else {
-  //       this.sharedService.setContext('report');
-  //     }
-  //   }
-  // }
+  reportPost(post: Post) {
+    if (this.isArchived) return;
+    if (!this.userEmail) {
+      this.sharedService.setContext('report');
+      return;
+    }
+    this.postService.reportPost(this.wallId, post._id).subscribe({
+      next: (data) => {
+        this.sharedService.updateWallDetailsPartially({ posts: {
+          nonArchivedCount: this.nonArchivedCount,
+          nonArchivedNonReportedCount: this.nonArchivedNonReportedCount - 1
+        }});
+        this.posts = this.posts.map(p => p._id === post._id ? { ...p, ...data } : p);
+        this.updatePostInColumns({ ...post, ...data });
+        if (!this.checkWallCreator()) {
+          this.posts = this.filterPosts(this.posts);
+        }
+        const allReported = this.posts.every(p => (p.openReportCount ?? p.reportedBy?.length ?? 0) > 0);
+        if (this.posts.length === 0 || allReported) {
+          this.sharedService.setPostAvailable(false);
+        }
+        this.toastr.info('Post reported');
+        this.cdr.detectChanges();
+      },
+      error: (err) => handleHttpError(err, this.toastr)
+    });
+  }
 
   stopVideo(video: HTMLVideoElement) {
     video.pause();
@@ -557,11 +565,7 @@ export class WallPostsComponent {
           this.sharedService.setPostAvailable(true);
         }
       },
-      error: (err) => {
-        if(err.status!==401){
-          this.toastr.error(err.error.message)
-        }
-      }
+      error: (err) => handleHttpError(err, this.toastr)
     });
   }
 
@@ -571,7 +575,7 @@ export class WallPostsComponent {
 
   deletePost(post: Post) {
     this.postService.deletePost(this.wallId, post._id).subscribe({
-      next: (data) => {
+      next: () => {
         this.sharedService.updateWallDetailsPartially({
           posts: {
             nonArchivedCount: this.nonArchivedCount - 1,
@@ -586,14 +590,38 @@ export class WallPostsComponent {
       if(!userHasPost){
         this.sharedService.setMyPost(false);
       }
-      this.updatePostInColumns(data)
+      this.updatePostInColumns({ ...post, status: 'deleted' })
     },
-    error: (err)=>{
-      if(err.status!==401){
-        this.toastr.error(err.error.message)
+    error: (err) => handleHttpError(err, this.toastr)
+  });
+  }
+
+  pinPost(post: Post) {
+    const newPinned = !post.pinned;
+    if (newPinned) {
+      const pinnedCount = this.posts.filter(p => p.pinned).length;
+      if (pinnedCount >= 3) {
+        this.toastr.warning('Maximum 3 posts can be pinned per wall');
+        return;
       }
     }
-  });
+    this.postService.pinPost(this.wallId, post._id, newPinned).subscribe({
+      next: (updated: Post) => {
+        this.posts = this.posts.map(p => p._id === post._id ? { ...p, pinned: updated.pinned } : p);
+        this.updatePostInColumns({ ...post, pinned: updated.pinned });
+        this.redistributePinnedPosts();
+        this.toastr.success(newPinned ? 'Post pinned' : 'Post unpinned');
+      },
+      error: (err) => handleHttpError(err, this.toastr)
+    });
+  }
+
+  redistributePinnedPosts() {
+    const allPosts = this.posts.filter(p => p.status === 'active' || (!p.status && !p.isArchived));
+    const pinned = allPosts.filter(p => p.pinned);
+    const rest = allPosts.filter(p => !p.pinned);
+    this.columns = [[], [], []];
+    this.distributePosts([...pinned, ...rest]);
   }
 
   redistributePosts() {
@@ -621,7 +649,7 @@ export class WallPostsComponent {
       debounceTime(300),
       distinctUntilChanged(),
       filter(data => data !== null),
-      takeUntil(this.unsubscribe$)
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe((data) => {
       if (data) {
         if (this.posts.some(post => post._id === data._id)) {
@@ -651,11 +679,61 @@ export class WallPostsComponent {
     });
   }  
 
-  checkWallCreator(): boolean {    
-    if (this.wallCreatorMails && Array.isArray(this.wallCreatorMails)) {
-      return this.wallCreatorMails.some(email => typeof this.userEmail === 'string' && email === this.userEmail);
-    }
-    return false;
+  applySearchFilter() {
+    const q = this.searchQuery.trim().toLowerCase();
+    const base = this.filterPosts(this.posts);
+    const filtered = q
+      ? base.filter(p => {
+          const text = (p.content || '').toLowerCase();
+          const author = `${p.authorName?.first || ''} ${p.authorName?.last || ''}`.toLowerCase();
+          const email = (p.authorEmail || p.email || '').toLowerCase();
+          return text.includes(q) || author.includes(q) || email.includes(q);
+        })
+      : base;
+    this.columns = [[], [], []];
+    this.distributePosts(filtered);
+  }
+
+  fetchPendingPosts() {
+    this.postService.getPendingPosts(this.wallId).subscribe({
+      next: (posts: Post[]) => {
+        this.pendingPosts = posts;
+        this.cdr.detectChanges();
+      },
+      error: () => {}
+    });
+  }
+
+  approvePost(post: Post) {
+    this.postService.approvePost(this.wallId, post._id).subscribe({
+      next: (approved: Post) => {
+        this.pendingPosts = this.pendingPosts.filter(p => p._id !== post._id);
+        this.posts.push(approved);
+        this.updateColumnsWithNewPosts(approved);
+        this.sharedService.updateWallDetailsPartially({ posts: {
+          nonArchivedCount: this.nonArchivedCount + 1,
+          nonArchivedNonReportedCount: this.nonArchivedNonReportedCount + 1
+        }});
+        this.toastr.success('Post approved');
+        this.cdr.detectChanges();
+      },
+      error: (err) => handleHttpError(err, this.toastr)
+    });
+  }
+
+  rejectPost(post: Post) {
+    this.postService.rejectPost(this.wallId, post._id).subscribe({
+      next: () => {
+        this.pendingPosts = this.pendingPosts.filter(p => p._id !== post._id);
+        this.toastr.info('Post rejected');
+        this.cdr.detectChanges();
+      },
+      error: (err) => handleHttpError(err, this.toastr)
+    });
+  }
+
+  checkWallCreator(): boolean {
+    return isWallCreator(this.userEmail, this.wallCreatorMails);
   }
 
   openDashboard() {
@@ -670,7 +748,7 @@ export class WallPostsComponent {
   isWallOpen(): boolean {
     const currentDate = new Date();
 
-    if (this.isOpen && currentDate >= this.openDate && currentDate <= this.closeDate) {
+    if (this.isOpen && this.openDate && this.closeDate && currentDate >= new Date(this.openDate) && currentDate <= new Date(this.closeDate)) {
         return true;
     }
     else
@@ -686,7 +764,7 @@ export class WallPostsComponent {
     this.openDropdownIndex = null;
   }
 
-  showDropdown(post: any): boolean {
+  showDropdown(post: Post): boolean {
     const isReported = (post.openReportCount ?? post.reportedBy?.length ?? 0) > 0;
     const isUserAuthorized = this.sessionTrack(post);
     const isCreator = this.checkWallCreator();

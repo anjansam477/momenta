@@ -1,13 +1,13 @@
-import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, Input, ViewChild } from '@angular/core';
+﻿import { ChangeDetectorRef, Component, ElementRef, Input, ViewChild , ChangeDetectionStrategy } from '@angular/core';
 import { ClipboardService } from 'ngx-clipboard';
 import { QRCodeComponent } from 'angularx-qrcode';
 import { SafeUrl } from '@angular/platform-browser';
 import { BackgroundImageService } from '../../services/backgroundimageservice/background-image.service';
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-sharemodal',
   standalone: true,
-  imports: [CommonModule, QRCodeComponent],
+  imports: [QRCodeComponent],
   templateUrl: './sharemodal.component.html',
   styleUrl: './sharemodal.component.css',
 })
@@ -19,7 +19,7 @@ export class SharemodalComponent {
   qrCodeDownloadLink: SafeUrl = "";
   qrCopied:string="";
   isqrCopied:boolean=false;
-  @ViewChild('qrcodeElement', { static: false }) qrcodeElement: any;
+  @ViewChild('qrcodeElement', { static: false }) qrcodeElement!: ElementRef;
 
   constructor(
     private clipboardService: ClipboardService,
@@ -110,7 +110,8 @@ export class SharemodalComponent {
   }
 
   copyQRCodeToClipboard() {
-    const canvas = this.qrcodeElement.context.canvas;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const canvas = (this.qrcodeElement as any).context?.canvas;
     const newCanvas = document.createElement('canvas');
     // Set canvas dimensions
     newCanvas.width = canvas.width + 200;
@@ -155,7 +156,8 @@ export class SharemodalComponent {
       this.drawCenteredText(newCtx,"moment today!", newCanvas.height - 30, newCanvas.width);
 
 
-      newCanvas.toBlob((blob: any) => {
+      newCanvas.toBlob((blob: Blob | null) => {
+        if (!blob) return;
         navigator.clipboard.write([
           new ClipboardItem({ "image/png": blob })
         ]).then(() => {
@@ -185,7 +187,8 @@ export class SharemodalComponent {
 
   saveAsImage() {
 
-    let  canvas = this.qrcodeElement.context.canvas.toDataURL("image/png")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let  canvas = (this.qrcodeElement as any).context?.canvas?.toDataURL("image/png")
 
     if (canvas) {
       let blobData = this.imagesService.convertBase64ToBlob(canvas)
@@ -199,7 +202,7 @@ export class SharemodalComponent {
   }
 
 
-  drawCenteredText(ctx:any, text:string, yPosition:number, canvasWidth:number) {
+  drawCenteredText(ctx: CanvasRenderingContext2D, text: string, yPosition: number, canvasWidth: number) {
     const textWidth = ctx.measureText(text).width;
     const centerX = (canvasWidth - textWidth) / 2;
     ctx.fillText(text, centerX, yPosition);

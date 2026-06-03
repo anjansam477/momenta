@@ -1,5 +1,4 @@
-import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnInit , ChangeDetectionStrategy } from '@angular/core';
 import { Subject } from 'rxjs';
 import { Occasions } from '../../middleware/occasions';
 import { CreateWallModalComponent } from "../../modal/create-wall-modal/create-wall-modal.component";
@@ -7,11 +6,13 @@ import { Router } from '@angular/router';
 import { BackgroundImageService } from '../../services/backgroundimageservice/background-image.service';
 import { AuthService } from '../../services/authservice/auth.service';
 import { UserService } from '../../services/userservice/user.service';
+import { EventItem, UserDetails } from '../../shared/models';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-homepage-banner',
   standalone: true,
-  imports: [CommonModule, CreateWallModalComponent],
+  imports: [CreateWallModalComponent],
   templateUrl: './homepage-banner.component.html',
   styleUrl: './homepage-banner.component.css'
 })
@@ -19,13 +20,13 @@ export class HomepageBannerComponent implements OnInit {
   occasionSubject: Subject<string> = new Subject<string>();
   titleSubject: Subject<string> = new Subject<string>();
   occasions = Occasions;
-  events: any[] = [];
+  events: EventItem[] = [];
   currentSlideIndex: number = 0;
   loginBoolean = true;
   profilePicture: string = '';
   userName: string = '';
 
-  emailToUserDetailsMap: { [key: string]: any } = {};
+  emailToUserDetailsMap: Record<string, UserDetails> = {};
 
   constructor(
     private router: Router,
@@ -44,22 +45,28 @@ export class HomepageBannerComponent implements OnInit {
     this.fetchEvents(userEmail);
   }
 
-  fetchEvents(userEmail: any) {
+  fetchEvents(userEmail: string | null) {
+    if (!userEmail) return;
     this.bgservice.getEvents(userEmail).subscribe((data) => {
-      if(data.length > 0) {
-        this.events = this.flattenEvents(data);
+      const flat = this.flattenEvents(data);
+      if (flat.length > 0) {
+        this.events = flat;
         this.fetchUserDetailsForEvents();
       }
     });
   }
 
-  flattenEvents(data: any): any[] {
-    const flattenedEvents: any[] = [];
+  flattenEvents(data: Record<string, Omit<EventItem, 'eventType'>[]> | null): EventItem[] {
+    if (!data) return [];
+    const flattenedEvents: EventItem[] = [];
     for (const eventType in data) {
-      if (data.hasOwnProperty(eventType)) {
-        data[eventType].forEach((event: any) => {
-          flattenedEvents.push({ ...event, eventType });
-        });
+      if (Object.prototype.hasOwnProperty.call(data, eventType)) {
+        const events = data[eventType];
+        if (Array.isArray(events)) {
+          events.forEach((event) => {
+            flattenedEvents.push({ ...event, eventType } as EventItem);
+          });
+        }
       }
     }
     return flattenedEvents;
@@ -70,10 +77,10 @@ export class HomepageBannerComponent implements OnInit {
     if(emails.length > 0) {
       emails.forEach(email => {
         this.userService.fetchUserNamesByEmail(email).subscribe({
-          next: (userDetails: any) => {
-            this.emailToUserDetailsMap[email] = userDetails;
-            this.userName = userDetails?.fullName || this.getCurrentEvent()?.Name;
-            this.profilePicture = userDetails?.profilePicture || this.profilePicture;
+          next: (userDetails: UserDetails | null) => {
+            if (userDetails) this.emailToUserDetailsMap[email] = userDetails;
+            this.userName = userDetails?.fullName ?? this.getCurrentEvent()?.Name ?? '';
+            this.profilePicture = userDetails?.profilePicture ?? this.profilePicture ?? '';
           },
           error: () => {
             this.emailToUserDetailsMap[email] = { fullName: email, profilePicture: this.profilePicture };
@@ -91,7 +98,7 @@ export class HomepageBannerComponent implements OnInit {
     }
   }
 
-  updateSlideIndex(event: any) {
+  updateSlideIndex(event: { to: number }) {
     this.currentSlideIndex = event.to;
     const currentEventEmail = this.getCurrentEvent()?.Email;
     if (currentEventEmail) {

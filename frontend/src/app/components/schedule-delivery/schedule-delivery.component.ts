@@ -1,4 +1,4 @@
-﻿import { CommonModule } from '@angular/common';
+﻿import { DatePipe } from '@angular/common';
 import {
   Component,
   OnInit,
@@ -6,28 +6,31 @@ import {
   Output,
   EventEmitter,
   ChangeDetectorRef,
-  ElementRef
-} from '@angular/core';
+  ElementRef,
+  ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/authservice/auth.service';
+import { Wall } from '../../shared/models';
 import { FormsModule } from '@angular/forms';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
 import { NgxMaterialTimepickerComponent, NgxMaterialTimepickerModule } from 'ngx-material-timepicker';
 import { filter, take } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
-import { MailService } from '../../services/mailservice/mail.service';
+import { MailService, ScheduledMailData } from '../../services/mailservice/mail.service';
 import { UserReplacerComponent } from '../data-transformation/user-replacer/user-replacer.component';
 import { AddUserComponent } from '../data-transformation/add-user/add-user.component';
 import { format } from 'date-fns';
 import { WallService } from '../../services/wallservice/wall.service';
+import { handleHttpError } from '../../utils/error-handler.util';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-schedule-delivery',
   standalone: true,
   templateUrl: './schedule-delivery.component.html',
   styleUrl: './schedule-delivery.component.css',
   imports: [
-    CommonModule,
+    DatePipe,
     FormsModule,
     AddUserComponent,
     NgxMaterialTimepickerModule,
@@ -36,7 +39,7 @@ import { WallService } from '../../services/wallservice/wall.service';
 })
 export class ScheduleDeliveryComponent implements OnInit {
   email = this.authService.getEmail();
-  scheduledEmails = [] as any[];
+  scheduledEmails: string[] = [];
   scheduledDate: Date | null = null;
   cc: boolean = true;
   editMails: boolean = false;
@@ -50,7 +53,7 @@ export class ScheduleDeliveryComponent implements OnInit {
   @ViewChild('scheduleCalendar') scheduleCalendar!: ElementRef<HTMLInputElement>;
   mailToBeScheduledDate:  Date | null = null;
   wallId: string = '';
-  wall: any;
+  wall!: Wall;
   minDate: Date = new Date();
   time: string = '';
   date: Date = new Date();
@@ -78,7 +81,7 @@ export class ScheduleDeliveryComponent implements OnInit {
   }
 
   getScheduledMails(){
-    this.mailService.getScheduleEmailsByWallId(this.wallId).subscribe((data)=>{
+    this.mailService.getScheduleEmailsByWallId(this.wallId).subscribe((data: ScheduledMailData)=>{
       if(data){
         this.scheduledEmails = data.recipients?.primary ?? data.emailId?.primary ?? [];
         const rawDate = data.scheduledAt ?? data.scheduledDate;
@@ -201,9 +204,7 @@ export class ScheduleDeliveryComponent implements OnInit {
           this.editScheduled();
           this.mailToBeScheduledDate = null;
         }
-      }, error: (err)=>{
-        this.toastr.error(err.error.message)
-      }
+      }, error: (err) => handleHttpError(err, this.toastr)
       });
     }
     else{
@@ -222,20 +223,18 @@ export class ScheduleDeliveryComponent implements OnInit {
     this.wallService.updateWall(this.wallId, {receivers: receivers}).subscribe({
       next: (data)=>{
         this.sharedService.setWallDetails(data);
-      },error:(err)=>{
-        this.toastr.error(err.error.message)
-      }
+      }, error: (err) => handleHttpError(err, this.toastr)
     })
   }
 
   fetchWallDetails() {
     this.sharedService.getWallDetails().pipe(
       filter(wallData => !!wallData),take(1)).subscribe({
-        next: (wallData: any) => {
+        next: (wallData: Wall) => {
           this.wall = wallData;
           this.emailInCC.push(wallData.ownerEmail)
-          if(wallData.maintainerEmails.length>0){
-            this.emailInCC.push(...wallData.maintainerEmails);
+          if((wallData.maintainerEmails?.length ?? 0) > 0){
+            this.emailInCC.push(...(wallData.maintainerEmails ?? []));
           }
           this.wallId = wallData._id;
           this.getScheduledMails();
@@ -247,8 +246,9 @@ export class ScheduleDeliveryComponent implements OnInit {
       });
   }
 
-  onRadioChange(event: any) {
-    this.cc = event.target.checked;
+  onRadioChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    this.cc = target.checked;
     if(this.editMails){
       this.isModified = true;
     }
@@ -298,19 +298,8 @@ export class ScheduleDeliveryComponent implements OnInit {
     this.scheduleDateSelect();
   }
 
-  /**
-   * Checks whether the logged in user is also the creator of the current wall
-   * @param none
-   * @returns Boolean
-   */
   checkWallCreator(): boolean {
-    if (
-      this.wall &&
-      this.wall.ownerEmail === this.email
-    ) {
-      return true;
-    }
-    return false;
+    return !!this.wall && this.wall.ownerEmail === this.email;
   }
 
   parseTime(time: string): Date {
@@ -419,9 +408,7 @@ export class ScheduleDeliveryComponent implements OnInit {
         }
         this.updateWallDetails()
       },
-      error: (err) =>{
-        this.toastr.error(err.error.message);
-      }
+      error: (err) => handleHttpError(err, this.toastr)
     })
   }
 

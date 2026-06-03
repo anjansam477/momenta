@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component , ChangeDetectionStrategy } from '@angular/core';
 import { UI_BASE_URL } from '../../environment-config';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-errorpage',
   standalone: true,
   imports: [],

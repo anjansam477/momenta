@@ -1,17 +1,19 @@
-import { AfterViewInit, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
-import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+﻿import { AfterViewInit, Component, DestroyRef, ElementRef, inject, OnInit, ViewChild, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MailService } from '../../services/mailservice/mail.service';
 import { noWhitespaceValidator } from '../../validators/no-whitespace-validator';
-import { CommonModule } from '@angular/common';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-contact-us-modal',
   standalone: true,
-  imports: [FormsModule,ReactiveFormsModule,CommonModule],
+  imports: [ReactiveFormsModule],
   templateUrl: './contact-us-modal.component.html',
   styleUrl: './contact-us-modal.component.css'
 })
 export class ContactUsModalComponent implements OnInit,AfterViewInit{
+  private readonly destroyRef = inject(DestroyRef);
   contactForm! : FormGroup;
   @ViewChild('contactUsModal') contactUsModal!: ElementRef;
   isMailSend:boolean=false;
@@ -87,7 +89,7 @@ export class ContactUsModalComponent implements OnInit,AfterViewInit{
 
 
   subscribeToFormChanges(): void {
-    this.contactForm.valueChanges.subscribe(() => {
+    this.contactForm.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.errorMessage = '';
     });
   }

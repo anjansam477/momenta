@@ -1,29 +1,34 @@
-import { Component } from '@angular/core';
+import { Component, DestroyRef, inject, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UserService } from '../../services/userservice/user.service';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/authservice/auth.service';
 import { ToastrService } from 'ngx-toastr';
-import { CommonModule } from '@angular/common';
+import { NgClass, DatePipe } from '@angular/common';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
 import { ImageCropperComponent } from 'ngx-image-cropper';
 import { of } from 'rxjs';
+import { User } from '../../shared/models';
+import { handleHttpError } from '../../utils/error-handler.util';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-settingsmodal',
   standalone: true,
-  imports: [FormsModule, CommonModule, ImageCropperComponent],
+  imports: [FormsModule, NgClass, DatePipe, ImageCropperComponent],
   templateUrl: './settingsmodal.component.html',
   styleUrl: './settingsmodal.component.css',
 })
 export class SettingsmodalComponent {
-  userData: any = {};
+  private readonly destroyRef = inject(DestroyRef);
+  userData: Partial<User> = {};
   editMode: boolean = false;
   selectedFile: File | undefined;
   pictureBlob: string | undefined;
-  image: any;
+  image: string = '';
   fullName: string = '';
-  imageChangedEvent: any = '';
-  croppedImage: any = '';
+  imageChangedEvent: Event | null = null;
+  croppedImage: Blob | null = null;
   incorrect: boolean = false;
   defaultProfile: boolean = false;
 
@@ -45,7 +50,7 @@ export class SettingsmodalComponent {
     const token = this.authService.getToken();
     if (token) {
       if (userEmail) {
-        this.sharedDataService.getUserData().subscribe((data) => {
+        this.sharedDataService.getUserData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data) => {
           if (data) {
             this.userData = data;
             this.fullName = this.userData.firstname + ' ' + this.userData.lastname;
@@ -78,8 +83,8 @@ export class SettingsmodalComponent {
       }
   
       if (firstname.trim().length >= 3 && firstname.trim().length <= 30 && lastname.trim().length >= 3 && lastname.trim().length <= 30) {
-        this.userService.updateUser(this.userData._id, { firstname, lastname }).subscribe({
-          next: (response: any) => {
+        this.userService.updateUser(this.userData._id!, { firstname, lastname }).subscribe({
+          next: () => {
             this.sharedDataService.updateUserName({ firstname, lastname });
             this.userData.firstname = firstname;
             this.userData.lastname = lastname;
@@ -88,13 +93,9 @@ export class SettingsmodalComponent {
             this.sharedDataService.setMessage('profile');
             this.editMode = false;
             this.incorrect = false;
-            this.sharedDataService.setUserNameCache(this.userData.email, of(`${firstname} ${lastname}`));
+            this.sharedDataService.setUserNameCache(this.userData.email!, of(`${firstname} ${lastname}`));
           },
-          error: (error) => {
-            if (error.status !== 401) {
-              this.toastr.error(error.error.message);
-            }
-          },
+          error: (err) => handleHttpError(err, this.toastr),
         });
       } else {
         this.incorrect = true;
@@ -104,17 +105,20 @@ export class SettingsmodalComponent {
     }
   }  
 
-  fileChangeEvent(event: any): void {
+  fileChangeEvent(event: Event): void {
     this.imageChangedEvent = event;
   }
 
-  imageCropped(event: any): void {
-    this.croppedImage = event.blob;
+  imageCropped(event: { blob?: Blob | null }): void {
+    if (event.blob) {
+      this.croppedImage = event.blob;
+      this.pictureBlob = URL.createObjectURL(event.blob);
+    }
   }
 
   resetImageChangeEvent() {
     this.imageChangedEvent = null;
-    this.croppedImage = undefined;
+    this.croppedImage = null;
   }
 
   uploadProfilePic() {
@@ -136,18 +140,14 @@ export class SettingsmodalComponent {
       return;
     }
 
-    this.userService.uploadProfilePicture(this.userData._id, this.croppedImage).subscribe({
-      next: (response: any) => {
+    this.userService.uploadProfilePicture(this.userData._id!, this.croppedImage!).subscribe({
+      next: () => {
         this.sharedDataService.setUpdateUserProfile(this.croppedImage);
         this.sharedDataService.setMessage('profile');
-        this.imageBlobReader(this.croppedImage);
+        this.imageBlobReader(this.croppedImage!);
         this.resetImageChangeEvent();
       },
-      error: (error) => {
-        if(error.status!==401){
-          this.toastr.error(error.error.message)
-        }
-      },
+      error: (err) => handleHttpError(err, this.toastr),
     });
   }
 
@@ -162,20 +162,15 @@ export class SettingsmodalComponent {
 
   removeProfilePicture(){
     if(this.pictureBlob || this.userData.profilePictureUrl){
-      this.userService.removeProfilePicture(this.userData._id).subscribe({
-        next : (response: any) =>{
-          this.userData.profilePictureUrl = '';
-          this.userData.profilePicture = undefined;
+      this.userService.removeProfilePicture(this.userData._id!).subscribe({
+        next: () => {
+          this.userData.profilePictureUrl = null;
           this.pictureBlob = undefined;
           this.sharedDataService.setUpdateUserProfile(null);
           this.sharedDataService.setMessage('profile');
           this.showImage();
         },
-        error: (error) => {
-          if(error.status!==401){
-            this.toastr.error(error.error.message)
-          }
-        },
+        error: (err) => handleHttpError(err, this.toastr),
       })
     }
   }

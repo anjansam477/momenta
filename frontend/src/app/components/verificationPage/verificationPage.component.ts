@@ -1,9 +1,10 @@
-import { Component} from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
 import { APP_EMAIL } from '../../environment-config';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-verificationPage',
   standalone: true,
   imports: [],

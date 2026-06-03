@@ -1,15 +1,15 @@
-import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+﻿import { Component, OnInit , ChangeDetectionStrategy } from '@angular/core';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { UserService } from '../../services/userservice/user.service';
-import { CommonModule } from '@angular/common';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
 import { noWhitespaceValidator } from '../../validators/no-whitespace-validator';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-forgotPassword',
   standalone: true,
-  imports: [FormsModule, RouterLink, ReactiveFormsModule, CommonModule],
+  imports: [RouterLink, ReactiveFormsModule],
   templateUrl: './forgotPassword.component.html',
   styleUrl: './forgotPassword.component.css',
 })
@@ -75,12 +75,12 @@ export class ForgotPasswordComponent implements OnInit{
       const userData = { ...this.forgotPasswordForm.value, password, confirmpassword };
 
       this.userService.updatePassword(userData).subscribe({
-        next: (res: any) => {
+        next: (_res: unknown) => {
           this.sharedService.setMessage('password');
           this.router.navigate(['/changed-password']);
           this.errorMessage='';
         },
-        error: (error: any) => {
+        error: (error: { status: number; error: { message: string } }) => {
           this.errorMessage=error.error.message;
         },
         complete: () => {

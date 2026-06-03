@@ -1,15 +1,18 @@
 import {
   Component,
+  DestroyRef,
+  ElementRef,
   EventEmitter,
   HostListener,
   Input,
-  OnDestroy,
   OnInit,
   Output,
   ViewChild,
-} from '@angular/core';
+  inject,
+  ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PickerModule } from '@ctrl/ngx-emoji-mart';
-import { CommonModule } from '@angular/common';
+import { NgClass, TitleCasePipe } from '@angular/common';
 import {
   FormBuilder,
   FormGroup,
@@ -23,7 +26,7 @@ import { PostService } from '../../services/postservice/post.service';
 import { ToastrService } from 'ngx-toastr';
 import { MediaService } from '../../services/mediaservice/media.service';
 import { AuthService } from '../../services/authservice/auth.service';
-import { filter, Subject, Subscription, takeUntil } from 'rxjs';
+import { filter, Subject } from 'rxjs';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
 import { ImageCropperComponent } from 'ngx-image-cropper';
 import { GifModalComponent } from '../gif-modal/gif-modal.component';
@@ -31,11 +34,14 @@ import { StickerModalComponent } from '../sticker-modal/sticker-modal.component'
 import { enableGiphy } from '../../environment-config';
 import { Post } from '../../models/post.model';
 import { POST_AUTHOR_NAME_MAX_LENGTH, POST_CONTENT_MAX_LENGTH } from '../../shared/post/post.constants';
+import { Wall } from '../../shared/models';
 import { normalizePostAuthor } from '../../shared/post/post-author.util';
+import { handleHttpError } from '../../utils/error-handler.util';
 
 declare const bootstrap: any;
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-postmodal',
   standalone: true,
   imports: [
@@ -43,7 +49,8 @@ declare const bootstrap: any;
     QuillModule,
     HttpClientModule,
     PickerModule,
-    CommonModule,
+    NgClass,
+    TitleCasePipe,
     ImageCropperComponent,
     GifModalComponent,
     StickerModalComponent
@@ -51,12 +58,11 @@ declare const bootstrap: any;
   templateUrl: './postmodal.component.html',
   styleUrl: './postmodal.component.css',
 })
-export class PostmodalComponent implements OnInit, OnDestroy {
+export class PostmodalComponent implements OnInit {
   @Input() postIdSubject: Subject<string> | undefined;
   @Output() modalClosed = new EventEmitter<void>();
   email: string| null = this.authService.getEmail();
   postId: string = '';
-  postIdSubscription: Subscription | undefined;
   selectedFile!: File | undefined;
   emojishow = false;
   postForm!: FormGroup;
@@ -66,12 +72,12 @@ export class PostmodalComponent implements OnInit, OnDestroy {
   mediaUrl: string = '';
   mediaType: string = '';
   mediaPreviewUrl: string | ArrayBuffer | null = null;
-  @ViewChild('imageInput') imageInput: any;
-  @ViewChild('gifInput') gifInput: any;
-  @ViewChild('videoInput') videoInput: any;
+  @ViewChild('imageInput') imageInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('gifInput') gifInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('videoInput') videoInput!: ElementRef<HTMLInputElement>;
   errorMessage: string = '';
-  imageChangedEvent: any = '';
-  croppedImage: any = '';
+  imageChangedEvent: Event | null = null;
+  croppedImage: Blob | null = null;
   isCropped: boolean = false;
   initialCropArea: { x1: number, y1: number, x2: number, y2: number } | null = null;
   showGifModal: boolean = false;
@@ -79,7 +85,7 @@ export class PostmodalComponent implements OnInit, OnDestroy {
   editorContent: string = '';
   enableGiphy = enableGiphy;
   posts: Post[] = [];
-  private unsubscribe$ = new Subject<void>();
+  private readonly destroyRef = inject(DestroyRef);
   shareEmail: boolean = false;
   currentPostIndex: number = 0;
   nonArchivedNonReportedCount:number=0;
@@ -114,7 +120,7 @@ export class PostmodalComponent implements OnInit, OnDestroy {
       this.fetchWallDetails();
        
       if (this.postIdSubject) {
-        this.postIdSubscription = this.postIdSubject.subscribe(
+        this.postIdSubject.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(
           (postId: string) => {
             this.postId = postId;
             this.postService.getPost(this.WallId, postId).subscribe({
@@ -130,9 +136,8 @@ export class PostmodalComponent implements OnInit, OnDestroy {
                 this.viewMedia(this.mediaUrl);
               }
             },
-          error: (err)=>{
-            this.toastr.error(err.error.message);
-          }});
+          error: (err) => handleHttpError(err, this.toastr)
+          });
           }
         );
       }
@@ -151,7 +156,7 @@ export class PostmodalComponent implements OnInit, OnDestroy {
       }
       
       this.sharedService.getSendMail()
-        .pipe(takeUntil(this.unsubscribe$))
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(sendEmail => {
           this.shareEmail = sendEmail;
           if(this.shareEmail){
@@ -159,14 +164,6 @@ export class PostmodalComponent implements OnInit, OnDestroy {
           }
         });
     }
-  }
-
-  ngOnDestroy(): void {
-    if (this.postIdSubscription) {
-      this.postIdSubscription.unsubscribe();
-    }
-      this.unsubscribe$.next();
-      this.unsubscribe$.complete();
   }
 
   stopVideo(video: HTMLVideoElement) {
@@ -244,7 +241,7 @@ export class PostmodalComponent implements OnInit, OnDestroy {
     this.mediaType = '';
     this.mediaPreviewUrl = '';
     this.mediaUrl = '';
-    this.croppedImage = '';
+    this.croppedImage = null;
     this.errorMessage = '';
   }
 
@@ -252,7 +249,7 @@ export class PostmodalComponent implements OnInit, OnDestroy {
     this.sharedService.getWallDetails().pipe(
       filter(wallData => !!wallData)
     ).subscribe({
-      next: (wallData: any) => {
+      next: (wallData: Wall) => {
           this.nonArchivedCount = wallData.posts.nonArchivedCount,
           this.nonArchivedNonReportedCount =  wallData.posts.nonArchivedNonReportedCount
       },
@@ -283,9 +280,7 @@ export class PostmodalComponent implements OnInit, OnDestroy {
             this.mediaPreviewUrl = '';
            }
         },
-        error: (err)=>{
-          this.toastr.error(err.error.message)
-        }
+        error: (err) => handleHttpError(err, this.toastr)
       })
     }
   }
@@ -377,9 +372,9 @@ export class PostmodalComponent implements OnInit, OnDestroy {
       this.mediaType = mediaType;
     
       const reader = new FileReader();
-      reader.onload = (e: any) => {
-        this.mediaPreviewUrl = e.target.result;
-        this.mediaUrl = e.target.result;
+      reader.onload = (e: ProgressEvent<FileReader>) => {
+        this.mediaPreviewUrl = e.target?.result ?? null;
+        this.mediaUrl = (e.target?.result as string) ?? '';
         inputElement.value = '';
       };
     
@@ -389,9 +384,9 @@ export class PostmodalComponent implements OnInit, OnDestroy {
       this.mediaType = mediaType;
     
       const reader = new FileReader();
-      reader.onload = (e: any) => {
-        this.mediaPreviewUrl = e.target.result;
-        this.mediaUrl = e.target.result;
+      reader.onload = (e: ProgressEvent<FileReader>) => {
+        this.mediaPreviewUrl = e.target?.result ?? null;
+        this.mediaUrl = (e.target?.result as string) ?? '';
         inputElement.value = '';
       };
     
@@ -414,17 +409,19 @@ export class PostmodalComponent implements OnInit, OnDestroy {
     return this.selectedFile?.name || (this.mediaUrl && this.mediaUrl !== '#' ? 'Current media' : '');
   }
 
-  fileChangeEvent(event: any): void {
+  fileChangeEvent(event: Event): void {
     this.imageChangedEvent = event;
   }
 
-  imageCropped(event: any): void {
-    this.croppedImage = event.blob;
-    this.isImageChanged(event)
+  imageCropped(event: { blob?: Blob | null; cropperPosition?: { x1: number; y1: number; x2: number; y2: number } }): void {
+    this.croppedImage = event.blob ?? null;
+    if (event.cropperPosition) {
+      this.isImageChanged(event as { cropperPosition: { x1: number; y1: number; x2: number; y2: number } });
+    }
   }
 
   crop() {
-    this.mediaPreviewUrl = URL.createObjectURL(this.croppedImage)
+    this.mediaPreviewUrl = this.croppedImage ? URL.createObjectURL(this.croppedImage) : null
     this.imageChangedEvent = null;
     this.initialCropArea = null;
     this.isCropped = false;
@@ -437,11 +434,11 @@ export class PostmodalComponent implements OnInit, OnDestroy {
 
   cancelCrop() {
     this.imageChangedEvent = null;
-    this.croppedImage = undefined;
+    this.croppedImage = null;
     this.isCropped = false;
   }
 
-  isImageChanged(event: any) {
+  isImageChanged(event: { cropperPosition: { x1: number; y1: number; x2: number; y2: number } }) {
     if (!this.initialCropArea) {
       this.initialCropArea = { x1: event.cropperPosition.x1, y1: event.cropperPosition.y1, x2: event.cropperPosition.x2, y2: event.cropperPosition.y2 };
     }
@@ -454,7 +451,7 @@ export class PostmodalComponent implements OnInit, OnDestroy {
     }
   }
 
-  addEmoji(event: any) {
+  addEmoji(event: { emoji: { native: string } }) {
     const emoji = event.emoji.native;
     const quillEditor = this.editorRef?.quillEditor;
 
@@ -631,10 +628,9 @@ export class PostmodalComponent implements OnInit, OnDestroy {
           this.close();
           this.hideModal();
         },
-        error: (error) => {
+        error: (err) => {
           this.isSubmitting = false;
-          const errorMessage = error?.error?.message || (file ? "Media not uploaded, please check again" : "Post can't be created, please check after some time");
-          this.toastr.error(errorMessage);
+          handleHttpError(err, this.toastr);
         }
       });
     }
@@ -643,7 +639,7 @@ export class PostmodalComponent implements OnInit, OnDestroy {
   updatePost(): void {
     const file = this.croppedImage || this.selectedFile;
     const { firstName, lastName } = this.getAuthorName();
-    const updateModel: any = {
+    const updateModel: { content: string; firstName: string; lastName: string; mediaUrl?: string; mediaType?: string } = {
       content: this.postForm.get('content')?.value,
       firstName,
       lastName,
@@ -656,7 +652,7 @@ export class PostmodalComponent implements OnInit, OnDestroy {
 
     this.isSubmitting = true;
     if (file) {
-      this.mediaService.uploadFile(this.WallId, this.postId, file.type.split('/')[0], file).subscribe({
+      this.mediaService.uploadFile(this.WallId, this.postId, file.type.split('/')[0], file as File).subscribe({
         next: (mediaData) => {
           updateModel.mediaUrl = mediaData.uploadedPath;
           updateModel.mediaType = file?.type.split('/')[0];
@@ -667,7 +663,7 @@ export class PostmodalComponent implements OnInit, OnDestroy {
             },
             error: (err) => {
               this.isSubmitting = false;
-              this.toastr.error(err.error.message);
+              handleHttpError(err, this.toastr);
             }
           });
         },
@@ -695,7 +691,7 @@ export class PostmodalComponent implements OnInit, OnDestroy {
     }
   }
 
-  onUpdateSuccess(post: any): void {
+  onUpdateSuccess(post: Post): void {
     this.sharedService.setPost(post);
     this.close();
     this.sharedService.setMessage("update");
@@ -717,8 +713,8 @@ export class PostmodalComponent implements OnInit, OnDestroy {
     if (this.mediaUrl!=="#") {
       this.mediaService.retrieveFile(mediaUrl).subscribe((blob) => {
         const reader = new FileReader();
-        reader.onload = (e: any) => {
-          this.mediaPreviewUrl = e.target.result;
+        reader.onload = (e: ProgressEvent<FileReader>) => {
+          this.mediaPreviewUrl = e.target?.result ?? null;
 
           const fileType = mediaUrl.split('.').pop()?.toUpperCase();
           if (fileType === 'MP4') {

@@ -1,27 +1,24 @@
-import { Component } from '@angular/core';
+﻿import { Component, DestroyRef, inject, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UserService } from '../../services/userservice/user.service';
 import { Router, RouterLink } from '@angular/router';
-import {
-  FormBuilder,
-  FormGroup,
-  FormsModule,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SERVICE_BASE_URL } from '../../environment-config';
-import { CommonModule } from '@angular/common';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
 import { noWhitespaceValidator } from '../../validators/no-whitespace-validator';
 import { customEmailValidator } from '../../validators/email-validator';
+import { markAllFieldsAsTouched } from '../../utils/form.util';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-register',
   standalone: true,
-  imports: [FormsModule, RouterLink, ReactiveFormsModule, CommonModule],
+  imports: [RouterLink, ReactiveFormsModule],
   templateUrl: './register.component.html',
   styleUrl: './register.component.css',
 })
 export class RegisterComponent {
+  private readonly destroyRef = inject(DestroyRef);
   authBaseUrl: String = SERVICE_BASE_URL + '/api/auth/google';
   userData!: FormGroup;
   passwordFieldType: string = 'password';
@@ -40,7 +37,6 @@ export class RegisterComponent {
     this.subscribeToFormChanges();
   }
 
-  // added validation for form
   createForm(): void {
     this.userData = this.fb.group({
       email: ['', [Validators.required, customEmailValidator()]],
@@ -53,15 +49,11 @@ export class RegisterComponent {
     });
   }
 
-  // toggle password visibility
   togglePasswordVisibility(): void {
     this.passwordFieldType =
       this.passwordFieldType === 'password' ? 'text' : 'password';
   }
 
-  /**
-   * Creates a new user and saves their data then navigates to login page on success
-   */
   onSubmit(): void {
     if(this.userData.valid && this.errorMessage===''){
       const trimmedValues = {
@@ -87,19 +79,12 @@ export class RegisterComponent {
     }
   }
   
-  // checking if error in fields and highlight them
   markAllFieldsAsTouched(): void {
-    Object.keys(this.userData.controls).forEach(field => {
-      const control = this.userData.get(field);
-      if (control) {
-        control.markAsTouched({ onlySelf: true });
-      }
-    });
+    markAllFieldsAsTouched(this.userData);
   }
 
-  // execute functionality as soon as change in form details
   subscribeToFormChanges(): void {
-    this.userData.get('email')?.valueChanges.subscribe(() => {
+    this.userData.get('email')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.errorMessage = '';
     });
   }

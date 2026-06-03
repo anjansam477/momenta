@@ -1,31 +1,35 @@
-﻿import { Component, effect, EventEmitter, OnInit, Output } from '@angular/core';
+﻿import { Component, DestroyRef, effect, EventEmitter, inject, OnInit, Output, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { WallService } from '../../services/wallservice/wall.service';
 import { BackgroundImageService } from '../../services/backgroundimageservice/background-image.service';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
 import { AnimationService } from '../../services/animationservice/animation.service';
 import { AudioService } from '../../services/audioservice/audio.service';
 import { themes } from '../../constants/themes';
-import { animations } from '../../constants/animations';
-import { audios } from '../../constants/audios';
-import { CommonModule } from '@angular/common';
+import { animations, MomentAnimation } from '../../constants/animations';
+import { audios, MomentAudio } from '../../constants/audios';
+import { Wall } from '../../shared/models';
+import { BackgroundTheme } from '../../shared/models';
 import { filter } from 'rxjs';
 import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-background',
   standalone: true,
   imports: [
-    CommonModule
+    
 ],
   templateUrl: './background.component.html',
   styleUrl: './background.component.css'
 })
 export class BackgroundComponent implements OnInit{
-
-  themes: any[] = [];
+  private readonly destroyRef = inject(DestroyRef);
+  themes: BackgroundTheme[] = [];
   chooseTheme: string = 'All';
   occasion: string = '';
+  activeTab: 'themes' | 'effects' | 'sounds' = 'themes';
   selectedImage: string = '';
   selectedAnimation: string = '';
   selectedAudio: string = '';
@@ -38,7 +42,7 @@ export class BackgroundComponent implements OnInit{
   currentBackgroundImage: string = '';
   wallDisplay: boolean = true;
   wallId: string = '';
-  wall: any;
+  wall!: Wall;
   imageChanged: boolean = false;
   showAll: boolean = false;
   animations = animations;
@@ -64,7 +68,7 @@ export class BackgroundComponent implements OnInit{
   ngOnInit(): void {
     this.themes = this.sharedService.themes();
     this.fetchWallDetails();
-    this.audioService.getAudioFileSubject().subscribe(audioFile => {
+    this.audioService.getAudioFileSubject().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(audioFile => {
       this.hasAudio = !!audioFile;
     });
 
@@ -72,8 +76,8 @@ export class BackgroundComponent implements OnInit{
 
   fetchWallDetails() {
     this.sharedService.getWallDetails().pipe(
-      filter(wallData => !!wallData)).subscribe({
-      next: (wallData: any) => {
+      filter(wallData => !!wallData), takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (wallData: Wall) => {
           this.wall=wallData;
           this.wallId=wallData._id;
           this.occasion = wallData.type;
@@ -141,10 +145,12 @@ export class BackgroundComponent implements OnInit{
     if (selectedTheme) {
       if (selectedTheme.name == 'Default') {
         const ocassionTheme = this.themes.find((theme) => this.replaceUnderscores(theme.name) == this.occasion);
-        const index1 = this.themes.indexOf(ocassionTheme);
-        if (index1 !== -1) {
-          this.themes.splice(index1, 1);
-          this.themes.unshift(ocassionTheme);
+        if (ocassionTheme) {
+          const index1 = this.themes.indexOf(ocassionTheme);
+          if (index1 !== -1) {
+            this.themes.splice(index1, 1);
+            this.themes.unshift(ocassionTheme);
+          }
         }
 
         const index2 = this.themes.indexOf(selectedTheme);
@@ -257,7 +263,7 @@ export class BackgroundComponent implements OnInit{
    * Sets the hovered state of GIFs within the gifRows array. 
    * @param {any} gif - The GIF id to be marked as hovered. If null, all GIFs will be marked as not hovered.
    */
-  setHoveredIndex(id: any): void {
+  setHoveredIndex(id: string): void {
     this.hoveredIndex = id;
   }
 
@@ -266,18 +272,19 @@ export class BackgroundComponent implements OnInit{
      * @param file
      * @returns void
      */
-  selectAudio(file: any): void {
-    if(this.selectedAudio===file.file && this.hasAudio ){
+  selectAudio(file: MomentAudio | string): void {
+    const fileKey = typeof file === 'string' ? file : file.file;
+    if(this.selectedAudio === fileKey && this.hasAudio ){
       this.audioService.stopAudio();
       return;
     }
     if (file === "")
       this.selectedAudio = '';
     else{
-      this.selectedAudio = file.file;
+      this.selectedAudio = fileKey;
     }
     this.audioService.setAudioFile(file);
-    this.audioService.playAudio(file.file);
+    this.audioService.playAudio(fileKey);
     if (this.selectedAnimation === this.wall.animationId && this.selectedImage === this.wall.bgImg && this.selectedAudio === this.wall.audio)
       this.btnDisabled = true;
     else
@@ -336,7 +343,7 @@ export class BackgroundComponent implements OnInit{
     this.shiftAudio(this.selectedAudio);
   }
 
-  resetGif(gif: any) {
+  resetGif(gif: MomentAnimation) {
     // Force reloading the gif by changing the src
     this.hoveredGifSrc[gif.id] = 'assets/animation/gifs/' + gif.path + '?t=' + new Date().getTime();
     this.setHoveredIndex(gif.id);

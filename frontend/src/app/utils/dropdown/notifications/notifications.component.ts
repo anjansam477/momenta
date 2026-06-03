@@ -1,7 +1,7 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject , ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
-import { Subscription } from 'rxjs';
+import { NgClass, SlicePipe } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../../services/authservice/auth.service';
 import {
   MomentNotification,
@@ -9,16 +9,17 @@ import {
 } from '../../../services/notificationservice/notifications.service';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-notifications',
   standalone: true,
-  imports: [CommonModule],
+  imports: [NgClass, SlicePipe],
   templateUrl: './notifications.component.html',
   styleUrl: './notifications.component.css'
 })
-export class NotificationsComponent implements OnInit, OnDestroy {
+export class NotificationsComponent implements OnInit {
   notifications: MomentNotification[] = [];
   email: string | null = '';
-  private subscription?: Subscription;
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor(
     private notificationsService: NotificationsService,
@@ -29,13 +30,9 @@ export class NotificationsComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.email = this.authService.getEmail();
     this.notificationsService.initializeSocketListener();
-    this.subscription = this.notificationsService.notifications$.subscribe((notifications) => {
+    this.notificationsService.notifications$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((notifications) => {
       this.notifications = notifications;
     });
-  }
-
-  ngOnDestroy(): void {
-    this.subscription?.unsubscribe();
   }
 
   getTimeAgo(dateString: string): string {
@@ -71,7 +68,11 @@ export class NotificationsComponent implements OnInit, OnDestroy {
       this.markAsRead(notification);
     }
 
-    this.router.navigateByUrl(`moment/${notification.wallId}`);
+    if (notification.postId) {
+      this.router.navigate([`moment/${notification.wallId}`], { queryParams: { postId: notification.postId } });
+    } else {
+      this.router.navigateByUrl(`moment/${notification.wallId}`);
+    }
   }
 
   unreadNotificationCount(): number {
@@ -82,8 +83,8 @@ export class NotificationsComponent implements OnInit, OnDestroy {
     return notification.status === 'unread';
   }
 
-  getInitials(user: any): string {
-    const source = user?.userName || user?.fullName || user?.name || user?.email || '?';
+  getInitials(user: { userName: string; profilePicture: string }): string {
+    const source = user?.userName || '?';
     const words = source.trim().split(/\s+/).filter(Boolean);
     if (words.length >= 2) {
       return `${words[0][0]}${words[1][0]}`.toUpperCase();
@@ -100,10 +101,13 @@ export class NotificationsComponent implements OnInit, OnDestroy {
         return `${actor} added a post to ${wallName}`;
       case 'reactionAdded':
         return `${actor} reacted to your post in ${wallName}`;
+      case 'postReported':
       case 'postreported':
         return notification.postCreator === this.email
           ? `${actor} reported your post in ${wallName}`
           : `${actor} reported a post in ${wallName}`;
+      case 'postReportThreshold':
+        return `A post in ${wallName} has been reported ${notification.metadata?.['reportCount'] ?? 3}+ times — review it`;
       case 'postUnreported':
         return notification.postCreator === this.email
           ? `${actor} restored your post in ${wallName}`
@@ -131,8 +135,11 @@ export class NotificationsComponent implements OnInit, OnDestroy {
         return 'bi-chat-square-heart';
       case 'reactionAdded':
         return 'bi-emoji-smile';
+      case 'postReported':
       case 'postreported':
         return 'bi-flag';
+      case 'postReportThreshold':
+        return 'bi-exclamation-triangle-fill';
       case 'postUnreported':
         return 'bi-shield-check';
       case 'deletePost':

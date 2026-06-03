@@ -1,6 +1,6 @@
-import { animate, style, transition, trigger } from '@angular/animations';
-import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+﻿import { animate, style, transition, trigger } from '@angular/animations';
+import { Component, DestroyRef, EventEmitter, inject, Input, Output, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidatorFn } from '@angular/forms';
 import { TagInputModule } from 'ngx-chips';
 import { Observable, of } from 'rxjs';
@@ -8,9 +8,10 @@ import { Observable, of } from 'rxjs';
 type TagModel = string | Record<string, any>;
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-add-domain',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TagInputModule],
+  imports: [ReactiveFormsModule, TagInputModule],
   templateUrl: './add-domain.component.html',
   styleUrl: './add-domain.component.css',
   animations: [
@@ -27,6 +28,7 @@ type TagModel = string | Record<string, any>;
   ]
 })
 export class AddDomainComponent {
+  private readonly destroyRef = inject(DestroyRef);
   @Output() domainsChanged = new EventEmitter<string[]>();
   @Input() component!: string;
   @Input() sharedDomains: string[] = [];
@@ -60,7 +62,7 @@ export class AddDomainComponent {
     });
     this.selectedDomains = [...this.sharedDomains];
     this.searchResults = this.selectedDomains.sort();
-    this.searchForm.get('domainSearch')?.valueChanges.subscribe(query => {
+    this.searchForm.get('domainSearch')?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(query => {
       this.searchPara(query);
     });
     this.setContent();
@@ -80,7 +82,7 @@ export class AddDomainComponent {
   }
 
   domainValidatorfun(): ValidatorFn {
-    return (control: AbstractControl): { [key: string]: any } | null => {
+    return (control: AbstractControl): Record<string, unknown> | null => {
       const domain = control.value.startsWith('@') ? control.value.substring(1).toLowerCase() : control.value.toLowerCase();
       const domainPattern = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
       const valid = domainPattern.test(domain);
@@ -92,10 +94,11 @@ export class AddDomainComponent {
     if (!this.searchForm.get('search')?.value) {
       return;
     }
-    const invalidDomains: any[]=[];
-    this.searchForm.get('search')?.value.forEach((domain: any) => {
-      if (!this.selectedDomains.includes(domain.value) && this.addDomain(domain.value)) {
-        this.selectedDomains.push(domain.value);
+    const invalidDomains: TagModel[] = [];
+    this.searchForm.get('search')?.value.forEach((domain: TagModel) => {
+      const domainValue = typeof domain === 'string' ? domain : (domain as Record<string, string>)['value'];
+      if (!this.selectedDomains.includes(domainValue) && this.addDomain(domainValue)) {
+        this.selectedDomains.push(domainValue);
         this.searchResults=this.selectedDomains;
       }
       else{
@@ -129,7 +132,7 @@ export class AddDomainComponent {
     this.showList = !this.showList;
   }
 
-  removeDomain(domain: any): void {
+  removeDomain(domain: string): void {
     this.selectedDomains = this.selectedDomains.filter(selectedDomain => selectedDomain !== domain);
     this.searchResults = this.searchResults.filter(selectedDomain => selectedDomain !== domain);
     this.domainsChanged.emit(this.selectedDomains);
@@ -168,7 +171,7 @@ export class AddDomainComponent {
     this.errorMessage=[];
   }
 
-  clearError(event: any) {
+  clearError(_event: unknown) {
     if(this.errorMessage)
       this.errorMessage=[];
   }

@@ -1,25 +1,28 @@
-import { Component, Input, ViewChild } from '@angular/core';
+﻿import { NgClass } from '@angular/common';
+import { Component, DestroyRef, Input, ViewChild, inject , ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { WallService } from '../../services/wallservice/wall.service';
-import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Subject, Subscription } from 'rxjs';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Subject } from 'rxjs';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
 import { MessagemodalComponent } from '../messagemodal/messagemodal.component';
+import { markAllFieldsAsTouched } from '../../utils/form.util';
+import { handleHttpError } from '../../utils/error-handler.util';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-create-wall-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [NgClass, ReactiveFormsModule],
   templateUrl: './create-wall-modal.component.html',
   styleUrl: './create-wall-modal.component.css',
 })
 export class CreateWallModalComponent {
   @Input() occasionSubject: Subject<string> | undefined;
   @Input() titleSubject: Subject<string> | undefined;
-  occasionSubscription: Subscription | undefined;
-  titleSubscription: Subscription | undefined;
+  private readonly destroyRef = inject(DestroyRef);
   type: string = '';
   userEmail = localStorage.getItem('email');
   @ViewChild(MessagemodalComponent) messageModalComponent!: MessagemodalComponent;
@@ -37,7 +40,7 @@ export class CreateWallModalComponent {
   ngOnInit() {
     this.createForm();
 
-    this.occasionSubscription = this.occasionSubject?.subscribe(
+    this.occasionSubject?.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(
       (type: string) => {
         if (type && type.trim() !== '') {
           this.type = type;
@@ -47,7 +50,7 @@ export class CreateWallModalComponent {
       }
     );
     
-    this.titleSubscription = this.titleSubject?.subscribe(
+    this.titleSubject?.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(
       (title: string) => {
         if (title && title.trim() !== '') {
           this.createWallForm.patchValue({ title: title });
@@ -58,22 +61,12 @@ export class CreateWallModalComponent {
     this.createWallForm.patchValue({ email: this.userEmail ?? '' });
   }
 
-  ngOnDestroy() {
-    if (this.occasionSubscription) {
-      this.occasionSubscription.unsubscribe();
-    }
-
-    if (this.titleSubscription) {
-      this.titleSubscription.unsubscribe();
-    }
-  }
-
   createForm(): void {
     this.createWallForm = this.fb.group({
       title: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(80)]],
       type: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(50)]],
       description: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(250)]],
-      email: ['', [Validators.required, Validators.email]]
+      email: ['', [Validators.required, Validators.email]],
     });
   }  
 
@@ -84,7 +77,7 @@ export class CreateWallModalComponent {
         title: formValues.title.trim(),
         type: this.type || formValues.type.trim(),
         description: formValues.description.trim(),
-        ownerEmail: formValues.email.trim()
+        ownerEmail: formValues.email.trim(),
       };
 
       this.wallService.createWall(trimmedValues).subscribe({
@@ -93,8 +86,8 @@ export class CreateWallModalComponent {
           this.createWallForm.reset();
           this.router.navigateByUrl(`moment/${data._id}`);
         },
-        error: (error) => {
-          this.toastr.error(error.error.message);
+        error: (err) => {
+          handleHttpError(err, this.toastr);
           this.createWallForm.reset();
         },
       });
@@ -104,12 +97,7 @@ export class CreateWallModalComponent {
   }
 
   markAllFieldsAsTouched(): void {
-    Object.keys(this.createWallForm.controls).forEach(field => {
-      const control = this.createWallForm.get(field);
-      if (control) {
-        control.markAsTouched({ onlySelf: true });
-      }
-    });
+    markAllFieldsAsTouched(this.createWallForm);
   }
 
   closeModal() {

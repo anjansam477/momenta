@@ -1,19 +1,20 @@
-import { AfterViewInit, Component, ElementRef, EventEmitter, OnInit, Output, ViewChild } from '@angular/core';
+﻿import { AfterViewInit, Component, ElementRef, EventEmitter, OnInit, Output, ViewChild , ChangeDetectionStrategy } from '@angular/core';
 import { GifsService } from '../../services/gifservice/gifs.service';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { GiphyGif } from '../../shared/models';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-sticker-modal',
   standalone: true,
-  imports: [CommonModule,FormsModule],
+  imports: [FormsModule],
   templateUrl: './sticker-modal.component.html',
   styleUrl: './sticker-modal.component.css'
 })
 export class StickerModalComponent implements OnInit,AfterViewInit{
   @ViewChild('searchInput') searchInput!: ElementRef;
   searchTerm: string = '';
-  stickers: any[] = [];
+  stickers: GiphyGif[] = [];
   errorMessage:string="";
   recievedSticker:boolean=true;
   @Output() stickerSelected = new EventEmitter<string>();
@@ -24,7 +25,7 @@ export class StickerModalComponent implements OnInit,AfterViewInit{
 
   ngOnInit(): void {
     this.gifsService.trendingStickers().subscribe(
-      (response: any) => {
+      (response: GiphyGif[]) => {
         this.stickers = response;
       },
       error => {
@@ -52,7 +53,7 @@ export class StickerModalComponent implements OnInit,AfterViewInit{
     }, 2000);
 
     this.gifsService.searchStickers(this.searchTerm).subscribe(
-      (response: any) => {
+      (response: GiphyGif[]) => {
         clearTimeout(timeout);
         this.stickers=[];
         this.loader = false;
@@ -75,7 +76,7 @@ export class StickerModalComponent implements OnInit,AfterViewInit{
     );
   }
 
-  selectSticker(sticker: any) {
+  selectSticker(sticker: GiphyGif) {
     this.stickerSelected.emit(sticker.images.original.url);
   }
 
