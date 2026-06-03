@@ -68,6 +68,24 @@ class PostRepository {
     return Post.find({ authorEmail, wallId, status: { $ne: "deleted" } }).lean();
   }
 
+  async getPendingPosts(wallId) {
+    const posts = await Post.find({ wallId, status: "pending_approval" }).sort({ createdAt: 1 }).lean();
+    return posts;
+  }
+
+  async approvePost(postId) {
+    const post = await Post.findByIdAndUpdate(postId, { status: "active" }, { new: true });
+    if (!post) throw new Error(Response.generateMessage(Response.errorMessage.INVALID_REQUEST, "post"));
+    await counterCache.incrPostCount(post.wallId).catch(() => {});
+    return post;
+  }
+
+  async rejectPost(postId) {
+    const post = await Post.findByIdAndUpdate(postId, { status: "rejected" }, { new: true });
+    if (!post) throw new Error(Response.generateMessage(Response.errorMessage.INVALID_REQUEST, "post"));
+    return post;
+  }
+
   async getPostCounts(wallId) {
     const cached = await counterCache.getPostCount(wallId).catch(() => null);
     if (cached !== null) {
@@ -113,6 +131,17 @@ class PostRepository {
       { $set: { status: "dismissed" } },
       { new: true }
     );
+  }
+
+  async getPinnedCount(wallId) {
+    return Post.countDocuments({ wallId, status: "active", pinned: true });
+  }
+
+  async pinPost(postId, pinned) {
+    const post = await Post.findByIdAndUpdate(postId, { pinned }, { new: true });
+    if (!post) throw new Error(Response.generateMessage(Response.errorMessage.INVALID_REQUEST, "post"));
+    const reactions = await Reaction.find({ postId: post._id }).lean();
+    return { ...post.toObject(), reactions: this._groupReactions(reactions) };
   }
 
   async getOpenReportCount(postId) {

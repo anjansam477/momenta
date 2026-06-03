@@ -87,6 +87,38 @@ exports.authorizePostAction = asyncHandler(async (req, res, next) => {
   }
 });
 
+exports.authorizeApproval = asyncHandler(async (req, res, next) => {
+  const { wallId } = req.params;
+  const email = resolveEmail(req);
+  if (!email) return Response.respondError(res, new Error("Authorization token is missing."));
+  try {
+    const role = await wallRepository.getUserRole(wallId, email);
+    if (!["owner", "maintainer"].includes(role)) {
+      throw new Error(Response.generateMessage(Response.errorMessage.NO_ACCESS, "wall"));
+    }
+    req.email = email;
+    next();
+  } catch (err) {
+    return Response.respondError(res, err);
+  }
+});
+
+exports.authorizePinPost = asyncHandler(async (req, res, next) => {
+  const { wallId } = req.params;
+  const email = resolveEmail(req);
+  if (!email) return Response.respondError(res, new Error("Authorization token is missing."));
+  try {
+    const role = await wallRepository.getUserRole(wallId, email);
+    if (!["owner", "maintainer"].includes(role)) {
+      throw new Error(Response.generateMessage(Response.errorMessage.NO_ACCESS, "post"));
+    }
+    req.email = email;
+    next();
+  } catch (err) {
+    return Response.respondError(res, err);
+  }
+});
+
 exports.authorizeUnreportPost = asyncHandler(async (req, res, next) => {
   const { wallId } = req.params;
   const email = resolveEmail(req);

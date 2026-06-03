@@ -1,14 +1,15 @@
 const NOTIFICATION_TYPES = Object.freeze({
-  POST_ADDED:      "postAdded",
-  POST_REPORTED:   "postReported",
-  POST_UNREPORTED: "postUnreported",
-  POST_DELETED:    "postDeleted",
-  REACTION_ADDED:  "reactionAdded",
-  ACCESS_GRANTED:  "accessGranted",
-  WALL_UPDATED:    "wallUpdated",
-  WALL_LOCKED:     "wallLocked",
-  WALL_UNLOCKED:   "wallUnlocked",
-  WALL_ARCHIVED:   "wallArchived",
+  POST_ADDED:               "postAdded",
+  POST_REPORTED:            "postReported",
+  POST_REPORT_THRESHOLD:    "postReportThreshold",
+  POST_UNREPORTED:          "postUnreported",
+  POST_DELETED:             "postDeleted",
+  REACTION_ADDED:           "reactionAdded",
+  ACCESS_GRANTED:           "accessGranted",
+  WALL_UPDATED:             "wallUpdated",
+  WALL_LOCKED:              "wallLocked",
+  WALL_UNLOCKED:            "wallUnlocked",
+  WALL_ARCHIVED:            "wallArchived",
 });
 
 const NOTIFICATION_STATUSES = Object.freeze({
@@ -67,6 +68,11 @@ function buildNotification(type, { wall = {}, post = {}, actorEmail, memberEmail
 
     case NOTIFICATION_TYPES.POST_REPORTED:
       recipients = toRecipients([owner, postAuthor, ...memberEmails], actor);
+      break;
+
+    case NOTIFICATION_TYPES.POST_REPORT_THRESHOLD:
+      // Only owner + maintainers need to act — not the post author
+      recipients = toRecipients([owner, ...memberEmails], actor);
       break;
 
     case NOTIFICATION_TYPES.POST_UNREPORTED:

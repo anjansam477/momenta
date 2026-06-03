@@ -23,7 +23,7 @@ exports.createPost = asyncHandler(async (req, res) => {
     authorName: { first: normalized.firstName, last: normalized.lastName },
     content: normalized.content,
     media: file ? { url: file.path || file.filename, type: mediaType || "image" } : undefined,
-  });
+  }, req.wall);
   return Response.respondOk(res, post);
 });
 
@@ -95,5 +95,30 @@ exports.getPostsByEmail = asyncHandler(async (req, res) => {
 exports.getPost = asyncHandler(async (req, res) => {
   const { postId } = req.params;
   const post = await postService.getPost(postId);
+  return Response.respondOk(res, post);
+});
+
+exports.getPendingPosts = asyncHandler(async (req, res) => {
+  const { wallId } = req.params;
+  const posts = await postService.getPendingPosts(wallId);
+  return Response.respondOk(res, posts);
+});
+
+exports.approvePost = asyncHandler(async (req, res) => {
+  const { wallId, postId } = req.params;
+  const post = await postService.approvePost(postId, wallId, req.email);
+  return Response.respondOk(res, post);
+});
+
+exports.rejectPost = asyncHandler(async (req, res) => {
+  const { postId } = req.params;
+  const post = await postService.rejectPost(postId);
+  return Response.respondOk(res, post);
+});
+
+exports.pinPost = asyncHandler(async (req, res) => {
+  const { wallId, postId } = req.params;
+  const { pinned } = req.body;
+  const post = await postService.pinPost(postId, wallId, !!pinned);
   return Response.respondOk(res, post);
 });

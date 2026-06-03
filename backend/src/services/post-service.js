@@ -5,13 +5,34 @@ const { publishNotification } = require("./notification-event-service");
 const { NOTIFICATION_TYPES } = require("../domain/notifications/notification-rules");
 
 class PostService {
-  async createPost(postData) {
-    const post = await postRepository.addPost(postData);
+  async createPost(postData, wall) {
+    const requiresApproval = wall?.postConfig?.requireApproval;
+    const status = requiresApproval ? "pending_approval" : "active";
+    const post = await postRepository.addPost({ ...postData, status });
+    if (!requiresApproval) {
+      await publishNotification(NOTIFICATION_TYPES.POST_ADDED, {
+        wallId: postData.wallId,
+        email: postData.authorEmail,
+      }).catch(() => {});
+    }
+    return post;
+  }
+
+  async getPendingPosts(wallId) {
+    return postRepository.getPendingPosts(wallId);
+  }
+
+  async approvePost(postId, wallId, reviewerEmail) {
+    const post = await postRepository.approvePost(postId);
     await publishNotification(NOTIFICATION_TYPES.POST_ADDED, {
-      wallId: postData.wallId,
-      email: postData.authorEmail,
+      wallId,
+      email: reviewerEmail,
     }).catch(() => {});
     return post;
+  }
+
+  async rejectPost(postId) {
+    return postRepository.rejectPost(postId);
   }
 
   async updatePost(postId, updates, userEmail) {
@@ -29,13 +50,28 @@ class PostService {
   }
 
   async reportPost(postId, wallId, userEmail, reason) {
+    const REPORT_THRESHOLD = 3;
     reason = reason || "other";
     const report = await postRepository.reportPost(postId, userEmail, reason);
-    await publishNotification(NOTIFICATION_TYPES.POST_REPORTED, {
-      wallId,
-      postId,
-      email: userEmail,
-    }).catch(() => {});
+    const openCount = await postRepository.getOpenReportCount(postId);
+
+    if (openCount >= REPORT_THRESHOLD) {
+      // Fire threshold notification only once — when count exactly hits threshold
+      if (openCount === REPORT_THRESHOLD) {
+        await publishNotification(NOTIFICATION_TYPES.POST_REPORT_THRESHOLD, {
+          wallId,
+          postId,
+          email: userEmail,
+          metadata: { reportCount: openCount },
+        }).catch(() => {});
+      }
+    } else {
+      await publishNotification(NOTIFICATION_TYPES.POST_REPORTED, {
+        wallId,
+        postId,
+        email: userEmail,
+      }).catch(() => {});
+    }
     return report;
   }
 
@@ -55,6 +91,17 @@ class PostService {
 
   async getPost(postId) {
     return postRepository.getPostById(postId);
+  }
+
+  async pinPost(postId, wallId, pinned) {
+    const MAX_PINS = 3;
+    if (pinned) {
+      const count = await postRepository.getPinnedCount(wallId);
+      if (count >= MAX_PINS) {
+        throw new Error(`You can pin at most ${MAX_PINS} posts per wall.`);
+      }
+    }
+    return postRepository.pinPost(postId, pinned);
   }
 
   async getPostsByEmail(authorEmail, wallId) {
