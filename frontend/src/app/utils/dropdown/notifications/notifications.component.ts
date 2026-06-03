@@ -7,6 +7,7 @@ import {
   MomentNotification,
   NotificationsService,
 } from '../../../services/notificationservice/notifications.service';
+import { getInitials } from '../../user.util';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -84,12 +85,7 @@ export class NotificationsComponent implements OnInit {
   }
 
   getInitials(user: { userName: string; profilePicture: string }): string {
-    const source = user?.userName || '?';
-    const words = source.trim().split(/\s+/).filter(Boolean);
-    if (words.length >= 2) {
-      return `${words[0][0]}${words[1][0]}`.toUpperCase();
-    }
-    return source.slice(0, 2).toUpperCase();
+    return getInitials({ userName: user?.userName });
   }
 
   generateMessage(notification: MomentNotification): string {

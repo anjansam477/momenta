@@ -8,6 +8,7 @@ import { SharedDataService } from '../../../services/sharedDataService/shared-da
 import { AuthService } from '../../../services/authservice/auth.service';
 import { combineLatest } from 'rxjs';
 import { getPostAuthorDisplayName } from '../../../shared/post/post-author.util';
+import { getInitials } from '../../../utils/user.util';
 import { UserDetails } from '../../../shared/models';
 
 @Component({
@@ -94,12 +95,7 @@ export class UserReplacerComponent {
   }
 
   getInitials(): string {
-    const source = this.userName || this.email || '?';
-    const words = source.trim().split(/\s+/).filter(Boolean);
-    if (words.length >= 2) {
-      return `${words[0][0]}${words[1][0]}`.toUpperCase();
-    }
-    return source.slice(0, 2).toUpperCase();
+    return getInitials(this.userName || this.email || '?');
   }
 
   getDateTime(timestamp: string | Date | null | undefined): string {

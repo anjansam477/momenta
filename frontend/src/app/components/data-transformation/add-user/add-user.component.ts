@@ -12,6 +12,7 @@ import { Observable, of } from 'rxjs';
 import { UserDetails } from '../../../shared/models';
 import { Wall } from '../../../shared/models';
 import { animate, style, transition, trigger } from '@angular/animations';
+import { getInitials, convertBufferToBase64 } from '../../../utils/user.util';
 
 type TagModel = string | Record<string, string>;
 type UserTagModel = { email: string; name?: string; profilePicture?: string };
@@ -134,8 +135,7 @@ export class AddUserComponent implements OnInit {
 
 
   convertBufferToBase64(buffer: { contentType: string; data: number[] }): string {
-    const binaryString = buffer.data.map((b: number) => String.fromCharCode(b)).join('');
-    return `data:${buffer.contentType};base64,${btoa(binaryString)}`;
+    return convertBufferToBase64(buffer);
   }
 
   removeUser(user: UserDetails): void {
@@ -241,12 +241,7 @@ export class AddUserComponent implements OnInit {
   }
 
   getInitials(user: UserDetails): string {
-    const source = user?.fullName ?? user?.userName ?? user?.email ?? '?';
-    const words = source.trim().split(/\s+/).filter(Boolean);
-    if (words.length >= 2) {
-      return `${words[0][0]}${words[1][0]}`.toUpperCase();
-    }
-    return source.slice(0, 2).toUpperCase();
+    return getInitials(user);
   }
 
   selectUser(email: string) {
