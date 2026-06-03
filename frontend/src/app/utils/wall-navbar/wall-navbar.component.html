@@ -9,57 +9,84 @@
   </div>
 
   <div class="command-group primary-actions">
-    <button type="button" class="command-button" (click)="preview()">
+    <button type="button" class="command-button" [class.is-active]="searchOpen" (click)="toggleSearch()" title="Search posts" aria-label="Search posts">
+      <i class="bi bi-search"></i>
+      <span>Search</span>
+    </button>
+    <button type="button" class="command-button" (click)="preview()" aria-label="Preview moment">
       <i class="bi bi-eye"></i>
       <span>Preview</span>
     </button>
-    <button type="button" class="command-button" data-bs-target="#shareModal" data-bs-toggle="modal">
+    <button type="button" class="command-button" data-bs-target="#shareModal" data-bs-toggle="modal" aria-label="Share moment">
       <i class="bi bi-share"></i>
       <span>Share</span>
     </button>
-    <button type="button" class="command-button" (click)="download()">
+    <button type="button" class="command-button" (click)="download()" aria-label="Download moment">
       <i class="bi bi-download"></i>
       <span>Download</span>
     </button>
   </div>
 
   <div class="command-group manage-actions">
-    <button type="button" class="command-button" [class.is-active]="activeControl" (click)="toggleControl('settings')">
+    <button type="button" class="command-button" [class.is-active]="activeControl" (click)="toggleControl('settings')" aria-label="Open control center">
       <i class="bi bi-sliders2"></i>
       <span>Control center</span>
     </button>
   </div>
 </nav>
 
-<section class="component-container control-center" *ngIf="activeControl" [@slideInOut] aria-label="Moment control center">
-  <header class="control-center__header">
-    <div>
-      <span>Control center</span>
-      <strong>{{ activeControl === 'settings' ? 'Settings' : activeControl === 'style' ? 'Style' : 'Schedule' }}</strong>
+@if (searchOpen) {
+  <div class="search-bar-strip" @fadeSearch>
+    <div class="search-bar-inner">
+      <i class="bi bi-search search-bar-icon"></i>
+      <input
+        class="search-bar-input"
+        type="text"
+        aria-label="Search posts"
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="onSearchInput()"
+        placeholder="Search posts by text or author…"
+        autofocus />
+      @if (searchQuery) {
+        <button class="search-bar-clear" (click)="searchQuery=''; onSearchInput()" aria-label="Clear search">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      }
     </div>
-    <button type="button" class="control-close" aria-label="Close control center" (click)="closeModal()">
-      <i class="bi bi-x-lg"></i>
-    </button>
-  </header>
-
-  <nav class="control-tabs" aria-label="Control sections">
-    <button type="button" [class.is-active]="activeControl === 'settings'" (click)="openControl('settings')">
-      <i class="bi bi-sliders2"></i>
-      <span>Settings</span>
-    </button>
-    <button type="button" [class.is-active]="activeControl === 'style'" (click)="openControl('style')">
-      <i class="bi bi-palette"></i>
-      <span>Style</span>
-    </button>
-    <button type="button" [class.is-active]="activeControl === 'schedule'" (click)="openControl('schedule')">
-      <i class="bi bi-send-check"></i>
-      <span>Schedule</span>
-    </button>
-  </nav>
-
-  <div class="control-center__body">
-    <app-settings *ngIf="activeControl === 'settings'" (closeModal)="closeModal()"></app-settings>
-    <app-background *ngIf="activeControl === 'style'" (closeModal)="closeModal()"></app-background>
-    <app-schedule-delivery *ngIf="activeControl === 'schedule'" (closeModal)="closeModal()"></app-schedule-delivery>
   </div>
-</section>
+}
+
+@if (activeControl) {
+  <section class="component-container control-center" [@slideInOut] aria-label="Moment control center">
+    <header class="control-center__header">
+      <div>
+        <span>Control center</span>
+        <strong>{{ activeControl === 'settings' ? 'Settings' : activeControl === 'style' ? 'Style' : 'Schedule' }}</strong>
+      </div>
+      <button type="button" class="control-close" aria-label="Close control center" (click)="closeModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </header>
+
+    <nav class="control-tabs" aria-label="Control sections">
+      <button type="button" [class.is-active]="activeControl === 'settings'" (click)="openControl('settings')" aria-label="Settings">
+        <i class="bi bi-sliders2"></i>
+        <span>Settings</span>
+      </button>
+      <button type="button" [class.is-active]="activeControl === 'style'" (click)="openControl('style')" aria-label="Style">
+        <i class="bi bi-palette"></i>
+        <span>Style</span>
+      </button>
+      <button type="button" [class.is-active]="activeControl === 'schedule'" (click)="openControl('schedule')" aria-label="Schedule">
+        <i class="bi bi-send-check"></i>
+        <span>Schedule</span>
+      </button>
+    </nav>
+
+    <div class="control-center__body">
+      <app-settings [hidden]="activeControl !== 'settings'" (closeModal)="closeModal()"></app-settings>
+      <app-background [hidden]="activeControl !== 'style'" (closeModal)="closeModal()"></app-background>
+      <app-schedule-delivery [hidden]="activeControl !== 'schedule'" (closeModal)="closeModal()"></app-schedule-delivery>
+    </div>
+  </section>
+}

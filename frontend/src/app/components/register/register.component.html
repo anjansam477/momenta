@@ -10,67 +10,65 @@
         <div class="mb-4 position-relative">
 
           <input type="email" class="form-control ps__40" id="email" placeholder="Email" name="email"
+            aria-label="Email"
             formControlName="email"
             [ngClass]="{ 'validation-input': userData.get('email')?.invalid && userData.get('email')?.touched || errorMessage}" />
           <i class="bi bi-envelope login-input-icon" style="font-size: 16px;"></i>
-          <div class="validation-text"
-            *ngIf="userData.get('email')?.hasError('required') && userData.get('email')?.touched">
-            Email is required
-          </div>
-          <div class="validation-text"
-            *ngIf="userData.get('email')?.hasError('invalidEmail') && userData.get('email')?.touched && !userData.get('email')?.hasError('required')">
-            Invalid email format
-          </div>
-          <div class="validation-text" *ngIf="errorMessage">
-            {{this.errorMessage}}
-          </div>
+          @if (userData.get('email')?.hasError('required') && userData.get('email')?.touched) {
+            <div class="validation-text">Email is required</div>
+          }
+          @if (userData.get('email')?.hasError('invalidEmail') && userData.get('email')?.touched && !userData.get('email')?.hasError('required')) {
+            <div class="validation-text">Invalid email format</div>
+          }
+          @if (errorMessage) {
+            <div class="validation-text">{{this.errorMessage}}</div>
+          }
         </div>
         <div class="mb-4 position-relative">
           <input type="text" class="form-control ps__40" id="fname" placeholder="First Name" formControlName="fname"
+            aria-label="First Name"
             [ngClass]="{ 'validation-input': userData.get('fname')?.invalid && userData.get('fname')?.touched}" />
           <i class="bi bi-person login-input-icon"></i>
-          <div *ngIf="userData.get('fname')?.hasError('required') && userData.get('fname')?.touched"
-            class="validation-text">
-            First Name is required.
-          </div>
-          <div class="validation-text"
-            *ngIf="userData.get('fname')?.hasError('error') && userData.get('fname')?.touched &&!userData.get('fname')?.hasError('required')">
-            {{ userData.get('fname')?.getError('error') }}
-          </div>
+          @if (userData.get('fname')?.hasError('required') && userData.get('fname')?.touched) {
+            <div class="validation-text">First Name is required.</div>
+          }
+          @if (userData.get('fname')?.hasError('error') && userData.get('fname')?.touched && !userData.get('fname')?.hasError('required')) {
+            <div class="validation-text">{{ userData.get('fname')?.getError('error') }}</div>
+          }
         </div>
 
         <div class="mb-4 position-relative">
           <input type="text" class="form-control ps__40" id="lname" placeholder="Last Name" formControlName="lname"
+            aria-label="Last Name"
             [ngClass]="{ 'validation-input': userData.get('lname')?.invalid && userData.get('lname')?.touched}" />
           <i class="bi bi-person login-input-icon"></i>
-          <div *ngIf="userData.get('lname')?.hasError('required') && userData.get('lname')?.touched"
-            class="validation-text">
-            Last Name is required.
-          </div>
-          <div class="validation-text"
-            *ngIf="userData.get('lname')?.hasError('error') && userData.get('lname')?.touched && !userData.get('lname')?.hasError('required')">
-            {{ userData.get('lname')?.getError('error') }}
-          </div>
+          @if (userData.get('lname')?.hasError('required') && userData.get('lname')?.touched) {
+            <div class="validation-text">Last Name is required.</div>
+          }
+          @if (userData.get('lname')?.hasError('error') && userData.get('lname')?.touched && !userData.get('lname')?.hasError('required')) {
+            <div class="validation-text">{{ userData.get('lname')?.getError('error') }}</div>
+          }
         </div>
         <div class="mb-4 position-relative">
           <div class="">
             <input type="{{ passwordFieldType }}" class="form-control ps__40 pe-5" id="password" placeholder="Password"
-              name="password" formControlName="password"
+              name="password" formControlName="password" aria-label="Password"
               [ngClass]="{ 'validation-input': userData.get('password')?.invalid && userData.get('password')?.touched}" />
             <i class="bi bi-lock login-input-icon"></i>
-            <div class="passwor_show_icon" (click)="togglePasswordVisibility()">
-              <i class="bi bi-eye-fill" *ngIf="passwordFieldType=='password'"></i>
-              <i class="bi bi-eye-slash" *ngIf="passwordFieldType=='text'"></i>
-            </div>
+            <button type="button" class="passwor_show_icon" (click)="togglePasswordVisibility()" [attr.aria-label]="passwordFieldType === 'password' ? 'Show password' : 'Hide password'">
+              @if (passwordFieldType == 'password') {
+                <i class="bi bi-eye-fill" aria-hidden="true"></i>
+              } @else {
+                <i class="bi bi-eye-slash" aria-hidden="true"></i>
+              }
+            </button>
           </div>
-          <div class="validation-text"
-            *ngIf="userData.get('password')?.hasError('required') && userData.get('password')?.touched">
-            Password is required
-          </div>
-          <div class="validation-text"
-            *ngIf="userData.get('password')?.hasError('error') && userData.get('password')?.touched && !userData.get('password')?.hasError('required')">
-            {{ userData.get('password')?.getError('error') }}
-          </div>
+          @if (userData.get('password')?.hasError('required') && userData.get('password')?.touched) {
+            <div class="validation-text">Password is required</div>
+          }
+          @if (userData.get('password')?.hasError('error') && userData.get('password')?.touched && !userData.get('password')?.hasError('required')) {
+            <div class="validation-text">{{ userData.get('password')?.getError('error') }}</div>
+          }
         </div>
 
         <button type="submit" class="btn btn-primary button-xl w-100"><b>Register</b></button>
@@ -81,9 +79,7 @@
       <span>OR</span>
     </div>
     <a [href]="authBaseUrl">
-      <button class="btn btn-g-register mb-3 w-100"><i class="bi bi-google"></i>Register
-        with
-        Google</button>
+      <button class="btn btn-g-register mb-3 w-100" aria-label="Register with Google"><i class="bi bi-google"></i>Register with Google</button>
     </a>
     <div class="text-center act-text">
       <p> Already have an account? <a class="font-weight-500 ps-1 text-blue" routerLink="/login">Sign In</a></p>

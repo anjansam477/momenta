@@ -4,143 +4,168 @@
     <div class="modal-content min-h-auto">
       <div class="modal-header modal__header__bg">
         {{ postId || shareEmail ? 'Edit Post' : 'Add a Post' }}<i class="bi bi-x-lg" data-bs-dismiss="modal" (click)="close()"></i>
-
-        <!-- <h1 class="modal-title fs-5" id="postModalLabel">{{ postId ? 'Edit Post' : (imageChangedEvent ? 'Crop Image' : 'Add a Post') }}</h1>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" (click)="close()"></button> -->
       </div>
       <div class="modal-body">
-        <div class="media-panel" *ngIf="!imageChangedEvent">
-          <div class="media-panel__copy">
-            <span>Add media</span>
-            <small>One attachment or one inline GIF/sticker per post.</small>
-          </div>
-          <div class="media-panel__actions">
-            <button type="button" class="btn-upload" (click)="triggerMediaInput(imageInput)">
-              <i class="bi bi-image"></i>
-              <span class="media-action-label"><strong>Image</strong><small>2MB</small></span>
-            </button>
-            <button type="button" class="btn-upload" (click)="triggerMediaInput(gifInput)">
-              <i class="bi bi-filetype-gif"></i>
-              <span class="media-action-label"><strong>GIF</strong><small>2MB</small></span>
-            </button>
-            <button type="button" class="btn-upload" (click)="triggerMediaInput(videoInput)">
-              <i class="bi bi-camera-video"></i>
-              <span class="media-action-label"><strong>Video</strong><small>5MB</small></span>
-            </button>
-          </div>
-          <input type="file" #imageInput style="display: none" class="file-input" accept="image/*"
-            (change)="addMedia($event, 'image')" />
-          <input type="file" #gifInput style="display: none" class="file-input" accept="image/gif"
-            (change)="addMedia($event, 'gif')" />
-          <input type="file" #videoInput style="display: none" class="file-input" accept="video/mp4"
-            (change)="addMedia($event, 'video')" />
-        </div>
-        <div class="preview-body" *ngIf="!imageChangedEvent && (selectedFile || mediaPreviewUrl)">
-          <div class="preview-media">
-            <div class="preview-frame">
-              <img *ngIf="mediaType === 'image'" [src]="mediaPreviewUrl" alt="Image Preview" class="preview-image">
-              <video *ngIf="mediaType === 'video'" #videoPlayer controls
-              (click)="stopVideo(videoPlayer)">
-                <source [src]="mediaPreviewUrl" type="video/mp4">
-                Your browser does not support the video tag.
-              </video>
-              <img *ngIf="mediaType === 'gif'" [src]="mediaPreviewUrl" alt="GIF Preview" class="preview-gif">
+        @if (!imageChangedEvent) {
+          <div class="media-panel">
+            <div class="media-panel__copy">
+              <span>Add media</span>
+              <small>One attachment or one inline GIF/sticker per post.</small>
             </div>
-            <div class="preview-details">
-              <span>{{ mediaType | titlecase }} attached</span>
-              <small>{{ getSelectedMediaLabel() }}</small>
-            </div>
-            <div class="edit-box-wrapper" aria-label="Media actions">
-              <button type="button" class="edit-box" (click)="openFileInputForEditing()" title="Replace media">
-                <i class="bi bi-arrow-repeat"></i>
+            <div class="media-panel__actions">
+              <button type="button" class="btn-upload" (click)="triggerMediaInput(imageInput)" aria-label="Upload image">
+                <i class="bi bi-image"></i>
+                <span class="media-action-label"><strong>Image</strong><small>2MB</small></span>
               </button>
-              <button type="button" class="edit-box edit-box--danger" (click)="removeMedia()" title="Remove media">
-                <i class="bi bi-trash"></i>
+              <button type="button" class="btn-upload" (click)="triggerMediaInput(gifInput)" aria-label="Upload GIF">
+                <i class="bi bi-filetype-gif"></i>
+                <span class="media-action-label"><strong>GIF</strong><small>2MB</small></span>
+              </button>
+              <button type="button" class="btn-upload" (click)="triggerMediaInput(videoInput)" aria-label="Upload video">
+                <i class="bi bi-camera-video"></i>
+                <span class="media-action-label"><strong>Video</strong><small>5MB</small></span>
               </button>
             </div>
+            <input type="file" #imageInput style="display: none" class="file-input" accept="image/*"
+              (change)="addMedia($event, 'image')" aria-label="Image file input" />
+            <input type="file" #gifInput style="display: none" class="file-input" accept="image/gif"
+              (change)="addMedia($event, 'gif')" aria-label="GIF file input" />
+            <input type="file" #videoInput style="display: none" class="file-input" accept="video/mp4"
+              (change)="addMedia($event, 'video')" aria-label="Video file input" />
           </div>
-        </div>
-        <div class="crop-body" *ngIf="imageChangedEvent">
-          <image-cropper [imageChangedEvent]="imageChangedEvent" [maintainAspectRatio]="false" format="png"
-            (imageCropped)="imageCropped($event)">
-          </image-cropper>
-          <div class="d-flex justify-content-end align-items-center mt-4">
-            <button type="button" class="btn btn-primary button-xl h-auto px-4 mb-2" title="Upload" (click)="uploadWithoutCropping()">Use
-              Original</button>
-            <button type="button" class="btn btn-primary button-xl h-auto px-4 mb-2  ms-3" title="Crop and Upload" [disabled]="!isCropped"
-              (click)="crop()">Crop & Proceed</button>
-            <!-- <a class="text-black mb-2 ms-3" href="#" (click)="cancelCrop()">Cancel</a>  -->
+        }
+        @if (!imageChangedEvent && (selectedFile || mediaPreviewUrl)) {
+          <div class="preview-body">
+            <div class="preview-media">
+              <div class="preview-frame">
+                @if (mediaType === 'image') {
+                  <img [src]="mediaPreviewUrl" alt="Image Preview" class="preview-image">
+                }
+                @if (mediaType === 'video') {
+                  <video #videoPlayer controls (click)="stopVideo(videoPlayer)">
+                    <source [src]="mediaPreviewUrl" type="video/mp4">
+                    Your browser does not support the video tag.
+                  </video>
+                }
+                @if (mediaType === 'gif') {
+                  <img [src]="mediaPreviewUrl" alt="GIF Preview" class="preview-gif">
+                }
+              </div>
+              <div class="preview-details">
+                <span>{{ mediaType | titlecase }} attached</span>
+                <small>{{ getSelectedMediaLabel() }}</small>
+              </div>
+              <div class="edit-box-wrapper" aria-label="Media actions">
+                <button type="button" class="edit-box" (click)="openFileInputForEditing()" title="Replace media" aria-label="Replace media">
+                  <i class="bi bi-arrow-repeat"></i>
+                </button>
+                <button type="button" class="edit-box edit-box--danger" (click)="removeMedia()" title="Remove media" aria-label="Remove media">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-        <p class="error-message" *ngIf="errorMessage">{{errorMessage}}</p>
-        <div class="write-message" *ngIf="!imageChangedEvent">
-          <h4>Write a message</h4>
-        </div>
+        }
+        @if (imageChangedEvent) {
+          <div class="crop-body">
+            <image-cropper [imageChangedEvent]="imageChangedEvent" [maintainAspectRatio]="false" format="png"
+              (imageCropped)="imageCropped($event)">
+            </image-cropper>
+            <div class="d-flex justify-content-end align-items-center mt-4">
+              <button type="button" class="btn btn-primary button-xl h-auto px-4 mb-2" title="Upload" (click)="uploadWithoutCropping()">Use Original</button>
+              <button type="button" class="btn btn-primary button-xl h-auto px-4 mb-2 ms-3" title="Crop and Upload" [disabled]="!isCropped"
+                (click)="crop()">Crop & Proceed</button>
+            </div>
+          </div>
+        }
+        @if (errorMessage) {
+          <p class="error-message">{{errorMessage}}</p>
+        }
+        @if (!imageChangedEvent) {
+          <div class="write-message">
+            <h4>Write a message</h4>
+          </div>
+        }
         <form class="post-form" [formGroup]="postForm" (ngSubmit)="work($event)">
           <div class="form-group">
             <quill-editor class="editor" #editor formControlName="content" [ngClass]="{'crop-image-editor': imageChangedEvent}"></quill-editor>
             <div class="quill-editor-options" [ngClass]="{'crop-image-editor': imageChangedEvent}">
               <div class="options-container">
-                <div class="options" (click)="toggleEmojiModal($event)"><i class="bi bi-emoji-smile"></i></div>
+                <button type="button" class="options" (click)="toggleEmojiModal($event)" aria-label="Toggle emoji picker"><i class="bi bi-emoji-smile" aria-hidden="true"></i></button>
                 <div class="dialog-box" style="bottom: 35px;">
-                  <emoji-mart (emojiClick)="addEmoji($event)" *ngIf="emojishow" (click)="stopPropagation($event)"
-                    [style]="{ height: '280px', 'overflow-y': 'hidden', width: '250px'}"></emoji-mart>
+                  @if (emojishow) {
+                    <emoji-mart (emojiClick)="addEmoji($event)" (click)="stopPropagation($event)"
+                      [style]="{ height: '280px', 'overflow-y': 'hidden', width: '250px'}"></emoji-mart>
+                  }
                 </div>
               </div>
-              <div class="options-container" *ngIf="enableGiphy">
-                <div class="options" (click)="toggleGifModal($event)"><i class="bi bi-filetype-gif"></i></div>
-                <div class="dialog-box">
-                  <app-gif-modal *ngIf="showGifModal" (click)="stopPropagation($event)"
-                    (gifSelected)="insertGifIntoEditor($event)"></app-gif-modal>
+              @if (enableGiphy) {
+                <div class="options-container">
+                  <button type="button" class="options" (click)="toggleGifModal($event)" aria-label="Toggle GIF picker"><i class="bi bi-filetype-gif" aria-hidden="true"></i></button>
+                  <div class="dialog-box">
+                    @if (showGifModal) {
+                      <app-gif-modal (click)="stopPropagation($event)"
+                        (gifSelected)="insertGifIntoEditor($event)"></app-gif-modal>
+                    }
+                  </div>
                 </div>
-              </div>
-              <div class="options-container" *ngIf="enableGiphy">
-                <div class="options" (click)="toggleStickerModal($event)"><i class="bi bi-sticky"></i></div>
-                <div class="dialog-box">
-                  <app-sticker-modal *ngIf="showStickerModal" (click)="stopPropagation($event)"
-                    (stickerSelected)="insertStickerIntoEditor($event)"></app-sticker-modal>
+                <div class="options-container">
+                  <button type="button" class="options" (click)="toggleStickerModal($event)" aria-label="Toggle sticker picker"><i class="bi bi-sticky" aria-hidden="true"></i></button>
+                  <div class="dialog-box">
+                    @if (showStickerModal) {
+                      <app-sticker-modal (click)="stopPropagation($event)"
+                        (stickerSelected)="insertStickerIntoEditor($event)"></app-sticker-modal>
+                    }
+                  </div>
                 </div>
-              </div>
+              }
             </div>
-            <div class="text-input" *ngIf="!isAuthenticated && !imageChangedEvent">
-              <input type="text" formControlName="firstName" class="form-control"
-                [class.validation-input]="postForm.get('firstName')?.invalid && postForm.get('firstName')?.touched"
-                placeholder="First Name" />
-              <input type="text" formControlName="lastName" class="form-control"
-                [class.validation-input]="postForm.get('lastName')?.invalid && postForm.get('lastName')?.touched"
-                placeholder="Last Name" />
+            @if (!isAuthenticated && !imageChangedEvent) {
+              <div class="text-input">
+                <input type="text" formControlName="firstName" class="form-control" aria-label="First Name"
+                  [class.validation-input]="postForm.get('firstName')?.invalid && postForm.get('firstName')?.touched"
+                  placeholder="First Name" />
+                <input type="text" formControlName="lastName" class="form-control" aria-label="Last Name"
+                  [class.validation-input]="postForm.get('lastName')?.invalid && postForm.get('lastName')?.touched"
+                  placeholder="Last Name" />
+              </div>
+            }
+            @if (postForm.get('firstName')?.invalid && postForm.get('firstName')?.touched && !imageChangedEvent) {
+              <div class="validation-text">First Name is required and should be between 3-{{ postAuthorNameMaxLength }}</div>
+            }
+            @if (postForm.get('lastName')?.invalid && postForm.get('lastName')?.touched && !imageChangedEvent) {
+              <div class="validation-text">Last Name should be less than {{ postAuthorNameMaxLength }} characters</div>
+            }
+            @if (postForm.get('content')?.hasError('maxlength') && !imageChangedEvent) {
+              <div class="validation-text">Message should be {{ postContentMaxLength }} characters or less</div>
+            }
+            @if (!imageChangedEvent) {
+              <div class="selected-media-container"></div>
+            }
+          </div>
+          @if (!imageChangedEvent) {
+            <div class="d-flex justify-content-end align-items-center mt-4">
+              <button type="button" class="btn btn-link modal-cancel" data-bs-dismiss="modal" (click)="close()">Cancel</button>
+              <button type="submit" class="btn btn-primary button-xl h-auto px-4" [disabled]="!isFormValid()">
+                {{ isSubmitting ? 'Posting...' : (postId || shareEmail ? 'Update' : 'Post') }}
+              </button>
             </div>
-            <div *ngIf="postForm.get('firstName')?.invalid && postForm.get('firstName')?.touched && !imageChangedEvent"
-              class="validation-text">First Name is required and should be between 3-{{ postAuthorNameMaxLength }}</div>
-
-            <div *ngIf="postForm.get('lastName')?.invalid && postForm.get('lastName')?.touched && !imageChangedEvent" class="validation-text">
-              Last Name should be less than {{ postAuthorNameMaxLength }} characters</div>
-
-            <div *ngIf="postForm.get('content')?.hasError('maxlength') && !imageChangedEvent" class="validation-text">
-              Message should be {{ postContentMaxLength }} characters or less</div>
-
-
-            <div class="selected-media-container" *ngIf="!imageChangedEvent" ></div>
-          </div>
-          <div class="d-flex justify-content-end  align-items-center mt-4" *ngIf="!imageChangedEvent" >
-            <button type="button" class="btn btn-link modal-cancel" data-bs-dismiss="modal" (click)="close()">Cancel</button>
-            <button type="submit" class="btn btn-primary button-xl h-auto px-4" [disabled]="!isFormValid()">
-              {{ isSubmitting ? 'Posting...' : (postId || shareEmail ? 'Update' : 'Post') }}
-            </button>
-          </div>
+          }
         </form>
       </div>
-      <div *ngIf="posts.length > 0 && shareEmail" class="modal-footer">
-        <h6>Post {{ currentPostIndex + 1 }} of {{posts.length}}</h6>
-        <div class="d-flex gap-2">
-          <a class="prev-arrow slide-buttons" (click)="showPreviousPost()">
-            <i class="bi bi-chevron-left slide-control-icon"></i>
-          </a>
-          <a class="next-arrow slide-buttons" (click)="showNextPost()">
-            <i class="bi bi-chevron-right slide-control-icon"></i>
-          </a>
+      @if (posts.length > 0 && shareEmail) {
+        <div class="modal-footer">
+          <h6>Post {{ currentPostIndex + 1 }} of {{posts.length}}</h6>
+          <div class="d-flex gap-2">
+            <a class="prev-arrow slide-buttons" (click)="showPreviousPost()" aria-label="Previous post">
+              <i class="bi bi-chevron-left slide-control-icon"></i>
+            </a>
+            <a class="next-arrow slide-buttons" (click)="showNextPost()" aria-label="Next post">
+              <i class="bi bi-chevron-right slide-control-icon"></i>
+            </a>
+          </div>
         </div>
-        </div>
+      }
     </div>
   </div>
 </div>

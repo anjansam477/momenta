@@ -1,5 +1,5 @@
 @if (isMomentReady) {
-  <app-wall-navbar *ngIf="checkWallCreator() && !isPreview"></app-wall-navbar>
+  @if (checkWallCreator() && !isPreview) { <app-wall-navbar></app-wall-navbar> }
   <div class="moment-page wall-page" [ngStyle]="{'background-image': 'url(' + selectedBackground + ')'}">
     <app-title-bar></app-title-bar>
     <app-wall-posts></app-wall-posts>

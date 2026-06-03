@@ -1,33 +1,48 @@
-<div *ngIf="component==='dashboard'" class="creator-info">
+@if (component === 'dashboard') {
+<div class="creator-info">
     <div class="avatar">
-        <img *ngIf="profilePicture" [src]="profilePicture" alt="Creator" referrerpolicy="no-referrer" />
-        <span *ngIf="!profilePicture" class="avatar-fallback">{{ getInitials() }}</span>
+        @if (profilePicture) {
+            <img [src]="profilePicture" alt="Creator" referrerpolicy="no-referrer" />
+        } @else {
+            <span class="avatar-fallback">{{ getInitials() }}</span>
+        }
     </div>
     <span>
         <h6>Creator</h6>
-        <h5> {{ userName }} | {{ getTime(datetime) }} </h5>
+        <h5>{{ userName }}</h5>
     </span>
 </div>
+}
 
-<div class="post_user" *ngIf="component==='wall-posts'">
+@if (component === 'wall-posts') {
+<div class="post_user">
     <div class="user-pic">
-        <img *ngIf="profilePicture" [src]="profilePicture" referrerpolicy="no-referrer">
-        <span *ngIf="!profilePicture" class="avatar-fallback">{{ getInitials() }}</span>
+        @if (profilePicture) {
+            <img [src]="profilePicture" referrerpolicy="no-referrer">
+        } @else {
+            <span class="avatar-fallback">{{ getInitials() }}</span>
+        }
     </div>
     <div class="user_name">
         <h5>{{userName}}</h5>
-       <span class="date_time">{{ datetime | date:'MMMM d, y | h:mm a' }}</span>
+        <span class="date_time">{{ datetime | date:'MMMM d, y | h:mm a' }}</span>
     </div>
 </div>
+}
 
-<div class="user-list-item" *ngIf="component === 'schedule-delivery'">
-  <div class="add_people-pic profile-pic">
-    <img *ngIf="profilePicture" [src]="profilePicture" referrerpolicy="no-referrer">
-    <span *ngIf="!profilePicture" class="avatar-fallback">{{ getInitials() }}</span>
-  </div>
-  <div class="add__user_name add_people-active">{{userName}}</div>
-  <div class="add__user_email mt-1">
-    <i [ngClass]="{'bi bi-check-all': isPast(datetime), 'bi bi-clock clock-icon': !isPast(datetime)}"></i>
-    {{getDateTime(datetime)}}
-  </div>
+@if (component === 'schedule-delivery') {
+<div class="user-list-item">
+    <div class="add_people-pic profile-pic">
+        @if (profilePicture) {
+            <img [src]="profilePicture" referrerpolicy="no-referrer">
+        } @else {
+            <span class="avatar-fallback">{{ getInitials() }}</span>
+        }
+    </div>
+    <div class="add__user_name add_people-active">{{userName}}</div>
+    <div class="add__user_email mt-1">
+        <i [ngClass]="{'bi bi-check-all': isPast(datetime), 'bi bi-clock clock-icon': !isPast(datetime)}"></i>
+        {{getDateTime(datetime)}}
+    </div>
 </div>
+}

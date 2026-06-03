@@ -3,11 +3,14 @@
     class="notification-trigger"
     type="button"
     title="Notifications"
+    aria-label="Notifications"
     id="notificationsDropdown"
     data-bs-toggle="dropdown"
     aria-expanded="false">
     <i class="bi bi-bell-fill"></i>
-    <span *ngIf="unreadNotificationCount() > 0" class="notification-dot">{{ unreadNotificationCount() }}</span>
+    @if (unreadNotificationCount() > 0) {
+      <span class="notification-dot">{{ unreadNotificationCount() }}</span>
+    }
   </button>
 
   <div class="dropdown-menu dropdown-menu-end notification-wrapper" aria-labelledby="notificationsDropdown" (click)="$event.stopPropagation()">
@@ -16,46 +19,61 @@
         <span class="eyebrow">Activity</span>
         <h4>Notifications</h4>
       </div>
-      <div *ngIf="notifications.length !== 0" class="notification-actions">
-        <button type="button" (click)="markAllAsRead(); $event.stopPropagation()">Mark read</button>
-        <button type="button" (click)="markAllAsArchive(); $event.stopPropagation()">Clear</button>
-      </div>
-    </div>
-
-    <ul *ngIf="notifications.length > 0" class="notification-list">
-      <li
-        *ngFor="let notification of notifications"
-        [class.unread]="isNotificationUnread(notification)"
-        (click)="openNotification(notification)">
-        <span class="notification-icon">
-          <i class="bi" [ngClass]="notificationIcon(notification)"></i>
-        </span>
-
-        <span class="user-stack" *ngIf="notification.userDetails.length > 0">
-          <span class="user-avatar" *ngFor="let user of notification.userDetails | slice:0:2">
-            <img *ngIf="user.profilePicture" [src]="user.profilePicture" referrerpolicy="no-referrer">
-            <span *ngIf="!user.profilePicture">{{ getInitials(user) }}</span>
-          </span>
-        </span>
-
-        <div class="notification-copy">
-          <p>{{ generateMessage(notification) }}</p>
-          <small>{{ getTimeAgo(notification.timestamp) }}</small>
+      @if (notifications.length !== 0) {
+        <div class="notification-actions">
+          <button type="button" (click)="markAllAsRead(); $event.stopPropagation()">Mark read</button>
+          <button type="button" (click)="markAllAsArchive(); $event.stopPropagation()">Clear</button>
         </div>
-
-        <button
-          class="notification-dismiss"
-          type="button"
-          title="Clear notification"
-          (click)="markAsArchive(notification); $event.stopPropagation()">
-          <i class="bi bi-x"></i>
-        </button>
-      </li>
-    </ul>
-
-    <div *ngIf="notifications.length === 0" class="empty-notifications">
-      <i class="bi bi-bell-slash"></i>
-      <p>No new notifications</p>
+      }
     </div>
+
+    @if (notifications.length > 0) {
+      <ul class="notification-list">
+        @for (notification of notifications; track notification._id) {
+          <li
+            [class.unread]="isNotificationUnread(notification)"
+            (click)="openNotification(notification)">
+            <span class="notification-icon">
+              <i class="bi" [ngClass]="notificationIcon(notification)"></i>
+            </span>
+
+            @if (notification.userDetails.length > 0) {
+              <span class="user-stack">
+                @for (user of notification.userDetails | slice:0:2; track user) {
+                  <span class="user-avatar">
+                    @if (user.profilePicture) {
+                      <img [src]="user.profilePicture" referrerpolicy="no-referrer">
+                    } @else {
+                      <span>{{ getInitials(user) }}</span>
+                    }
+                  </span>
+                }
+              </span>
+            }
+
+            <div class="notification-copy">
+              <p>{{ generateMessage(notification) }}</p>
+              <small>{{ getTimeAgo(notification.timestamp) }}</small>
+            </div>
+
+            <button
+              class="notification-dismiss"
+              type="button"
+              title="Clear notification"
+              aria-label="Clear notification"
+              (click)="markAsArchive(notification); $event.stopPropagation()">
+              <i class="bi bi-x"></i>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+
+    @if (notifications.length === 0) {
+      <div class="empty-notifications">
+        <i class="bi bi-bell-slash"></i>
+        <p>No new notifications</p>
+      </div>
+    }
   </div>
 </div>

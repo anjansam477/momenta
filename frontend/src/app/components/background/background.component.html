@@ -1,168 +1,139 @@
-<aside id="background" class="background-drawer" aria-label="Background controls">
-    <header class="drawer-hero">
-        <button type="button" class="icon-button" aria-label="Close background panel" (click)="closeSidebar()">
-            <i class="bi bi-arrow-left"></i>
+<div class="cc-panel">
+
+  <!-- Tab switcher: Angular-controlled, no Bootstrap JS dependency -->
+  <div class="cc-tab-bar">
+    <button class="cc-tab-btn" [class.cc-tab-btn--active]="activeTab === 'themes'" (click)="activeTab = 'themes'" type="button">
+      <i class="bi bi-image"></i> Themes
+    </button>
+    <button class="cc-tab-btn" [class.cc-tab-btn--active]="activeTab === 'effects'" (click)="activeTab = 'effects'" type="button">
+      <i class="bi bi-magic"></i> Effects
+    </button>
+    <button class="cc-tab-btn" [class.cc-tab-btn--active]="activeTab === 'sounds'" (click)="activeTab = 'sounds'" type="button">
+      <i class="bi bi-music-note-beamed"></i> Sounds
+    </button>
+  </div>
+
+  <!-- ── THEMES ── -->
+  <div class="cc-body cst-scrollbar" [hidden]="activeTab !== 'themes'">
+
+    <div class="cc-filter-row">
+      <span class="cc-filter-label">Category</span>
+      <div class="dropdown">
+        <button class="cc-select-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          {{ replaceUnderscores(chooseTheme) }}
+          <i class="bi bi-chevron-down"></i>
         </button>
-        <div class="hero-copy">
-            <span class="eyebrow">Creative studio</span>
-            <h2>Background</h2>
-            <p>Tune the visual mood, motion, and sound for this moment.</p>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" (click)="setTheme('All')" [class.active]="chooseTheme === 'All'">All</a></li>
+          @for(t of themes; track $index) {
+            <li><a class="dropdown-item" (click)="setTheme(t.name)" [class.active]="chooseTheme === t.name">{{ replaceUnderscores(t.name) }}</a></li>
+          }
+        </ul>
+      </div>
+    </div>
+
+    @for(theme of themes; track $index) {
+      @if(chooseTheme === 'All' || chooseTheme === theme.name) {
+        <div class="cc-theme-group">
+          <h5 class="cc-group-label">{{ replaceUnderscores(theme.name) }}</h5>
+          <div class="cc-img-grid">
+            @for(img of (showAll ? theme.images : theme.images.slice(0, initialThemeCount)); track $index) {
+              <button type="button" class="cc-img-card"
+                [class.cc-img-card--active]="selectedImage === img"
+                (click)="setBg(img)">
+                <img [src]="img" [alt]="img" loading="lazy" />
+                @if(selectedImage === img) {
+                  <span class="cc-img-check"><i class="bi bi-check2"></i></span>
+                }
+              </button>
+            }
+          </div>
+          @if(theme.images.length > initialThemeCount && !showAll) {
+            <button class="cc-load-more" (click)="loadMoreImages()">
+              Show more <i class="bi bi-chevron-down"></i>
+            </button>
+          }
         </div>
-    </header>
+      }
+    }
+  </div>
 
-    <section class="background-shell">
-        <nav class="segment-tabs" id="nav-tab" role="tablist">
-            <button class="nav-link active" id="nav-home-tab" data-bs-toggle="tab"
-                data-bs-target="#nav-home" type="button" role="tab" aria-controls="nav-home"
-                aria-selected="true">
-                <i class="bi bi-image"></i>
-                Themes
-            </button>
-            <button class="nav-link" id="nav-animation-tab" data-bs-toggle="tab"
-                data-bs-target="#nav-animation" type="button" role="tab" aria-controls="nav-animation"
-                aria-selected="false">
-                <i class="bi bi-magic"></i>
-                Effects
-            </button>
-            <button class="nav-link" id="nav-sounds-tab" data-bs-toggle="tab"
-                data-bs-target="#nav-sounds" type="button" role="tab" aria-controls="nav-sounds"
-                aria-selected="false">
-                <i class="bi bi-music-note-beamed"></i>
-                Sounds
-            </button>
-        </nav>
+  <!-- ── EFFECTS ── -->
+  <div class="cc-body cst-scrollbar" [hidden]="activeTab !== 'effects'">
+    <div class="cc-effects-grid">
+      @for(anim of animations; track $index) {
+        <button type="button" class="cc-effect-card"
+          [class.cc-effect-card--active]="selectedAnimation === anim.id"
+          (click)="changeAnimation(anim.id); selectedAnimation = anim.id"
+          (mouseenter)="setHoveredIndex(anim.id)"
+          (mouseleave)="setHoveredIndex('')">
+          @if(anim.path) {
+            <img [src]="'assets/animation/gifs/' + anim.path" [alt]="anim.alt || anim.name" class="cc-effect-preview" />
+          } @else {
+            <span class="cc-effect-empty"><i class="bi bi-ban"></i></span>
+          }
+          <span class="cc-effect-label">{{ anim.name }}</span>
+          @if(selectedAnimation === anim.id) {
+            <span class="cc-active-badge"><i class="bi bi-check2"></i></span>
+          }
+        </button>
+      }
+    </div>
+  </div>
 
-        <div class="tab-content drawer-content cst-scrollbar" id="nav-tabContent">
-            <div class="tab-pane fade show active" id="nav-home" role="tabpanel" aria-labelledby="nav-home-tab" tabindex="0">
-                <section class="panel-card">
-                    <div class="panel-title">
-                        <span class="panel-icon"><i class="bi bi-palette"></i></span>
-                        <div>
-                            <h3>Theme gallery</h3>
-                            <p>Preview and apply a background that fits the occasion.</p>
-                        </div>
-                    </div>
+  <!-- ── SOUNDS ── -->
+  <div class="cc-body cst-scrollbar" [hidden]="activeTab !== 'sounds'">
 
-                    <div class="dropdown setting-dropdown">
-                        <button class="btn dropdown-toggle drawer-select d-flex align-items-center justify-content-between w-100"
-                            type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <span>{{ replaceUnderscores(chooseTheme) }}</span>
-                            <i class="bi bi-chevron-down"></i>
-                        </button>
-                        <ul class="dropdown-menu w-100">
-                            <li><a class="dropdown-item" (click)="setTheme('All')" [class.active]="chooseTheme === 'All'">All</a></li>
-                            @for(t of themes; track $index) {
-                            <li><a class="dropdown-item" (click)="setTheme(t.name)" [class.active]="chooseTheme === t.name">{{ replaceUnderscores(t.name) }}</a></li>
-                            }
-                        </ul>
-                    </div>
+    <div class="cc-filter-row">
+      <span class="cc-filter-label">Filter</span>
+      <div class="dropdown">
+        <button class="cc-select-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          {{ selectedAudioTheme }}
+          <i class="bi bi-chevron-down"></i>
+        </button>
+        <ul class="dropdown-menu">
+          @for(theme of themesList; track $index) {
+            <li><a class="dropdown-item" (click)="onThemeChange(theme)" [class.active]="selectedAudioTheme === theme">{{ theme }}</a></li>
+          }
+        </ul>
+      </div>
+    </div>
 
-                    <div class="asset-grid themes-grid">
-                        @for(t of themes.slice(0, initialThemeCount); track $index) {
-                            @if (chooseTheme !== 'All') {
-                                @if(t.name === chooseTheme) {
-                                    @for(image of t.images; track $index) {
-                                    <button type="button" class="asset-card theme-grid" [class.selected]="image === selectedImage" (click)="setBg(image)">
-                                        <img [src]="image" alt="">
-                                        <span>{{ replaceUnderscores(t.name) }}</span>
-                                    </button>
-                                    }
-                                }
-                            } @else {
-                                @for (image of t.images; track $index) {
-                                <button type="button" class="asset-card theme-grid" (click)="setBg(image)" [class.selected]="image === selectedImage">
-                                    <img [src]="image" alt="">
-                                    <span>{{ replaceUnderscores(t.name) }}</span>
-                                </button>
-                                }
-                            }
-                        }
-                    </div>
+    <div class="cc-audio-list">
+      <button type="button" class="cc-audio-row"
+        [class.cc-audio-row--active]="selectedAudio === ''"
+        (click)="selectAudio('')">
+        <span class="cc-audio-icon cc-audio-icon--mute"><i class="bi bi-volume-mute"></i></span>
+        <span class="cc-audio-name">No sound</span>
+        @if(selectedAudio === '') { <i class="bi bi-check2 cc-audio-check"></i> }
+      </button>
 
-                    <button type="button" class="load-more-link" *ngIf="chooseTheme === 'All' && showMoreBtn" (click)="loadMoreImages()">
-                        Show more themes
-                    </button>
-                </section>
-            </div>
+      @for(file of filteredAudioFiles; track $index) {
+        <button type="button" class="cc-audio-row"
+          [class.cc-audio-row--active]="file.file === selectedAudio"
+          (click)="selectAudio(file)">
+          <span class="cc-audio-icon" [class.cc-audio-icon--playing]="file.file === selectedAudio && hasAudio">
+            @if(file.file === selectedAudio && hasAudio) {
+              <i class="bi bi-soundwave"></i>
+            } @else {
+              <i class="bi bi-play-circle-fill"></i>
+            }
+          </span>
+          <span class="cc-audio-name">{{ file.name }}</span>
+          @if(file.file === selectedAudio) { <i class="bi bi-check2 cc-audio-check"></i> }
+        </button>
+      }
+    </div>
 
-            <div class="tab-pane fade" id="nav-animation" role="tabpanel" aria-labelledby="nav-animation-tab" tabindex="0">
-                <section class="panel-card">
-                    <div class="panel-title">
-                        <span class="panel-icon coral"><i class="bi bi-stars"></i></span>
-                        <div>
-                            <h3>Motion effects</h3>
-                            <p>Add a subtle celebration layer over the moment.</p>
-                        </div>
-                    </div>
+  </div>
 
-                    <div class="asset-grid">
-                        <button type="button" class="asset-card gif-item" [class.selected]="selectedAnimation === ''" (click)="selectAnimation('')">
-                            <span class="effect-empty"><i class="bi bi-ban"></i></span>
-                            <span>No Effect</span>
-                        </button>
+  <!-- Apply button -->
+  @if(wallDisplay != false) {
+    <footer class="cc-footer">
+      <button type="button" class="cc-btn cc-btn--full" [disabled]="btnDisabled" (click)="applyBackgroundImage()">
+        <i class="bi bi-check2-circle"></i> Apply changes
+      </button>
+    </footer>
+  }
 
-                        <button type="button" class="asset-card gif-item" *ngFor="let gif of animations"
-                            (mouseenter)="resetGif(gif)" (mouseleave)="setHoveredIndex(null)"
-                            [class.selected]="gif.id === selectedAnimation" (click)="selectAnimation(gif.id)">
-                            <img *ngIf="hoveredIndex !== gif.id" class="gif-img" src="assets/animation/gif_background.jpg" alt="">
-                            <img *ngIf="hoveredIndex === gif.id" [src]="hoveredGifSrc[gif.id] || ('assets/animation/gifs/' + gif.path)"
-                                class="gif" [id]="gif.id" alt="">
-                            <span>{{ gif.name }}</span>
-                        </button>
-                    </div>
-                </section>
-            </div>
-
-            <div class="tab-pane fade" id="nav-sounds" role="tabpanel" aria-labelledby="nav-sounds-tab" tabindex="0">
-                <section class="panel-card">
-                    <div class="panel-title">
-                        <span class="panel-icon gold"><i class="bi bi-volume-up"></i></span>
-                        <div>
-                            <h3>Soundtrack</h3>
-                            <p>Choose an audio bed, or keep this moment silent.</p>
-                        </div>
-                    </div>
-
-                    <div class="dropdown setting-dropdown">
-                        <button class="btn dropdown-toggle drawer-select d-flex align-items-center justify-content-between w-100"
-                            type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <span>{{ selectedAudioTheme }}</span>
-                            <i class="bi bi-chevron-down"></i>
-                        </button>
-                        <ul class="dropdown-menu w-100">
-                            @for(theme of themesList; track $index) {
-                            <li><a class="dropdown-item" (click)="onThemeChange(theme)" [class.active]="selectedAudioTheme === theme">{{ theme }}</a></li>
-                            }
-                        </ul>
-                    </div>
-
-                    <div class="asset-grid sound-grid">
-                        <button type="button" class="asset-card audio-card no-audio" [class.selected]="selectedAudio === ''" (click)="selectAudio('')">
-                            <i class="bi bi-volume-mute"></i>
-                            <span>No Sound</span>
-                        </button>
-
-                        <button type="button" class="asset-card audio-card" *ngFor="let file of filteredAudioFiles"
-                            (click)="selectAudio(file)" [class.selected]="file.file === selectedAudio">
-                            @if(file.file === selectedAudio && hasAudio){
-                                <i class="bi bi-soundwave active-sound"></i>
-                            } @else{
-                                <i class="bi bi-play-circle-fill"></i>
-                            }
-                            <span>{{ file.name }}</span>
-                        </button>
-                    </div>
-                </section>
-            </div>
-        </div>
-
-        @if(wallDisplay != false){
-        <footer class="drawer-actions">
-            <button type="button" [disabled]="btnDisabled" class="btn save-action" (click)="applyBackgroundImage()">
-                <i class="bi bi-check2-circle"></i>
-                Apply changes
-            </button>
-        </footer>
-        }
-    </section>
-</aside>
+</div>

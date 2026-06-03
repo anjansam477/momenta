@@ -1,4 +1,4 @@
-﻿<div class="cst-modal create-wall-modal modal fade" data-bs-backdrop="static" #createWallModal id="createWallModal"
+<div class="cst-modal create-wall-modal modal fade" data-bs-backdrop="static" #createWallModal id="createWallModal"
     tabindex="-1" aria-labelledby="createWallModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -8,32 +8,35 @@
                     <div class="mb-4">
                         <label for="occasion" class="form-label">What's the occasion?</label>
                         <input type="text" id="occasion" formControlName="type" class="form-control"
-                            placeholder="Enter occasion"
+                            placeholder="Enter occasion" aria-label="Occasion"
                             [ngClass]="{'validation-input': createWallForm.get('type')?.invalid && createWallForm.get('type')?.touched}" />
-                        <div *ngIf="createWallForm.get('type')?.invalid && createWallForm.get('type')?.touched"
-                            class="validation-text">
-                            Occasion should be between 3-50 characters
-                        </div>
+                        @if (createWallForm.get('type')?.invalid && createWallForm.get('type')?.touched) {
+                            <div class="validation-text">
+                                Occasion should be between 3-50 characters
+                            </div>
+                        }
                     </div>
                     <div class="mb-4">
                         <label for="title" class="form-label">What will be your moment title?</label>
                         <input type="text" id="title" formControlName="title" class="form-control"
-                            placeholder="Enter title"
+                            placeholder="Enter title" aria-label="Title"
                             [ngClass]="{'validation-input': createWallForm.get('title')?.invalid && createWallForm.get('title')?.touched}" />
-                        <div *ngIf="createWallForm.get('title')?.invalid && createWallForm.get('title')?.touched"
-                            class="validation-text">
-                            Title should be between 3-80 characters
-                        </div>
+                        @if (createWallForm.get('title')?.invalid && createWallForm.get('title')?.touched) {
+                            <div class="validation-text">
+                                Title should be between 3-80 characters
+                            </div>
+                        }
                     </div>
                     <div class="mb-4">
                         <label for="description" class="form-label">Describe your moment</label>
                         <textarea id="description" formControlName="description" class="form-control"
-                            placeholder="Enter description" rows="3"
+                            placeholder="Enter description" rows="3" aria-label="Description"
                             [ngClass]="{'validation-input': createWallForm.get('description')?.invalid && createWallForm.get('description')?.touched}"></textarea>
-                        <div *ngIf="createWallForm.get('description')?.invalid && createWallForm.get('description')?.touched"
-                            class="validation-text">
-                            Description should be between 3-250 characters
-                        </div>
+                        @if (createWallForm.get('description')?.invalid && createWallForm.get('description')?.touched) {
+                            <div class="validation-text">
+                                Description should be between 3-250 characters
+                            </div>
+                        }
                     </div>
                     <button type="submit" class="btn btn-primary button-xl w-100"
                         [attr.data-bs-dismiss]="createWallForm.valid ? 'modal' : null"

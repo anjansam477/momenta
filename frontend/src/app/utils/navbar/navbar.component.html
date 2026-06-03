@@ -3,30 +3,81 @@
         <div class="col-12 position-relative">
 
             <div class="menubutton">
-                <button class="nav-menu-button" type="button" title="Toggle navigation" (click)="toggleSidebar()">
+                <button class="nav-menu-button" type="button" title="Toggle navigation" aria-label="Toggle navigation" (click)="toggleSidebar()">
                   <i class="bi bi-list"></i>
                 </button>
             </div>
-            
+
             <div class="ps-5">
                 <h5> Welcome, {{userName}}</h5>
                 <h6> Let's Create Beautiful Moments!</h6>
             </div>
+
+            <div class="nav-search" (click)="$event.stopPropagation()">
+              <div class="nav-search__input-wrap">
+                <i class="bi bi-search nav-search__icon"></i>
+                <input
+                  class="nav-search__input"
+                  type="text"
+                  placeholder="Search moments…"
+                  aria-label="Search moments"
+                  [(ngModel)]="wallSearchQuery"
+                  (ngModelChange)="onWallSearch()"
+                  (focus)="loadWallsForSearch()" />
+                @if (wallSearchQuery) {
+                  <button class="nav-search__clear" (click)="clearSearch()" aria-label="Clear search">
+                    <i class="bi bi-x"></i>
+                  </button>
+                }
+              </div>
+              @if (showSearchDropdown) {
+                <div class="nav-search__dropdown">
+                  @if (wallSearchResults.length === 0) {
+                    <div class="nav-search__empty">
+                      <i class="bi bi-inbox"></i> No moments found
+                    </div>
+                  }
+                  @for (wall of wallSearchResults; track wall._id) {
+                    <div
+                      class="nav-search__item"
+                      (click)="openWall(wall._id)">
+                      @if (wall.theme?.bgImg || wall.bgImg) {
+                        <img [src]="wall.theme?.bgImg || wall.bgImg" class="nav-search__thumb" />
+                      } @else {
+                        <i class="bi bi-postcard nav-search__thumb-fallback"></i>
+                      }
+                      <div class="nav-search__info">
+                        <span class="nav-search__title">{{ wall.title }}</span>
+                        <span class="nav-search__meta">{{ wall.type }} · {{ wall.posts?.nonArchivedCount ?? 0 }} posts</span>
+                      </div>
+                      <i class="bi bi-arrow-right nav-search__arrow"></i>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+
             <div class="nav-right-side">
                 <app-notifications></app-notifications>
                 <div class="dropdown cst-dropdown">
-                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="User menu">
                         <div class="profile-picture">
-                            <img *ngIf="image" [src]="image" referrerpolicy="no-referrer">
-                            <i *ngIf="!image" class="bi bi-person-fill profile-fallback-icon"></i>
+                            @if (image) {
+                                <img [src]="image" referrerpolicy="no-referrer">
+                            } @else {
+                                <i class="bi bi-person-fill profile-fallback-icon"></i>
+                            }
                         </div>
                     </button>
                     <ul class="dropdown-menu">
                         <li class="user-detail">
                             <div class="d-flex align-items-center">
                                 <span class="user-detail-avatar" style="margin-right: 5px;">
-                                    <img *ngIf="image" [src]="image" referrerpolicy="no-referrer">
-                                    <i *ngIf="!image" class="bi bi-person-fill"></i>
+                                    @if (image) {
+                                        <img [src]="image" referrerpolicy="no-referrer">
+                                    } @else {
+                                        <i class="bi bi-person-fill"></i>
+                                    }
                                 </span>
                                 <div>
                                     <h3>{{userName}}</h3>
@@ -39,7 +90,7 @@
                         <li><a class="dropdown-item" (click)="logout()"><i class="bi bi-box-arrow-in-right"></i>Logout</a></li>
                     </ul>
                 </div>
-        
+
             </div>
         </div>
     </div>

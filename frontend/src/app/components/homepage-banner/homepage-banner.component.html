@@ -21,11 +21,14 @@
             </div>
 
             <div class="occasion-grid">
-                <button *ngFor="let occasion of occasions" type="button" class="occasion-chip {{ occasion.color }}"
-                    data-bs-toggle="modal" data-bs-target="#createWallModal" (click)="openModal(occasion.name)">
-                    <i class="bi {{ occasion.icon || 'bi-gift' }}"></i>
-                    <span>{{ occasion.name }}</span>
-                </button>
+                @for (occasion of occasions; track occasion.name) {
+                    <button type="button" class="occasion-chip {{ occasion.color }}"
+                        data-bs-toggle="modal" data-bs-target="#createWallModal" (click)="openModal(occasion.name)"
+                        aria-label="Create {{ occasion.name }} moment">
+                        <i class="bi {{ occasion.icon || 'bi-gift' }}"></i>
+                        <span>{{ occasion.name }}</span>
+                    </button>
+                }
             </div>
         </div>
     </div>

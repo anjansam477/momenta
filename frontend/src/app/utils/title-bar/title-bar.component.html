@@ -1,91 +1,165 @@
-<section class="moment-hero" [class.public-view]="!checkWallCreator() || isPreview || currentPage === 'download'">
-  <button type="button" class="hero-back" aria-label="Back" *ngIf="currentPage !== 'download' && (!checkWallCreator() || isPreview)" (click)="closePreview()">
-    <i class="bi bi-arrow-left"></i>
-  </button>
+<section class="tb" [class.tb--viewer]="!checkWallCreator() || isPreview || currentPage === 'download'">
 
-  <div class="moment-hero-copy">
-    @if(checkWallCreator() && !isPreview && currentPage !== 'download') {
-      <div *ngIf="!isEditingTitle" class="editable-heading">
-        <h1 (dblclick)="editTitle()">{{ wallTitle }}</h1>
-        <button type="button" class="inline-edit" aria-label="Edit title" (click)="editTitle()">
-          <i class="bi bi-pencil"></i>
-        </button>
-      </div>
-      <div class="inline-editor title-container" *ngIf="isEditingTitle" @fadeInOut>
-        <input [(ngModel)]="newTitle" class="editor-input" (input)="adjustWidth($event)" aria-label="Moment title" />
-        <button type="button" class="editor-action save" aria-label="Save title" (click)="saveTitle()"><i class="bi bi-check-lg"></i></button>
-        <button type="button" class="editor-action cancel" aria-label="Cancel title edit" (click)="cancelEdit()"><i class="bi bi-x-lg"></i></button>
-      </div>
-
-      <div *ngIf="!isEditingDescription" class="editable-description">
-        <p (dblclick)="editDescription()">{{ wallDescription }}</p>
-        <button type="button" class="inline-edit" aria-label="Edit description" (click)="editDescription()">
-          <i class="bi bi-pencil"></i>
-        </button>
-      </div>
-      <div class="inline-editor description-container" *ngIf="isEditingDescription" @fadeInOut>
-        <input [(ngModel)]="newDescription" class="editor-textarea" (input)="adjustWidth($event)" aria-label="Moment description" />
-        <button type="button" class="editor-action save" aria-label="Save description" (click)="saveDescription()"><i class="bi bi-check-lg"></i></button>
-        <button type="button" class="editor-action cancel" aria-label="Cancel description edit" (click)="cancelEdit()"><i class="bi bi-x-lg"></i></button>
-      </div>
-    } @else {
-      <h1>{{ wallTitle }}</h1>
-      <p>{{ wallDescription }}</p>
-    }
-  </div>
-
-  <div class="moment-hero-actions" *ngIf="currentPage !== 'download'">
-    <button type="button" class="hero-action secondary"
-      *ngIf="canAddPost && wallNotExpired && isOpen"
-      [disabled]="!myPost"
-      data-bs-toggle="modal"
-      [attr.data-bs-target]="loginBoolean && myPost ? '#postModal' : null"
-      (click)="myPost ? editPost() : null">
-      <i class="bi bi-pencil-square"></i>
-      <span>Edit post</span>
+  <!-- Back / Exit-preview -->
+  @if (currentPage !== 'download' && (!checkWallCreator() || isPreview)) {
+    <button class="tb__back" (click)="closePreview()" aria-label="Back">
+      <i class="bi bi-arrow-left-short"></i>
     </button>
+  }
 
-    <button type="button" class="hero-action primary"
-      *ngIf="canAddPost && wallNotExpired && isOpen"
-      data-bs-toggle="modal"
-      [attr.data-bs-target]="loginBoolean ? '#postModal' : '#loginModal'"
-      (click)="addPost()">
-      <i class="bi bi-plus-lg"></i>
-      <span>Add post</span>
-    </button>
+  <!-- Preview pill -->
+  @if (isPreview) {
+    <div class="tb__mode-pill">
+      <span class="tb__mode-dot"></span> Preview
+    </div>
+  }
 
-    <button type="button" class="hero-action quiet"
-      data-bs-toggle="modal"
-      data-bs-target="#slideshowModal"
-      [disabled]="!postsAvailable">
-      <i class="bi bi-play-fill"></i>
-      <span>Slideshow</span>
-    </button>
+  <!-- ── Copy ─────────────────────────────────── -->
+  <div class="tb__copy">
 
-    <button type="button" class="hero-icon-action" aria-label="Toggle audio" (click)="toggleMute()">
-      @if(!isMuted && audioPlaying) {
-        <i class="bi bi-volume-up-fill"></i>
-      } @else {
-        <i class="bi bi-volume-mute-fill"></i>
+    @if (checkWallCreator() && !isPreview && currentPage !== 'download') {
+
+      <!-- Title: view -->
+      @if (!isEditingTitle) {
+        <div class="tb__field">
+          <h1 class="tb__title" (dblclick)="editTitle()">{{ wallTitle }}</h1>
+          <button class="tb__field-edit" (click)="editTitle()" aria-label="Edit title">
+            <i class="bi bi-pencil"></i>
+          </button>
+        </div>
       }
-    </button>
+
+      <!-- Title: edit -->
+      @if (isEditingTitle) {
+        <div class="tb__inline-editor tb__inline-editor--title" @fadeInOut>
+          <input
+            class="tb__inline-input editor-input"
+            [(ngModel)]="newTitle"
+            (input)="adjustWidth($event)"
+            aria-label="Moment title"
+            placeholder="Moment title"
+            autocomplete="off" />
+          <div class="tb__inline-btns">
+            <button class="tb__inline-btn tb__inline-btn--save" (click)="saveTitle()" aria-label="Save">
+              <i class="bi bi-check-lg"></i>
+            </button>
+            <button class="tb__inline-btn tb__inline-btn--cancel" (click)="cancelEdit()" aria-label="Cancel">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Description: view -->
+      @if (!isEditingDescription) {
+        <div class="tb__field tb__field--desc">
+          <p class="tb__desc" (dblclick)="editDescription()">{{ wallDescription }}</p>
+          <button class="tb__field-edit tb__field-edit--sm" (click)="editDescription()" aria-label="Edit description">
+            <i class="bi bi-pencil"></i>
+          </button>
+        </div>
+      }
+
+      <!-- Description: edit -->
+      @if (isEditingDescription) {
+        <div class="tb__inline-editor tb__inline-editor--desc" @fadeInOut>
+          <input
+            class="tb__inline-input editor-textarea"
+            [(ngModel)]="newDescription"
+            (input)="adjustWidth($event)"
+            aria-label="Moment description"
+            placeholder="Add a description…"
+            autocomplete="off" />
+          <div class="tb__inline-btns">
+            <button class="tb__inline-btn tb__inline-btn--save" (click)="saveDescription()" aria-label="Save">
+              <i class="bi bi-check-lg"></i>
+            </button>
+            <button class="tb__inline-btn tb__inline-btn--cancel" (click)="cancelEdit()" aria-label="Cancel">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </div>
+      }
+
+    } @else {
+      <h1 class="tb__title">{{ wallTitle }}</h1>
+      <p class="tb__desc">{{ wallDescription }}</p>
+    }
+
   </div>
 
-  <div class="moment-hero-actions compact-actions" *ngIf="(!checkWallCreator() || isPreview) && currentPage !== 'download'">
-    <button type="button" class="hero-action quiet" data-bs-target="#shareModal" data-bs-toggle="modal">
-      <i class="bi bi-share"></i>
-      <span>Share</span>
-    </button>
-    <button type="button" class="hero-action quiet" (click)="download()">
+  <!-- ── Actions ───────────────────────────────── -->
+  @if (currentPage !== 'download') {
+    <div class="tb__actions">
+
+      <!-- Creator actions -->
+      @if (checkWallCreator() && !isPreview) {
+        <div class="tb__pill-strip">
+          @if (canAddPost && wallNotExpired && isOpen) {
+            <button class="tb__pill tb__pill--ghost"
+              [disabled]="!myPost"
+              data-bs-toggle="modal"
+              [attr.data-bs-target]="loginBoolean && myPost ? '#postModal' : null"
+              (click)="myPost ? editPost() : null"
+              aria-label="Edit post">
+              <i class="bi bi-pencil-square"></i>
+              <span>Edit post</span>
+            </button>
+
+            <button class="tb__pill tb__pill--primary"
+              data-bs-toggle="modal"
+              [attr.data-bs-target]="loginBoolean ? '#postModal' : '#loginModal'"
+              (click)="addPost()"
+              aria-label="Add post">
+              <i class="bi bi-plus-lg"></i>
+              <span>Add post</span>
+            </button>
+          }
+
+          <button class="tb__pill tb__pill--ghost"
+            data-bs-toggle="modal"
+            data-bs-target="#slideshowModal"
+            [disabled]="!postsAvailable"
+            aria-label="Start slideshow">
+            <i class="bi bi-play-fill"></i>
+            <span>Slideshow</span>
+          </button>
+        </div>
+
+        <button class="tb__icon-btn" (click)="toggleMute()" aria-label="Toggle audio">
+          @if (!isMuted && audioPlaying) {
+            <i class="bi bi-volume-up-fill"></i>
+          } @else {
+            <i class="bi bi-volume-mute-fill"></i>
+          }
+        </button>
+      }
+
+      <!-- Viewer / Preview actions -->
+      @if (!checkWallCreator() || isPreview) {
+        <div class="tb__pill-strip">
+          <button class="tb__pill tb__pill--ghost" data-bs-target="#shareModal" data-bs-toggle="modal" aria-label="Share moment">
+            <i class="bi bi-share"></i>
+            <span>Share</span>
+          </button>
+          <button class="tb__pill tb__pill--ghost" (click)="download()" aria-label="Download moment">
+            <i class="bi bi-download"></i>
+            <span>Download</span>
+          </button>
+        </div>
+      }
+
+    </div>
+  }
+
+  <!-- Download page -->
+  @if (currentPage === 'download') {
+    <button class="tb__pill tb__pill--primary tb__download-fixed" (click)="downloadWall()" aria-label="Download wall">
       <i class="bi bi-download"></i>
       <span>Download</span>
     </button>
-  </div>
+  }
 
-  <button type="button" class="hero-action primary download-fixed" *ngIf="currentPage === 'download'" (click)="downloadWall()">
-    <i class="bi bi-download"></i>
-    <span>Download</span>
-  </button>
 </section>
 
 <app-sharemodal [sharedWallUrl]="sharedWallUrl" [wallTitle]="wallTitle"></app-sharemodal>

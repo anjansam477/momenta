@@ -1,114 +1,129 @@
-<div class="modal fade" id="slideshowModal" #slideshowModal data-bs-keyboard="false" data-bs-backdrop="static" tabindex="-1" aria-labelledby="ModalLabel"
-  aria-hidden="true">
-  @if(!loading){
-    <div class="modal-dialog modal-xl slideshow-dialog">
-      <div class="modal-content min-h-auto slideshow-shell">
-        <button type="button" class="close-btn" data-bs-dismiss="modal" aria-label="Close" (click)="closeModal()">
-          <i class="bi bi-x-lg"></i>
-        </button>
-        <button type="button" class="close-sm-btn" data-bs-dismiss="modal" aria-label="Close" (click)="closeModal()">
-          <i class="bi bi-x-lg"></i>
-        </button>
-        <div class="slideshow-header">
-          <div>
-            <span class="eyebrow">Moment slideshow</span>
-            <h3>{{ title }}</h3>
-          </div>
-          <div class="slide-count">Post {{currentIndex + 1}} of {{postLength}}</div>
+<div class="modal fade" id="slideshowModal" #slideshowModal
+  data-bs-keyboard="false" data-bs-backdrop="static"
+  tabindex="-1" aria-hidden="true">
+
+  <div class="modal-dialog ss-dialog">
+    <div class="modal-content ss-shell" (mousemove)="onMouseMove()">
+
+      <!-- ── Loading screen ── -->
+      @if (loading) {
+        <div class="ss-intro">
+          <div class="ss-intro__ring"></div>
+          <p class="ss-intro__eyebrow">Moment slideshow</p>
+          <h2 class="ss-intro__title">{{ title }}</h2>
+          <p class="ss-intro__hint">Preparing your moments…</p>
+          <button class="ss-close-btn" data-bs-dismiss="modal" (click)="closeModal()" aria-label="Close slideshow">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+          </button>
         </div>
-        <div class="slideshow-progress"><span [style.width.%]="getProgress()"></span></div>
-        <div class="modal-body slideshow-body">
+      }
+
+      <!-- ── Main slideshow ── -->
+      @if (!loading) {
+
+        <!-- Blurred background from current image -->
+        <div class="ss-bg" [style.background-image]="bgImageStyle"></div>
+        <div class="ss-bg-overlay"></div>
+
+        <!-- Progress bar -->
+        <div class="ss-progress">
+          <div class="ss-progress__fill" [style.width.%]="progressPct"></div>
+        </div>
+
+        <!-- Top bar -->
+        <div class="ss-topbar" [class.ss-topbar--hidden]="!controlsVisible">
+          <div class="ss-topbar__title">
+            <span class="ss-topbar__eyebrow">Slideshow</span>
+            <strong>{{ title }}</strong>
+          </div>
           @if (posts.length) {
-          <ngx-slick-carousel class="carousel slideshow-carousel" #slickModal="slick-carousel" [config]="slideConfig"
-           (afterChange)="afterChange($event)" >
-            @for (slide of posts; track slide._id) {
-            <div ngxSlickItem class="slide" [ngClass]="{'highlight': slide.hasImageAndText}" >
-              <div class="slide-content">
-                <div class="slide-media" *ngIf="slide.mediaUrl && slide.mediaUrl !== '#'">
-                @if(slide.mediaType==="video"){
-                <video [src]="mediaUrls[slide.mediaUrl]" controls> Your browser does not support the video tag. </video>
-                }
-                @else if(slide.mediaType==="image" || slide.mediaType ==="gif")
-                {
-                <img [src]="mediaUrls[slide.mediaUrl]" />
-                }
-                </div>
-                <div class="slide-message" [innerHTML]="slide.content | sanitizeAndCleanHtmlPipe"></div>
-              </div>
-              <div class="slide-footer">
-                <div class="post_user">
-                  <app-user-replacer [email]="slide.authorEmail || slide.email" [datetime]="slide.createdAt" [component]="'wall-posts'"></app-user-replacer>
-                </div>
-              </div>
-            </div>
-            }
-          </ngx-slick-carousel>
-          } @else {
-            <div class="empty-slideshow">
-              <i class="bi bi-chat-heart"></i>
-              <strong>No posts to show yet</strong>
-              <span>Add a post first, then start slideshow.</span>
+            <div class="ss-topbar__meta">
+              {{ currentIndex + 1 }} / {{ posts.length }}{{ hasMorePosts ? '+' : '' }}
             </div>
           }
+          <button class="ss-close-btn" data-bs-dismiss="modal" (click)="closeModal()" aria-label="Close slideshow">
+            <i class="bi bi-x-lg"></i>
+          </button>
         </div>
-        <div class="modal-footer slideshow-footer">
-          <h6>{{ isPaused ? 'Paused' : 'Playing' }}</h6>
-          <div class="d-flex gap-2">
-            <a class="prev-arrow slide-buttons" (click)="prev()">
-              <i class="bi bi-chevron-left slide-control-icon"></i>
-            </a>
-            <a class="next-arrow slide-buttons" (click)="next()">
-              <i class="bi bi-chevron-right slide-control-icon"></i>
-            </a>
-          </div>
-          <div class="d-flex gap-2">
-            @if(isAudioMuted()){
-            <button type="button" class="modal-buttons pt-1" (click)="toggleAudio()">
-                <i class="bi bi-volume-mute-fill change-btn"></i>
-            </button>
-            }
-            @else{
-              <button type="button" class="modal-buttons pt-1" (click)="toggleAudio()">
-                <i class="bi bi-volume-down-fill change-btn"></i>
-              </button>
-            }
-            @if(isPaused){
-            <button type="button" class="modal-buttons pt-1" (click)="togglePause()">
-              <i class="bi bi-play-fill change-btn"></i>
-            </button>
-            }
-            @else{
-            <button type="button" class="modal-buttons pt-1" (click)="togglePause()">
-              <i class="bi bi-pause-fill change-btn"></i>
-            </button>
-            }
-          </div>
-        </div>
-      </div>
-    </div>
-  }
-  @else{
-    <div class="modal-dialog modal-xl fade-dialog">
-      <div class="modal-content min-h-auto slideshow-shell intro-shell">
-        <button type="button" class="close-btn" data-bs-dismiss="modal" aria-label="Close" (click)="closeModal()">
-          <i class="bi bi-x-lg"></i>
-        </button>
-        <div class="slideshow-header intro-header">
-          <div>
-            <span class="eyebrow">Moment slideshow</span>
-            <h3>{{ title }}</h3>
-          </div>
-        </div>
-        <div class="slideshow-progress intro-progress"><span></span></div>
-        <div class="modal-body p-0">
-          <div class="intro-container">
-            <div class="fade-container">
-              <span class="intro-eyebrow fade fade1" [@fadeInAnimation]="fade1State">Starting slideshow</span>
-              <div class="fade fade2 description" [@fadeInAnimation]="fade2State">{{ description || 'Getting posts ready...' }}</div>
+
+        <!-- Stage -->
+        <div class="ss-stage" (click)="showControls()">
+
+          <!-- Prev arrow -->
+          <button class="ss-arrow ss-arrow--prev"
+            [class.ss-arrow--hidden]="!controlsVisible"
+            [disabled]="currentIndex === 0"
+            (click)="prev(); $event.stopPropagation()"
+            aria-label="Previous slide">
+            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+          </button>
+
+          <!-- Empty state -->
+          @if (posts.length === 0) {
+            <div class="ss-empty">
+              <i class="bi bi-chat-heart"></i>
+              <strong>No posts yet</strong>
+              <span>Add a post first, then start the slideshow.</span>
             </div>
-          </div>        
+          }
+
+          <!-- Slide card -->
+          @if (posts.length > 0 && currentPost) {
+            <div class="ss-card" [class.ss-card--fade]="isTransitioning">
+              <div class="ss-card__inner">
+
+                @if (getMediaUrl(currentPost) && getMediaUrl(currentPost) !== '#') {
+                  <div class="ss-card__media">
+                    @if (getMediaType(currentPost) === 'video') {
+                      <video [src]="mediaUrls[getMediaUrl(currentPost)]" controls></video>
+                    } @else {
+                      <img [src]="mediaUrls[getMediaUrl(currentPost)]" alt="Post media" />
+                    }
+                  </div>
+                }
+
+                @if (currentPost.content) {
+                  <div class="ss-card__text"
+                    [innerHTML]="currentPost.content | sanitizeAndCleanHtmlPipe">
+                  </div>
+                }
+
+                <div class="ss-card__author">
+                  <app-user-replacer
+                    [email]="currentPost.authorEmail || currentPost.email"
+                    [datetime]="currentPost.createdAt"
+                    [component]="'wall-posts'">
+                  </app-user-replacer>
+                </div>
+
+              </div>
+            </div>
+          }
+
+          <!-- Next arrow -->
+          <button class="ss-arrow ss-arrow--next"
+            [class.ss-arrow--hidden]="!controlsVisible"
+            [disabled]="currentIndex >= posts.length - 1 && !hasMorePosts"
+            (click)="next(); $event.stopPropagation()"
+            aria-label="Next slide">
+            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+          </button>
+
         </div>
-      </div>
+
+        <!-- Bottom controls -->
+        <div class="ss-controls" [class.ss-controls--hidden]="!controlsVisible">
+          <button class="ss-ctrl-btn" (click)="toggleAudio()" [attr.aria-label]="isAudioMuted() ? 'Unmute' : 'Mute'">
+            <i class="bi" [ngClass]="isAudioMuted() ? 'bi-volume-mute-fill' : 'bi-volume-up-fill'" aria-hidden="true"></i>
+          </button>
+          <button class="ss-ctrl-btn ss-ctrl-btn--play" (click)="togglePause()" [attr.aria-label]="isPaused ? 'Play slideshow' : 'Pause slideshow'">
+            <i class="bi" [ngClass]="isPaused ? 'bi-play-fill' : 'bi-pause-fill'" aria-hidden="true"></i>
+          </button>
+          <span class="ss-ctrl-status">{{ isPaused ? 'Paused' : 'Playing' }}</span>
+        </div>
+
+      }
+
     </div>
-  }
+  </div>
 </div>

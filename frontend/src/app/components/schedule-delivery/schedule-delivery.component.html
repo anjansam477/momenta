@@ -1,139 +1,135 @@
-<aside id="mySidebar" class="delivery-drawer" *ngIf="wall" aria-label="Schedule delivery">
-    <header class="drawer-hero">
-        <button type="button" class="icon-button" aria-label="Close schedule panel" (click)="closeSidebar()">
-            <i class="bi bi-arrow-left"></i>
-        </button>
-        <div class="hero-copy">
-            <span class="eyebrow">Delivery desk</span>
-            <h2>{{ scheduledEmails.length > 0 ? (editMails ? 'Edit schedule' : 'Scheduled delivery') : 'Schedule delivery' }}</h2>
-            <p>{{ scheduledEmails.length > 0 ? (receivedMail ? 'This scheduled email has already been delivered.' : 'Review recipients and delivery timing for this moment.') : 'Send this moment to selected people at exactly the right time.' }}</p>
-        </div>
-    </header>
+@if (wall) {
+<div class="cc-panel">
 
-    <section class="delivery-shell">
-        <div class="status-strip">
-            <div class="status-pill" [class.is-on]="scheduledEmails.length > 0">
-                <i class="bi bi-people-fill"></i>
-                <strong>{{ scheduledEmails.length }}</strong>
-                <span>{{ scheduledEmails.length === 1 ? 'Recipient' : 'Recipients' }}</span>
-            </div>
-            <div class="status-pill" [class.is-on]="mailToBeScheduledDate || scheduledDate">
-                <i class="bi bi-calendar-check"></i>
-                <strong>{{ (mailToBeScheduledDate || scheduledDate) ? ((mailToBeScheduledDate || scheduledDate) | date:'MMM d') : 'Unset' }}</strong>
-                <span>Delivery date</span>
-            </div>
-        </div>
+  <div class="cc-body cst-scrollbar">
 
-        <div class="delivery-content cst-scrollbar">
-            <section class="panel-card" *ngIf="scheduledEmails.length > 0 && !editMails">
-                <div class="panel-title">
-                    <span class="panel-icon"><i class="bi bi-send-check"></i></span>
-                    <div>
-                        <h3>{{ receivedMail ? 'Delivered schedule' : 'Active schedule' }}</h3>
-                        <p>{{ receivedMail ? 'These recipients have already received the moment.' : 'Emails will be delivered on the scheduled time.' }}</p>
-                    </div>
-                    <button type="button" class="soft-icon-button" *ngIf="!receivedMail" (click)="editScheduled()" aria-label="Edit scheduled delivery">
-                        <i class="bi bi-pencil-square"></i>
-                    </button>
-                </div>
-
-                <div class="scheduled-date" *ngIf="scheduledDate">
-                    <i class="bi bi-clock-history"></i>
-                    <span>{{ scheduledDate | date:'MMM d, h:mm a' }}</span>
-                </div>
-
-                <ul class="recipient-list">
-                    <li *ngFor="let user of scheduledEmails">
-                        <app-user-replacer [email]="user" [datetime]="scheduledDate" [component]="'schedule-delivery'"></app-user-replacer>
-                        <button type="button" class="delete-recipient" *ngIf="!receivedMail" (click)="removeRecipient(user)" aria-label="Remove recipient">
-                            <i class="bi bi-trash3"></i>
-                        </button>
-                    </li>
-                </ul>
-            </section>
-
-            <section class="panel-card" *ngIf="scheduledEmails.length == 0 || editMails">
-                <div class="panel-title">
-                    <span class="panel-icon coral"><i class="bi bi-person-plus"></i></span>
-                    <div>
-                        <h3>Recipients</h3>
-                        <p>Add the people who should receive this moment.</p>
-                    </div>
-                </div>
-
-                <app-add-user (emailsChanged)="handleEmailsChanged($event)"
-                    [component]="'schedule-delivery'"
-                    [sharedEmails]="scheduledEmails"></app-add-user>
-
-                <label class="copy-toggle">
-                    <input class="form-check-input" type="checkbox" id="flexCheckChecked" (change)="onRadioChange($event)" [checked]="cc">
-                    <span>
-                        <strong>Send copy to owners and maintainers</strong>
-                        <small>Keep the people managing this moment in the loop.</small>
-                    </span>
-                </label>
-            </section>
-
-            <section class="panel-card" *ngIf="scheduledEmails.length == 0 || editMails">
-                <div class="panel-title">
-                    <span class="panel-icon gold"><i class="bi bi-calendar-heart"></i></span>
-                    <div>
-                        <h3>Delivery time</h3>
-                        <p>Use a quick option or choose a custom date and time.</p>
-                    </div>
-                </div>
-
-                <div class="scheduled-date selected-time" *ngIf="displayDateTime || scheduledDate">
-                    <i class="bi bi-alarm"></i>
-                    <span>{{ mailToBeScheduledDate | date: 'MMM d, h:mm a' }}</span>
-                    <button type="button" class="soft-link" (click)="toggleEditDates()">Edit</button>
-                </div>
-
-                <div class="time-options" *ngIf="!displayDateTime || datesEdit">
-                    <button type="button" (click)="select(tomorrow)" [ngClass]="{'active': isDateActive(tomorrow)}">
-                        <strong>Tomorrow morning</strong>
-                        <span>{{ tomorrow | date: 'MMM d, h:mm a' }}</span>
-                    </button>
-                    <button type="button" (click)="select(thisEvening)" [ngClass]="{'active': isDateActive(thisEvening)}">
-                        <strong>This evening</strong>
-                        <span>{{ thisEvening | date: 'MMM d, h:mm a' }}</span>
-                    </button>
-                    <button type="button" (click)="select(mondayMorning)" [ngClass]="{'active': isDateActive(mondayMorning)}">
-                        <strong>Monday morning</strong>
-                        <span>{{ mondayMorning | date: 'MMM d, h:mm a' }}</span>
-                    </button>
-                    <button type="button" class="custom-time" (click)="openCalendar()">
-                        <strong>Personalize schedule</strong>
-                        <span><i class="bi bi-calendar4-week"></i> Pick date</span>
-                    </button>
-                </div>
-
-                <input type="hidden" [min]="minTime" [ngxTimepicker]="picker" id="scheduleTime">
-                <ngx-material-timepicker #picker (timeSet)="scheduleTimeSelect($event)"></ngx-material-timepicker>
-                <input #scheduleCalendar type="date" class="calendar-input-hidden"
-                    [value]="dateInputValue"
-                    [min]="toDateInputValue(minDate)"
-                    (change)="onScheduleDateInputChange($event)">
-
-                <div class="summary-callout" *ngIf="mailToBeScheduledDate && emailId.length > 0">
-                    <i class="bi bi-check2-circle"></i>
-                    <span>
-                        Delivery scheduled for <strong>{{ mailToBeScheduledDate | date: 'MMM d, h:mm a' }}</strong>
-                        to <strong>{{ emailId.length }}</strong> {{ emailId.length === 1 ? 'person' : 'people' }}.
-                    </span>
-                </div>
-            </section>
-        </div>
-
-        <footer class="drawer-actions" *ngIf="scheduledEmails.length == 0 || editMails">
-            <button type="button" class="btn ghost-action" (click)="close()">Cancel</button>
-            <button type="button" class="btn save-action" [disabled]="!isModified || !mailToBeScheduledDate || emailId.length<=0" *ngIf="emailId.length>0 || !editMails" (click)="sendMail()">
-                <i class="bi bi-send-check"></i>
-                Schedule send
+    <!-- ── Active schedule view ── -->
+    @if(scheduledEmails.length > 0 && !editMails) {
+      <section class="cc-section">
+        <div class="cc-section-head">
+          <h4 class="cc-section-label">
+            <i class="bi bi-send-check"></i>
+            {{ receivedMail ? 'Delivered' : 'Scheduled' }}
+          </h4>
+          @if(!receivedMail) {
+            <button class="cc-icon-btn" (click)="editScheduled()" title="Edit schedule">
+              <i class="bi bi-pencil"></i>
             </button>
-            <button type="button" class="btn danger-action" *ngIf="emailId.length<=0 && editMails" (click)="cancelMail()">
-                Cancel schedule
+          }
+        </div>
+
+        @if(scheduledDate) {
+          <div class="cc-delivery-time">
+            <i class="bi bi-clock"></i>
+            <span>{{ scheduledDate | date:'MMM d, h:mm a' }}</span>
+          </div>
+        }
+
+        <ul class="cc-recipient-list">
+          @for(user of scheduledEmails; track $index) {
+            <li class="cc-recipient">
+              <app-user-replacer [email]="user" [datetime]="scheduledDate" [component]="'schedule-delivery'"></app-user-replacer>
+              @if(!receivedMail) {
+                <button class="cc-remove-btn" (click)="removeRecipient(user)" title="Remove">
+                  <i class="bi bi-x"></i>
+                </button>
+              }
+            </li>
+          }
+        </ul>
+
+        @if(!receivedMail) {
+          <button class="cc-danger-btn" (click)="cancelMail()">
+            <i class="bi bi-trash"></i> Cancel schedule
+          </button>
+        }
+      </section>
+    }
+
+    <!-- ── New / edit schedule form ── -->
+    @if(scheduledEmails.length === 0 || editMails) {
+      <section class="cc-section">
+        <h4 class="cc-section-label"><i class="bi bi-people"></i> Recipients</h4>
+        <app-add-user [component]="'schedule-delivery'"
+          [sharedEmails]="emailId"
+          (emailsChanged)="emailId = $event"></app-add-user>
+      </section>
+
+      <section class="cc-section">
+        <h4 class="cc-section-label"><i class="bi bi-calendar-heart"></i> Delivery time</h4>
+
+        @if(displayDateTime && !datesEdit) {
+          <div class="cc-delivery-time cc-delivery-time--selected">
+            <i class="bi bi-alarm"></i>
+            <span>{{ mailToBeScheduledDate | date: 'MMM d, h:mm a' }}</span>
+            <button class="cc-text-btn" (click)="toggleEditDates()">Change</button>
+          </div>
+        }
+
+        @if(!displayDateTime || datesEdit) {
+          <div class="cc-time-options">
+            <button type="button" class="cc-time-btn" (click)="select(tomorrow)" [class.cc-time-btn--active]="isDateActive(tomorrow)">
+              <i class="bi bi-sunrise"></i>
+              <div>
+                <strong>Tomorrow morning</strong>
+                <span>{{ tomorrow | date: 'MMM d, h:mm a' }}</span>
+              </div>
             </button>
-        </footer>
-    </section>
-</aside>
+            <button type="button" class="cc-time-btn" (click)="select(thisEvening)" [class.cc-time-btn--active]="isDateActive(thisEvening)">
+              <i class="bi bi-moon-stars"></i>
+              <div>
+                <strong>This evening</strong>
+                <span>{{ thisEvening | date: 'MMM d, h:mm a' }}</span>
+              </div>
+            </button>
+            <button type="button" class="cc-time-btn" (click)="select(mondayMorning)" [class.cc-time-btn--active]="isDateActive(mondayMorning)">
+              <i class="bi bi-calendar-week"></i>
+              <div>
+                <strong>Monday morning</strong>
+                <span>{{ mondayMorning | date: 'MMM d, h:mm a' }}</span>
+              </div>
+            </button>
+            <button type="button" class="cc-time-btn cc-time-btn--custom" (click)="openCalendar()">
+              <i class="bi bi-calendar4-week"></i>
+              <div>
+                <strong>Custom date & time</strong>
+                <span>Pick any date</span>
+              </div>
+            </button>
+          </div>
+        }
+
+        <!-- Hidden inputs -->
+        <input type="hidden" [min]="minTime" [ngxTimepicker]="picker" id="scheduleTime">
+        <ngx-material-timepicker #picker (timeSet)="scheduleTimeSelect($event)"></ngx-material-timepicker>
+        <input #scheduleCalendar type="date" class="cc-hidden-input"
+          [value]="dateInputValue"
+          [min]="toDateInputValue(minDate)"
+          (change)="onScheduleDateInputChange($event)">
+
+        @if(mailToBeScheduledDate && emailId.length > 0) {
+          <div class="cc-summary">
+            <i class="bi bi-check2-circle"></i>
+            <span>Sends <strong>{{ mailToBeScheduledDate | date:'MMM d, h:mm a' }}</strong> to <strong>{{ emailId.length }}</strong> {{ emailId.length === 1 ? 'person' : 'people' }}</span>
+          </div>
+        }
+      </section>
+    }
+
+  </div>
+
+  <!-- Footer -->
+  <footer class="cc-footer">
+    <button type="button" class="cc-btn cc-btn--ghost" (click)="close()">
+      {{ editMails ? 'Cancel' : 'Close' }}
+    </button>
+    @if(scheduledEmails.length === 0 || editMails) {
+      <button type="button" class="cc-btn cc-btn--primary" (click)="sendMail()"
+        [disabled]="!mailToBeScheduledDate || emailId.length === 0">
+        <i class="bi bi-send"></i> Schedule
+      </button>
+    }
+  </footer>
+
+</div>
+}

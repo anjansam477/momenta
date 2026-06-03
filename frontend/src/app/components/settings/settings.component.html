@@ -1,216 +1,182 @@
-﻿<aside id="mySidebar" class="settings-drawer" *ngIf="wall" aria-label="Moment settings">
-  <header class="settings-hero">
-    <button type="button" class="icon-button" aria-label="Close settings" (click)="closeSidebar()">
-      <i class="bi bi-arrow-left"></i>
-    </button>
-    <div class="hero-copy">
-      <span class="eyebrow">Control center</span>
-      <h2>Moment settings</h2>
-      <p>Choose when this moment opens, who can join in, and who helps manage it.</p>
-    </div>
-  </header>
+@if (wall) {
+<div class="cc-panel" [formGroup]="wallForm">
 
-  <form [formGroup]="wallForm" class="settings-shell">
-    <section class="status-strip" aria-label="Moment summary">
-      <div class="status-pill" [class.is-on]="!getFormControlValue('isLocked')">
-        <i class="bi" [ngClass]="getFormControlValue('isLocked') ? 'bi-lock-fill' : 'bi-unlock-fill'"></i>
-        <span>{{ getFormControlValue('isLocked') ? 'Locked' : 'Open' }}</span>
+  <!-- Scrollable body -->
+  <div class="cc-body cst-scrollbar">
+
+    <!-- General -->
+    <section class="cc-section">
+      <h4 class="cc-section-label">General</h4>
+
+      <div class="cc-row">
+        <div class="cc-row-text">
+          <strong>Lock moment</strong>
+          <span>Prevent new posts from being added</span>
+        </div>
+        <label class="cc-toggle">
+          <input type="checkbox" formControlName="isLocked" (change)="toggleProperty($event,'isLocked')" aria-label="Lock moment">
+          <span class="cc-toggle-track"></span>
+        </label>
       </div>
-      <div class="status-pill" [class.is-on]="getFormControlValue('duration')">
-        <i class="bi bi-calendar-heart"></i>
-        <span>{{ getFormControlValue('duration') ? 'Timed' : 'Always available' }}</span>
+
+      <div class="cc-row">
+        <div class="cc-row-text">
+          <strong>Scheduled duration</strong>
+          <span>Set opening and closing times</span>
+        </div>
+        <label class="cc-toggle">
+          <input type="checkbox" formControlName="duration" (change)="toggleProperty($event,'duration')" aria-label="Scheduled duration">
+          <span class="cc-toggle-track"></span>
+        </label>
       </div>
-      <div class="status-pill" [class.is-on]="getFormControlValue('anyoneCanPost')">
-        <i class="bi bi-megaphone-fill"></i>
-        <span>{{ getFormControlValue('anyoneCanPost') ? 'Public posts' : 'Curated posts' }}</span>
+
+      @if (getFormControlValue('duration')) {
+        <div class="cc-date-grid" @fadeInAnimation>
+          <button type="button" class="cc-date-btn" (click)="openCalendar('openDate')">
+            <i class="bi bi-sunrise"></i>
+            <div>
+              <small>Opens</small>
+              <strong>{{ formatDate('openDate') || 'Pick date & time' }}</strong>
+            </div>
+          </button>
+          <button type="button" class="cc-date-btn" (click)="openCalendar('closeDate')">
+            <i class="bi bi-sunset"></i>
+            <div>
+              <small>Closes</small>
+              <strong>{{ formatDate('closeDate') || 'Pick date & time' }}</strong>
+            </div>
+          </button>
+        </div>
+        <input type="hidden" [ngxTimepicker]="picker1" id="startTime" [min]="minTime" [max]="maxTime">
+        <ngx-material-timepicker #picker1 (timeSet)="selectTime($event, 'openDate')" [theme]="customTheme"></ngx-material-timepicker>
+        <input class="calendar-input-hidden" #openingCalendar id="startDate" type="date"
+          [value]="toDateInputValue(getFormControlValue('openingDate'))"
+          [min]="toDateInputValue(minDate)" [max]="toDateInputValue(maxDate)"
+          (change)="onDateInputChange($event, 'openingDate')" />
+        <input type="hidden" [ngxTimepicker]="picker2" id="endTime" [min]="closeMinTime">
+        <ngx-material-timepicker #picker2 (timeSet)="selectTime($event, 'closeDate')" [theme]="customTheme"></ngx-material-timepicker>
+        <input class="calendar-input-hidden" #closingCalendar id="endDate" type="date"
+          [value]="toDateInputValue(getFormControlValue('closingDate'))"
+          [min]="toDateInputValue(closeMinDate)"
+          (change)="onDateInputChange($event, 'closingDate')" />
+      }
+    </section>
+
+    <!-- View access -->
+    <section class="cc-section">
+      <h4 class="cc-section-label">
+        <i class="bi bi-eye"></i> View access
+      </h4>
+
+      <div class="cc-row">
+        <div class="cc-row-text">
+          <strong>Anyone can view</strong>
+          <span>Public link access for everyone</span>
+        </div>
+        <label class="cc-toggle">
+          <input type="checkbox" formControlName="anyoneCanView" (change)="toggleProperty($event,'anyoneCanView')" aria-label="Anyone can view">
+          <span class="cc-toggle-track"></span>
+        </label>
+      </div>
+
+      <div class="cc-access" [class.cc-access--muted]="getFormControlValue('anyoneCanView') || getFormControlValue('anyoneCanPost')">
+        <div class="cc-mini-tabs">
+          <button class="cc-mini-tab-btn" [class.cc-mini-tab-btn--active]="activeViewTab === 'email'"
+            type="button" (click)="activeViewTab = 'email'"
+            [disabled]="getFormControlValue('anyoneCanView') || getFormControlValue('anyoneCanPost')">
+            <i class="bi bi-person-plus"></i> People
+          </button>
+          <button class="cc-mini-tab-btn" [class.cc-mini-tab-btn--active]="activeViewTab === 'domain'"
+            type="button" (click)="activeViewTab = 'domain'"
+            [disabled]="getFormControlValue('anyoneCanView') || getFormControlValue('anyoneCanPost')">
+            <i class="bi bi-building"></i> Orgs
+          </button>
+        </div>
+        <div [hidden]="activeViewTab !== 'email'">
+          <app-add-user (emailsChanged)="handleEmailsChanged($event,'view')" [component]="'viewByEmail'"
+            [sharedEmails]="getFormControlValue('viewAccess').emails"
+            [excludeEmails]="getEmailsToBeExcluded('view')"></app-add-user>
+        </div>
+        <div [hidden]="activeViewTab !== 'domain'">
+          <app-add-domain (domainsChanged)="handleDomainsChanged($event,'view')" [component]="'viewByDomain'"
+            [sharedDomains]="getFormControlValue('viewAccess').domains"
+            [excludeDomains]="getDomainsToBeExcluded('post')"></app-add-domain>
+        </div>
       </div>
     </section>
 
-    <div class="settings-content cst-scrollbar">
-      <section class="settings-section">
-        <div class="section-title">
-          <span class="section-icon"><i class="bi bi-sliders2"></i></span>
-          <div>
-            <h3>Availability</h3>
-            <p>Set the moment state and optional opening window.</p>
-          </div>
-        </div>
+    <!-- Post access -->
+    <section class="cc-section">
+      <h4 class="cc-section-label">
+        <i class="bi bi-chat-heart"></i> Post access
+      </h4>
 
-        <div class="setting-row">
-          <div class="setting-text">
-            <strong>Moment lock</strong>
-            <span>Pause activity without changing contributors.</span>
-          </div>
-          <label class="custom-switch">
-            <input type="checkbox" formControlName="isLocked" (change)="toggleProperty($event,'isLocked')">
-            <span class="slider round"></span>
-          </label>
+      <div class="cc-row">
+        <div class="cc-row-text">
+          <strong>Anyone can post</strong>
+          <span>Open contributions from all visitors</span>
         </div>
+        <label class="cc-toggle">
+          <input type="checkbox" formControlName="anyoneCanPost" (change)="toggleProperty($event,'anyoneCanPost')" aria-label="Anyone can post">
+          <span class="cc-toggle-track"></span>
+        </label>
+      </div>
 
-        <div class="setting-row">
-          <div class="setting-text">
-            <strong>Scheduled duration</strong>
-            <span>Add opening and closing times for this moment.</span>
-          </div>
-          <label class="custom-switch">
-            <input type="checkbox" formControlName="duration" (change)="toggleProperty($event,'duration')">
-            <span class="slider round"></span>
-          </label>
+      <div class="cc-row">
+        <div class="cc-row-text">
+          <strong>Require approval</strong>
+          <span>Posts queue before appearing</span>
         </div>
+        <label class="cc-toggle">
+          <input type="checkbox" formControlName="requireApproval" aria-label="Require approval">
+          <span class="cc-toggle-track"></span>
+        </label>
+      </div>
 
-        @if(getFormControlValue('duration')){
-        <div class="date-grid" @fadeInAnimation>
-          <button type="button" class="date-card" (click)="openCalendar('openDate')">
-            <span class="date-icon"><i class="bi bi-sunrise"></i></span>
-            <span>
-              <small>Opening</small>
-              <strong>{{ formatDate('openDate') || 'Pick date and time' }}</strong>
-            </span>
+      <div class="cc-access" [class.cc-access--muted]="getFormControlValue('anyoneCanPost')">
+        <div class="cc-mini-tabs">
+          <button class="cc-mini-tab-btn" [class.cc-mini-tab-btn--active]="activePostTab === 'email'"
+            type="button" (click)="activePostTab = 'email'"
+            [disabled]="getFormControlValue('anyoneCanPost')">
+            <i class="bi bi-person-check"></i> People
           </button>
-          <input type="hidden" [ngxTimepicker]="picker1" id="startTime" [min]="minTime" [max]="maxTime">
-          <ngx-material-timepicker #picker1 (timeSet)="selectTime($event, 'openDate')" [theme]="customTheme"></ngx-material-timepicker>
-          <input class="calendar-input-hidden" #openingCalendar id="startDate" type="date"
-            [value]="toDateInputValue(getFormControlValue('openingDate'))"
-            [min]="toDateInputValue(minDate)"
-            [max]="toDateInputValue(maxDate)"
-            (change)="onDateInputChange($event, 'openingDate')" />
-
-          <button type="button" class="date-card" (click)="openCalendar('closeDate')">
-            <span class="date-icon"><i class="bi bi-moon-stars"></i></span>
-            <span>
-              <small>Closing</small>
-              <strong>{{ formatDate('closeDate') || 'Pick date and time' }}</strong>
-            </span>
+          <button class="cc-mini-tab-btn" [class.cc-mini-tab-btn--active]="activePostTab === 'domain'"
+            type="button" (click)="activePostTab = 'domain'"
+            [disabled]="getFormControlValue('anyoneCanPost')">
+            <i class="bi bi-buildings"></i> Orgs
           </button>
-          <input type="hidden" [ngxTimepicker]="picker2" id="endTime" [min]="closeMinTime">
-          <ngx-material-timepicker #picker2 (timeSet)="selectTime($event, 'closeDate')" [theme]="customTheme"></ngx-material-timepicker>
-          <input class="calendar-input-hidden" #closingCalendar id="endDate" type="date"
-            [value]="toDateInputValue(getFormControlValue('closingDate'))"
-            [min]="toDateInputValue(closeMinDate)"
-            (change)="onDateInputChange($event, 'closingDate')" />
         </div>
-        }
-      </section>
-
-      <section class="settings-section">
-        <div class="section-title">
-          <span class="section-icon coral"><i class="bi bi-eye-fill"></i></span>
-          <div>
-            <h3>View access</h3>
-            <p>Decide who gets to see this moment.</p>
-          </div>
+        <div [hidden]="activePostTab !== 'email'">
+          <app-add-user (emailsChanged)="handleEmailsChanged($event,'post')" [component]="'postByEmail'"
+            [sharedEmails]="getFormControlValue('postAccess').emails"
+            [excludeEmails]="getEmailsToBeExcluded('post')"></app-add-user>
         </div>
-
-        <div class="setting-row">
-          <div class="setting-text">
-            <strong>Anyone can view</strong>
-            <span>Open visibility for everyone with the link.</span>
-          </div>
-          <label class="custom-switch">
-            <input type="checkbox" formControlName="anyoneCanView" (change)="toggleProperty($event,'anyoneCanView')">
-            <span class="slider round"></span>
-          </label>
+        <div [hidden]="activePostTab !== 'domain'">
+          <app-add-domain (domainsChanged)="handleDomainsChanged($event,'post')" [component]="'postByDomain'"
+            [sharedDomains]="getFormControlValue('postAccess').domains"></app-add-domain>
         </div>
+      </div>
+    </section>
 
-        <div class="access-panel" [class.is-muted]="getFormControlValue('anyoneCanView') || getFormControlValue('anyoneCanPost')">
-          <nav class="segment-tabs" role="tablist">
-            <button class="nav-link active" id="nav-view-email-tab" data-bs-toggle="tab"
-              data-bs-target="#nav-view-email" type="button" role="tab" aria-controls="nav-view-email"
-              aria-selected="true" [disabled]="getFormControlValue('anyoneCanView') || getFormControlValue('anyoneCanPost')">
-              <i class="bi bi-person-plus"></i> People
-            </button>
-            <button class="nav-link" id="nav-view-domain-tab" data-bs-toggle="tab"
-              data-bs-target="#nav-view-domain" type="button" role="tab" aria-controls="nav-view-domain"
-              aria-selected="false" [disabled]="getFormControlValue('anyoneCanView') || getFormControlValue('anyoneCanPost')">
-              <i class="bi bi-building"></i> Organizations
-            </button>
-          </nav>
-          <div class="tab-content">
-            <div class="tab-pane show active" id="nav-view-email" role="tabpanel" aria-labelledby="nav-view-email-tab" tabindex="0">
-              <app-add-user (emailsChanged)="handleEmailsChanged($event,'view')" [component]="'viewByEmail'"
-                [sharedEmails]="getFormControlValue('viewAccess').emails"
-                [excludeEmails]="getEmailsToBeExcluded('view')"
-                [excludeDomains]="getDomainsToBeExcluded('view')"
-                [isDisabled]="getFormControlValue('anyoneCanView') || getFormControlValue('anyoneCanPost')"></app-add-user>
-            </div>
-            <div class="tab-pane" id="nav-view-domain" role="tabpanel" aria-labelledby="nav-view-domain-tab" tabindex="0">
-              <app-add-domain (domainsChanged)="handleDomainsChanged($event,'view')" [component]="'viewByDomain'"
-                [sharedDomains]="getFormControlValue('viewAccess').domains"
-                [excludeDomains]="getDomainsToBeExcluded('post')"></app-add-domain>
-            </div>
-          </div>
-        </div>
-      </section>
+    <!-- Maintainers -->
+    <section class="cc-section cc-section--last">
+      <h4 class="cc-section-label">
+        <i class="bi bi-stars"></i> Maintainers
+      </h4>
+      <p class="cc-section-hint">Trusted people who can manage this moment.</p>
+      <app-add-user (emailsChanged)="handleEmailsChanged($event,'maintainer')" [component]="'maintainer'"
+        [sharedEmails]="wallForm.get('maintainerEmails')?.value"></app-add-user>
+    </section>
 
-      <section class="settings-section">
-        <div class="section-title">
-          <span class="section-icon teal"><i class="bi bi-chat-square-heart-fill"></i></span>
-          <div>
-            <h3>Posting access</h3>
-            <p>Choose who can add messages and reactions.</p>
-          </div>
-        </div>
+  </div>
 
-        <div class="setting-row">
-          <div class="setting-text">
-            <strong>Anyone can post</strong>
-            <span>Let every visitor contribute to the moment.</span>
-          </div>
-          <label class="custom-switch">
-            <input type="checkbox" formControlName="anyoneCanPost" (change)="toggleProperty($event,'anyoneCanPost')">
-            <span class="slider round"></span>
-          </label>
-        </div>
+  <!-- Footer -->
+  <footer class="cc-footer">
+    <button type="button" class="cc-btn cc-btn--ghost" (click)="closeSidebar()">Cancel</button>
+    <button type="button" class="cc-btn cc-btn--primary" (click)="updateSettings()" [disabled]="!isFormValueChanged()">
+      <i class="bi bi-check2"></i> Save changes
+    </button>
+  </footer>
 
-        <div class="access-panel" [class.is-muted]="getFormControlValue('anyoneCanPost')">
-          <nav class="segment-tabs" role="tablist">
-            <button class="nav-link active" id="nav-post-email-tab" data-bs-toggle="tab"
-              data-bs-target="#nav-post-email" type="button" role="tab" aria-controls="nav-post-email"
-              aria-selected="true" [disabled]="getFormControlValue('anyoneCanPost')">
-              <i class="bi bi-person-check"></i> People
-            </button>
-            <button class="nav-link" id="nav-post-domain-tab" data-bs-toggle="tab"
-              data-bs-target="#nav-post-domain" type="button" role="tab" aria-controls="nav-post-domain"
-              aria-selected="false" [disabled]="getFormControlValue('anyoneCanPost')">
-              <i class="bi bi-buildings"></i> Organizations
-            </button>
-          </nav>
-          <div class="tab-content">
-            <div class="tab-pane show active" id="nav-post-email" role="tabpanel" aria-labelledby="nav-post-email-tab" tabindex="0">
-              <app-add-user (emailsChanged)="handleEmailsChanged($event,'post')" [component]="'postByEmail'"
-                [sharedEmails]="getFormControlValue('postAccess').emails"
-                [excludeEmails]="getEmailsToBeExcluded('post')"
-                [excludeDomains]="getDomainsToBeExcluded('post')"
-                [isDisabled]="getFormControlValue('anyoneCanPost')"></app-add-user>
-            </div>
-            <div class="tab-pane" id="nav-post-domain" role="tabpanel" aria-labelledby="nav-post-domain-tab" tabindex="0">
-              <app-add-domain (domainsChanged)="handleDomainsChanged($event,'post')" [component]="'postByDomain'"
-                [sharedDomains]="getFormControlValue('postAccess').domains"></app-add-domain>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="settings-section">
-        <div class="section-title">
-          <span class="section-icon gold"><i class="bi bi-stars"></i></span>
-          <div>
-            <h3>Maintainers</h3>
-            <p>Add trusted people who can help keep this moment polished.</p>
-          </div>
-        </div>
-
-        <app-add-user (emailsChanged)="handleEmailsChanged($event,'maintainer')" [component]="'maintainer'"
-          [sharedEmails]="wallForm.get('maintainerEmails')?.value"></app-add-user>
-      </section>
-    </div>
-
-    <footer class="settings-actions">
-      <button type="button" class="btn ghost-action" (click)="closeSidebar()">Cancel</button>
-      <button type="button" class="btn save-action" (click)="updateSettings()" [disabled]="!isFormValueChanged()">
-        <i class="bi bi-check2-circle"></i>
-        Save changes
-      </button>
-    </footer>
-  </form>
-</aside>
+</div>
+}

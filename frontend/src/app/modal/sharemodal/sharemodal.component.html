@@ -26,22 +26,22 @@
                     </div>
                     <div class="social-media-links container-fluid mt-1">
                         <div class="social-media-logo row mb-4">
-                            <div class="circle col" (click)="shareFacebook()" data-bs-toggle="tooltip" title="Facebook">
-                                <i class="bi bi-facebook"></i>
-                            </div>
-                            <div class="circle col" (click)="shareTwitter()" data-bs-toggle="tooltip" title="Twitter">
-                                <i class="bi bi-twitter-x"></i>
-                            </div>
-                            <div class="circle col" (click)="shareLinkedIn()" data-bs-toggle="tooltip"
-                                title="LinkedIn/ Paste on new post">
-                                <i class="bi bi-linkedin"></i>
-                            </div>
-                            <div class="circle col" (click)="shareWhatsApp()" data-bs-toggle="tooltip" title="WhatsApp">
-                                <i class="bi bi-whatsapp"></i>
-                            </div>
-                            <div class="circle col" (click)="shareGmail()" data-bs-toggle="tooltip" title="Gmail">
-                                <i class="bi bi-envelope-fill"></i>
-                            </div>
+                            <button type="button" class="circle col" (click)="shareFacebook()" data-bs-toggle="tooltip" title="Facebook" aria-label="Share on Facebook">
+                                <i class="bi bi-facebook" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="circle col" (click)="shareTwitter()" data-bs-toggle="tooltip" title="Twitter" aria-label="Share on Twitter">
+                                <i class="bi bi-twitter-x" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="circle col" (click)="shareLinkedIn()" data-bs-toggle="tooltip"
+                                title="LinkedIn/ Paste on new post" aria-label="Share on LinkedIn">
+                                <i class="bi bi-linkedin" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="circle col" (click)="shareWhatsApp()" data-bs-toggle="tooltip" title="WhatsApp" aria-label="Share on WhatsApp">
+                                <i class="bi bi-whatsapp" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="circle col" (click)="shareGmail()" data-bs-toggle="tooltip" title="Gmail" aria-label="Share via Gmail">
+                                <i class="bi bi-envelope-fill" aria-hidden="true"></i>
+                            </button>
                         </div>
                     </div>
                     <button class="btn btn-primary button-xl w-100 mt-2" (click)="copyLink()" [disabled]="isLinkCopied">

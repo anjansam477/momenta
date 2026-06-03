@@ -35,10 +35,10 @@ aria-labelledby="loginModalLabel" aria-hidden="true">
                 id="password" placeholder="Password"
                 [ngClass]="{ 'validation-input': loginForm.get('password')?.invalid && loginForm.get('password')?.touched || incorrect }" />
               <i class="bi bi-lock login-input-icon"></i>
-              <div class="passwor_show_icon" (click)="togglePasswordVisibility()">
-                <i class="bi bi-eye-fill" *ngIf="passwordFieldType=='password'"></i>
-                <i class="bi bi-eye-slash" *ngIf="passwordFieldType=='text'"></i>
-              </div>
+              <button type="button" class="passwor_show_icon" (click)="togglePasswordVisibility()" [attr.aria-label]="passwordFieldType === 'password' ? 'Show password' : 'Hide password'">
+                <i class="bi bi-eye-fill" *ngIf="passwordFieldType=='password'" aria-hidden="true"></i>
+                <i class="bi bi-eye-slash" *ngIf="passwordFieldType=='text'" aria-hidden="true"></i>
+              </button>
             </div>
             <div class="validation-text"
               *ngIf="loginForm.get('password')?.hasError('required') && loginForm.get('password')?.touched">
