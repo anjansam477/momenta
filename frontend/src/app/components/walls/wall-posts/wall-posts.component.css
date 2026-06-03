@@ -1,5 +1,204 @@
+/* ── Post action menu ── */
+.post-menu {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 20;
+}
+
+.post-menu__trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #5a7080;
+    font-size: 17px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.post:hover .post-menu__trigger,
+.post-menu__trigger:focus,
+.post-menu__panel ~ .post-menu__trigger {
+    opacity: 1;
+}
+
+.post-menu__trigger:hover {
+    background: rgba(8, 124, 131, 0.1);
+    color: #087c83;
+}
+
+.post-menu__panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 160px;
+    background: #fff;
+    border: 1px solid rgba(8, 124, 131, 0.14);
+    border-radius: 12px;
+    box-shadow: 0 8px 28px rgba(20, 46, 62, 0.14);
+    padding: 6px;
+    z-index: 100;
+    animation: menuFadeIn 0.13s ease;
+}
+
+@keyframes menuFadeIn {
+    from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.post-menu__item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #2d4256;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+
+.post-menu__item i {
+    font-size: 15px;
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+    color: #5a7080;
+    transition: color 0.12s ease;
+}
+
+.post-menu__item:hover {
+    background: rgba(8, 124, 131, 0.08);
+    color: #087c83;
+}
+
+.post-menu__item:hover i {
+    color: #087c83;
+}
+
+.post-menu__item--pin i {
+    color: #087c83;
+}
+
+.post-menu__item--danger {
+    color: #c0392b;
+}
+
+.post-menu__item--danger i {
+    color: #c0392b;
+}
+
+.post-menu__item--danger:hover {
+    background: rgba(192, 57, 43, 0.08);
+    color: #c0392b;
+}
+
+.post-menu__item--danger:hover i {
+    color: #c0392b;
+}
+
+.post-menu__item--safe {
+    color: #1a7a4a;
+}
+
+.post-menu__item--safe i {
+    color: #1a7a4a;
+}
+
+.post-menu__item--safe:hover {
+    background: rgba(26, 122, 74, 0.08);
+    color: #1a7a4a;
+}
+
+.post-menu__divider {
+    height: 1px;
+    background: rgba(8, 124, 131, 0.1);
+    margin: 4px 0;
+}
+
 .dropdown-toggle::after {
     display: none
+}
+
+/* Search empty state */
+.search-empty {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 64px 24px;
+    color: #96aab8;
+}
+
+.search-empty i { font-size: 36px; }
+.search-empty p { margin: 0; font-size: 16px; }
+.search-empty strong { color: #425872; }
+
+/* Pending approval queue */
+.pending-queue {
+    margin: 16px auto 24px;
+    max-width: 860px;
+    border: 1.5px solid #f0ad4e;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fffdf5;
+}
+
+.pending-queue__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    background: #fff8e1;
+    user-select: none;
+}
+
+.pending-queue__header:hover {
+    background: #fff3cd;
+}
+
+.pending-queue__body {
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.pending-card {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 14px 16px;
+}
+
+.pending-card__meta {
+    margin-bottom: 8px;
+}
+
+.pending-card__content p {
+    margin: 0 0 10px;
+    font-size: 0.9rem;
+    color: #444;
+}
+
+.pending-card__actions {
+    display: flex;
+    gap: 8px;
 }
 
 .post-container .column .post :hover .drop-down {
@@ -22,17 +221,30 @@
 }
 
 .post-container .column .post {
-    border-radius: 18px;
-    border: 1px solid rgba(8, 124, 131, 0.12);
-    background: rgba(255, 255, 255, 0.94);
-    box-shadow: 0 18px 48px rgba(20, 46, 62, 0.12);
-    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+    border-radius: 20px;
+    border: 1px solid rgba(8, 124, 131, 0.1);
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 4px 20px rgba(20, 46, 62, 0.07), 0 1px 4px rgba(0,0,0,0.04);
+    transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 200ms ease, border-color 200ms ease;
+    animation: cardEntrance 0.4s cubic-bezier(0.34, 1.2, 0.64, 1) both;
 }
 
+@keyframes cardEntrance {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.post-container .column .post:nth-child(1) { animation-delay: 0ms; }
+.post-container .column .post:nth-child(2) { animation-delay: 60ms; }
+.post-container .column .post:nth-child(3) { animation-delay: 120ms; }
+.post-container .column .post:nth-child(4) { animation-delay: 180ms; }
+.post-container .column .post:nth-child(5) { animation-delay: 240ms; }
+.post-container .column .post:nth-child(n+6) { animation-delay: 300ms; }
+
 .post-container .column .post:hover {
-    transform: translateY(-2px);
-    border-color: rgba(8, 124, 131, 0.22);
-    box-shadow: 0 22px 58px rgba(20, 46, 62, 0.16);
+    transform: translateY(-4px) scale(1.005);
+    border-color: rgba(8, 124, 131, 0.2);
+    box-shadow: 0 16px 40px rgba(20, 46, 62, 0.13), 0 2px 8px rgba(0,0,0,0.04);
 }
 
 .post-body {
@@ -77,9 +289,6 @@
     margin-left: 10px;
 }
 
-.dropdown-menu li {
-    cursor: pointer;
-}
 
 .action-buttons button:hover {
     opacity: 0.8;
@@ -207,9 +416,6 @@
     max-height: 420px;
 }
 
-.dropdown{
-    z-index: 9;
-}
 
 .moment-spinner {
     width: 34px;
@@ -348,4 +554,20 @@
     to {
         transform: rotate(360deg);
     }
+}
+
+/* Pin badge */
+.pin-badge {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    color: #087c83;
+    font-size: 15px;
+    line-height: 1;
+    z-index: 2;
+    opacity: 0.85;
+}
+
+.post-container .column .post {
+    position: relative;
 }

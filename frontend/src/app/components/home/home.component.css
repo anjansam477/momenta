@@ -20,3 +20,50 @@
 app-sidebar{
     background-image: linear-gradient(180deg, #102B3A 0%, #119A9A 58%, #FF6B5F 125%);
 }
+
+.wall-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 24px 16px;
+  padding: 10px 16px;
+  background: #fff;
+  border: 1.5px solid rgba(8, 124, 131, 0.15);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(8, 124, 131, 0.06);
+}
+
+.wall-search-bar__icon {
+  color: #087c83;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.wall-search-bar__input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #2d4256;
+  background: transparent;
+}
+
+.wall-search-bar__input::placeholder {
+  color: #96aab8;
+}
+
+.wall-search-bar__clear {
+  border: none;
+  background: transparent;
+  color: #96aab8;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 6px;
+  line-height: 1;
+  font-size: 13px;
+  transition: color 0.15s ease;
+}
+
+.wall-search-bar__clear:hover {
+  color: #2d4256;
+}
