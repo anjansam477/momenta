@@ -8,7 +8,7 @@ import {
 import { Observable, catchError, finalize, throwError } from 'rxjs';
 import { LoaderService } from '../../services/loaderservice/loader.service';
 import { inject } from '@angular/core';
-import { INCLUDED_APIS_FOR_SPINNER } from '../inculded_apis';
+import { INCLUDED_APIS_FOR_SPINNER } from '../included_apis';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/authservice/auth.service';
 import { ToastrService } from 'ngx-toastr';

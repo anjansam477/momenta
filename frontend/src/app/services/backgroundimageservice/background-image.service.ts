@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, map, Observable, shareReplay } from 'rxjs';
 import { SERVICE_BASE_URL } from '../../environment-config';
+import { BackgroundTheme, EventItem } from '../../shared/models';
 @Injectable({
   providedIn: 'root'
 })
@@ -14,15 +15,11 @@ export class BackgroundImageService {
   
   // This BehaviorSubject object is initialized with the selected background image
   private selectedBgSubject = new BehaviorSubject<string>(this.defaultBackground);
-  private themesRequest$?: Observable<any>;
+  private themesRequest$?: Observable<BackgroundTheme[]>;
 
-  /**
-   * gets the Theme data with its images.
-   * @param none
-   */
-  getThemes(): Observable<any> {
+  getThemes(): Observable<BackgroundTheme[]> {
     if (!this.themesRequest$) {
-      this.themesRequest$ = this.http.get(`${SERVICE_BASE_URL}/api/themes`).pipe(
+      this.themesRequest$ = this.http.get<BackgroundTheme[]>(`${SERVICE_BASE_URL}/api/themes`).pipe(
         shareReplay({ bufferSize: 1, refCount: false })
       );
     }
@@ -30,8 +27,8 @@ export class BackgroundImageService {
     return this.themesRequest$;
   }
 
-  getEvents(emailId: string): Observable<any> {
-    return this.http.get(`${SERVICE_BASE_URL}/api/events/${emailId}`);
+  getEvents(emailId: string): Observable<Record<string, Omit<EventItem, 'eventType'>[]> | null> {
+    return this.http.get<Record<string, Omit<EventItem, 'eventType'>[]> | null>(`${SERVICE_BASE_URL}/api/events/${emailId}`);
   }
 
   /**

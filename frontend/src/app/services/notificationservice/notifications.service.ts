@@ -73,7 +73,7 @@ export class NotificationsService {
     });
   }
 
-  getTimeAgo(timestamp: string): string {
+  getTimeAgo(timestamp: string | Date): string {
     const date = new Date(timestamp);
     const now = new Date();
 

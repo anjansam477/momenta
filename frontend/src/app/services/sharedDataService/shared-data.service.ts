@@ -1,6 +1,8 @@
 import { Injectable, signal } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { Post } from '../../models/post.model';
+import { Wall } from '../../shared/models';
+import { User, BackgroundTheme } from '../../shared/models';
 
 @Injectable({
   providedIn: 'root'
@@ -10,13 +12,13 @@ export class SharedDataService {
 
   message = signal<string>('');
   
-  private userNameSubject = new BehaviorSubject<any>({});
+  private userNameSubject = new BehaviorSubject<Partial<User>>({});
 
   userData$ = this.userNameSubject.asObservable();
 
-  private userProfilePic: BehaviorSubject<any> = new BehaviorSubject<any>(null);
+  private userProfilePic = new BehaviorSubject<Blob | null>(null);
 
-  private userDetailsSubject: BehaviorSubject<any> = new BehaviorSubject<any>(null);
+  private userDetailsSubject = new BehaviorSubject<User | null>(null);
 
   userEmail = signal<string>('');
 
@@ -24,11 +26,11 @@ export class SharedDataService {
 
   isOpen = signal<boolean>(false);
 
-  private wallDetailsSubject = new BehaviorSubject<any>(null);
+  private wallDetailsSubject = new BehaviorSubject<Wall | null>(null);
 
-  themes = signal<any[]>([]);
+  themes = signal<BackgroundTheme[]>([]);
 
-  private updatedPost = new BehaviorSubject<any>(null);
+  private updatedPost = new BehaviorSubject<Post | null>(null);
 
   private sendUserMail = new BehaviorSubject<boolean>(false);
 
@@ -38,7 +40,16 @@ export class SharedDataService {
 
   private myPost= new BehaviorSubject<boolean>(false);
 
+  private postSearchQuery = new BehaviorSubject<string>('');
+
   constructor() { }
+
+  setPostSearchQuery(query: string) { this.postSearchQuery.next(query); }
+  getPostSearchQuery(): Observable<string> { return this.postSearchQuery.asObservable(); }
+
+  private wallSearchQuery = new BehaviorSubject<string>('');
+  setWallSearchQuery(query: string) { this.wallSearchQuery.next(query); }
+  getWallSearchQuery(): Observable<string> { return this.wallSearchQuery.asObservable(); }
 
   setContext(context: string) {
     this.context.set(context);
@@ -56,8 +67,8 @@ export class SharedDataService {
     return this.isPreview.asObservable();
   }
 
-  updateUserName(newData: any) {
-    const currentUserData = this.userDetailsSubject.value;
+  updateUserName(newData: Partial<User>) {
+    const currentUserData = this.userDetailsSubject.value ?? {} as User;
 
     const updatedUserData = {
       ...currentUserData,
@@ -65,7 +76,7 @@ export class SharedDataService {
       lastname: newData.lastname !== undefined ? newData.lastname : currentUserData.lastname,
     };
 
-    this.userDetailsSubject.next(updatedUserData);
+    this.userDetailsSubject.next(updatedUserData as User);
 
     this.userNameSubject.next({
       firstname: updatedUserData.firstname,
@@ -73,7 +84,7 @@ export class SharedDataService {
     });
   }
 
-  setUpdateUserProfile(changed: any) {
+  setUpdateUserProfile(changed: Blob | null) {
     this.userProfilePic.next(changed);
   }
 
@@ -81,11 +92,11 @@ export class SharedDataService {
     return this.userProfilePic.asObservable();
   }
 
-  setUserData(data: any) {
+  setUserData(data: User | null) {
     this.userDetailsSubject.next(data);
   }
 
-  getUserData(): Observable<any> {
+  getUserData(): Observable<User | null> {
     return this.userDetailsSubject.asObservable();
   }
 
@@ -97,15 +108,15 @@ export class SharedDataService {
     this.isOpen.set(!this.isOpen());
   }
 
-  setWallDetails(details: any): void {
+  setWallDetails(details: Wall | null): void {
     this.wallDetailsSubject.next(details);
   }
 
-  getWallDetails(): Observable<any> {
+  getWallDetails(): Observable<Wall | null> {
     return this.wallDetailsSubject.asObservable();
   }
 
-  updateWallDetailsPartially(updatedWallDetails: any): void {
+  updateWallDetailsPartially(updatedWallDetails: Partial<Wall>): void {
     const currentDetails = this.wallDetailsSubject.getValue();
     if (currentDetails) {
       const updatedDetails = {
@@ -116,7 +127,7 @@ export class SharedDataService {
     }
   }
 
-  setThemes(themes: any[]): void {
+  setThemes(themes: BackgroundTheme[]): void {
     this.themes.set(themes);
   }
 

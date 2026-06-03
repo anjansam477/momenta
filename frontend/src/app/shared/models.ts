@@ -21,24 +21,36 @@ export interface PostConfig {
 
 export interface Wall {
   _id: string;
-  slug: string;
+  slug?: string;
   title: string;
   description: string;
   ownerEmail: string;
   type: string;
-  status: WallStatus;
-  openDate?: string;
-  closeDate?: string;
-  theme: WallTheme;
-  anyoneCanView: boolean;
-  anyoneCanPost: boolean;
-  postConfig: PostConfig;
-  posts?: { nonArchivedCount: number; nonArchivedNonReportedCount: number };
-  interactions?: number;
-  isNew?: boolean;
-  saveType?: SaveType;
+  status?: WallStatus;
+  openDate?: string | Date | null;
+  closeDate?: string | Date | null;
+  theme?: WallTheme;
+  anyoneCanView?: boolean;
+  anyoneCanPost?: boolean;
+  postConfig?: Partial<PostConfig>;
+  posts: { nonArchivedCount: number; nonArchivedNonReportedCount: number };
+  interactions: number;
+  isNew: boolean;
+  saveType: SaveType | string;
   createdAt: string;
   updatedAt: string;
+  // Legacy fields (still present in API responses)
+  isOpen: boolean;
+  isArchived: boolean;
+  bgImg: string;
+  audio: string;
+  animationId: string;
+  maintainerEmails: string[];
+  postAccess: { emails: string[]; domains: string[] };
+  viewAccess: { emails: string[]; domains: string[] };
+  receivers: string[];
+  starred: boolean;
+  saved: boolean;
 }
 
 export interface PostMedia {
@@ -73,4 +85,54 @@ export interface User {
   profilePictureUrl: string | null;
   bio: string;
   lastLoginAt?: string;
+  // Legacy / computed fields
+  active?: boolean;
+  createdAt?: string;
+  name?: string;
+}
+
+export interface UserDetails {
+  _id?: string;
+  email?: string;
+  fullName?: string;
+  userName?: string;
+  name?: string;
+  profilePicture?: string | null;
+  profilePictureUrl?: string | null;
+  buffer?: { type: string; data: number[] };
+}
+
+export interface BackgroundTheme {
+  name: string;
+  images: string[];
+}
+
+export interface EventItem {
+  Email: string;
+  Name: string;
+  Date?: string;
+  eventType: string;
+}
+
+export interface AccessControl {
+  emails?: string[];
+  domains?: string[];
+}
+
+export interface GiphyGif {
+  id: string;
+  title?: string;
+  images: {
+    original: { url: string };
+    fixed_height?: { url: string };
+    downsized?: { url: string };
+  };
+}
+
+export interface StickerItem {
+  id: string;
+  name: string;
+  file?: string;
+  url?: string;
+  images?: { original: { url: string } };
 }

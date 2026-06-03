@@ -3,13 +3,31 @@ import Confetti, { Shape } from 'canvas-confetti';
 import { animations } from '../../constants/animation-configuration';
 import { BehaviorSubject } from 'rxjs';
 
+type ConfettiParticle = {
+  particleCount?: number;
+  angle?: number;
+  spread?: number;
+  origin?: { x: number | string; y: number | string };
+  startVelocity?: number;
+  colors?: string[];
+  ticks?: number;
+  gravity?: number;
+  decay?: number;
+  scalar?: number;
+  shapes?: string[];
+  disableForReducedMotion?: boolean;
+  drift?: number;
+  flat?: boolean;
+  zIndex?: number;
+};
+
 @Injectable({
   providedIn: 'root'
 })
 export class AnimationService {
 
-  private interval: any;
-  private timeout: any;
+  private interval: ReturnType<typeof setInterval> | undefined;
+  private timeout: ReturnType<typeof setTimeout> | undefined;
 
   constructor() {
   }
@@ -44,35 +62,33 @@ export class AnimationService {
     return { scalar, velocity };
   }
 
-  adjustConfettiData(confettiData: any) {
+  adjustConfettiData(confettiData: ConfettiParticle[]): ConfettiParticle[] {
     const viewportWidth = window.innerWidth;
     const { scalar, velocity } = this.calculateScalarAndVelocity();
 
     if (viewportWidth <= 768) {
-      // Mobile configuration
-      return confettiData.map((confetti: any) => {
+      return confettiData.map((confetti: ConfettiParticle) => {
         const adjustedConfetti = {
           ...confetti,
           startVelocity: confetti.startVelocity? confetti.startVelocity * velocity*0.8 : undefined,
         };
-        adjustedConfetti.particleCount = Math.ceil(confetti.particleCount * scalar) * 1.5;
+        adjustedConfetti.particleCount = Math.ceil((confetti.particleCount ?? 0) * scalar) * 1.5;
         if ('scalar' in confetti) {
-          adjustedConfetti.scalar = Math.max(0.5, confetti.scalar * scalar);
+          adjustedConfetti.scalar = Math.max(0.5, (confetti.scalar ?? 1) * scalar);
         } else {
           adjustedConfetti.scalar = 0.8;
         }
         return adjustedConfetti;
       });
     } else if (viewportWidth > 768 && viewportWidth <= 1024) {
-      // Tablet configuration
-      return confettiData.map((confetti: any) => {
+      return confettiData.map((confetti: ConfettiParticle) => {
         const adjustedConfetti = {
           ...confetti,
           startVelocity: confetti.startVelocity ? confetti.startVelocity * velocity* 1.2 : undefined,
         };
-        adjustedConfetti.particleCount = Math.ceil(confetti.particleCount * scalar) * 2;
+        adjustedConfetti.particleCount = Math.ceil((confetti.particleCount ?? 0) * scalar) * 2;
         if ('scalar' in confetti) {
-          adjustedConfetti.scalar = Math.max(0.8, confetti.scalar * scalar)*1.2;
+          adjustedConfetti.scalar = Math.max(0.8, (confetti.scalar ?? 1) * scalar)*1.2;
         } else {
           adjustedConfetti.scalar = 1;
         }
@@ -85,7 +101,7 @@ export class AnimationService {
   }
  
 
-  triggerConfetti(animation: { id?: string; duration: number; interval?: number; confettiData: any; }) {
+  triggerConfetti(animation: { id?: string; duration: number; interval?: number; confettiData: ConfettiParticle[]; }) {
     const functionLookup: { [key: string]: () => number } = {
       random: () => Math.random(),
       increment: this.createStepper(0, 0.15),
@@ -107,7 +123,7 @@ export class AnimationService {
     window.addEventListener('resize', onResize);
 
     this.interval = setInterval(() => {
-      adjustedConfettiData.forEach((confetti: Confetti.Options | undefined) => {
+      adjustedConfettiData.forEach((confetti: ConfettiParticle) => {
         if (!confetti) return;
         let originX = confetti?.origin?.x;
         let originY = confetti?.origin?.y;
@@ -127,16 +143,11 @@ export class AnimationService {
         }) as Shape[];
 
         if (shapes.length) {
-          Confetti({
-            ...confetti,
-            origin: { x: originX, y: originY },
-            shapes: shapes
-          });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          Confetti({ ...(confetti as any), origin: { x: originX, y: originY }, shapes });
         } else {
-          Confetti({
-            ...confetti,
-            origin: { x: originX, y: originY }
-          });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          Confetti({ ...(confetti as any), origin: { x: originX, y: originY } });
         }
       });
     }, animation.interval);

@@ -113,7 +113,7 @@ export class SanitizeAndCleanHtmlPipe implements PipeTransform {
  * @param paragraphs - The list of paragraph elements to process.
  * @returns The index of the last removed paragraph, or -1 if none were removed.
  */
-  private removeExtraSpacing(paragraphs: any): number {
+  private removeExtraSpacing(paragraphs: NodeListOf<Element>): number {
     if (!paragraphs.length) {
       return -1;
     }

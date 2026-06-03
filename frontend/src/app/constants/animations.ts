@@ -1,4 +1,11 @@
-export const animations = [
+export interface MomentAnimation {
+  id: string;
+  name: string;
+  path: string;
+  alt: string;
+}
+
+export const animations: MomentAnimation[] = [
     { id: 'animation1', "name":"Fireworks 1",path: 'gif1.gif', alt: 'GIF 1' },
     { id: 'animation2', "name":"Sideways pop",path: 'gif2.gif', alt: 'GIF 2' },
     { id: 'animation3', "name":"Fireworks 2",path: 'gif3.gif', alt: 'GIF 3' },

@@ -30,7 +30,7 @@ export class Post {
     public openReportCount?: number,
     public updatedAt?: Date,
     public editedAt?: Date,
-    public profilePicture?: any,
+    public profilePicture?: string | { contentType: string; data: number[] },
     public estimatedHeight?: number,
     public hasImageAndText?: boolean,
   ) {}

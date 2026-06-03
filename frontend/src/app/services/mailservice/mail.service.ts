@@ -1,7 +1,23 @@
-﻿import { HttpClient } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { SERVICE_BASE_URL } from '../../environment-config';
+
+export interface ScheduleMailPayload {
+  primary: string[];
+  wallId: string;
+  scheduledDate: Date;
+  cc: string[];
+  userEmail: string | null;
+  type: string;
+}
+
+export interface ScheduledMailData {
+  recipients?: { primary: string[]; cc?: string[] };
+  emailId?: { primary: string[]; cc?: string[] };
+  scheduledAt?: string;
+  scheduledDate?: string;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -10,39 +26,25 @@ export class MailService {
 
   constructor(private http: HttpClient) { }
 
-  /**
-   * Base Url to handle all mail-service requests.
-  */
   private mailServiceBaseUrl = SERVICE_BASE_URL + '/api/mail';
 
-  /**
-   * Schedules a mail
-   * @param scheduledData 
-   * @returns 
-   */
-  scheduleMail(scheduledData: any): Observable<any> {
-    return this.http.post(`${this.mailServiceBaseUrl}/send-mail`, scheduledData);
+  scheduleMail(scheduledData: ScheduleMailPayload): Observable<void> {
+    return this.http.post<void>(`${this.mailServiceBaseUrl}/send-mail`, scheduledData);
   }
 
-  /**
-   * Fetches scheduled email data by wall ID
-   * @param wallId ID of the wall
-   * @returns An observable with the scheduled email data
-   */
-  getScheduleEmailsByWallId(wallId: string): Observable<any> {
-    return this.http.get(`${this.mailServiceBaseUrl}/scheduled/${wallId}`);
+  getScheduleEmailsByWallId(wallId: string): Observable<ScheduledMailData> {
+    return this.http.get<ScheduledMailData>(`${this.mailServiceBaseUrl}/scheduled/${wallId}`);
   }
 
-
-  sendContactEmail(data: { email: string, name: string, message: string }): Observable<any> {
-    return this.http.post<any>(`${this.mailServiceBaseUrl}/send-contact-email`, data);
+  sendContactEmail(data: { email: string; name: string; message: string }): Observable<void> {
+    return this.http.post<void>(`${this.mailServiceBaseUrl}/send-contact-email`, data);
   }
 
-  removeRecipient(wallId: string, recipient: string): Observable<any> {
-    return this.http.delete(`${this.mailServiceBaseUrl}/remove/${wallId}/${recipient}`);
+  removeRecipient(wallId: string, recipient: string): Observable<void> {
+    return this.http.delete<void>(`${this.mailServiceBaseUrl}/remove/${wallId}/${recipient}`);
   }
 
-  cancelScheduledMail(wallId: string): Observable<any> {
-    return this.http.delete(`${this.mailServiceBaseUrl}/cancel/${wallId}`);
+  cancelScheduledMail(wallId: string): Observable<void> {
+    return this.http.delete<void>(`${this.mailServiceBaseUrl}/cancel/${wallId}`);
   }
 }

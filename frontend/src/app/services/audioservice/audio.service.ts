@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import { MomentAudio } from '../../constants/audios';
 
 @Injectable({
   providedIn: 'root'
@@ -48,8 +49,8 @@ export class AudioService {
    /**
    * Setter method to update the current audio file
    */
-   setAudioFile(audio:any) {
-    this.audioFile = audio.file;
+   setAudioFile(audio: MomentAudio | string) {
+    this.audioFile = typeof audio === 'string' ? audio : audio.file;
     if(this.isAudioMuted()){
       this.muteAudio();
     }
