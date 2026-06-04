@@ -1,0 +1,62 @@
+<div class="analytics-page">
+  <header class="analytics-header">
+    <button class="back-btn" (click)="back()" aria-label="Back to moment">
+      <i class="bi bi-arrow-left"></i>
+    </button>
+    <h1>Analytics</h1>
+    <div class="day-filter">
+      <button [class.active]="days === 7" (click)="setDays(7)">7d</button>
+      <button [class.active]="days === 30" (click)="setDays(30)">30d</button>
+      <button [class.active]="days === 90" (click)="setDays(90)">90d</button>
+    </div>
+  </header>
+
+  @if (loading) {
+    <div class="analytics-loading">Loading analytics…</div>
+  } @else if (error) {
+    <div class="analytics-error">Failed to load analytics.</div>
+  } @else {
+    <section class="totals-row">
+      <div class="stat-card">
+        <i class="bi bi-eye"></i>
+        <span class="stat-value">{{ totals.totalViews }}</span>
+        <span class="stat-label">Total Views</span>
+      </div>
+      <div class="stat-card">
+        <i class="bi bi-chat-square-heart"></i>
+        <span class="stat-value">{{ totals.totalPosts }}</span>
+        <span class="stat-label">Total Posts</span>
+      </div>
+      <div class="stat-card">
+        <i class="bi bi-emoji-smile"></i>
+        <span class="stat-value">{{ totals.totalReactions }}</span>
+        <span class="stat-label">Total Reactions</span>
+      </div>
+    </section>
+
+    @if (daily.length === 0) {
+      <div class="analytics-empty">No activity in this period yet.</div>
+    } @else {
+      <section class="chart-section">
+        <h2>Activity (last {{ days }} days)</h2>
+        <div class="chart-legend">
+          <span class="legend-views">Views</span>
+          <span class="legend-posts">Posts</span>
+          <span class="legend-reactions">Reactions</span>
+        </div>
+        <div class="bar-chart">
+          @for (day of daily; track day.date) {
+            <div class="bar-group">
+              <div class="bars">
+                <div class="bar bar--views" [style.height.%]="barHeight(day.views)" [title]="day.views + ' views'"></div>
+                <div class="bar bar--posts" [style.height.%]="barHeight(day.postCount)" [title]="day.postCount + ' posts'"></div>
+                <div class="bar bar--reactions" [style.height.%]="barHeight(day.reactionCount)" [title]="day.reactionCount + ' reactions'"></div>
+              </div>
+              <span class="bar-label">{{ formatDate(day.date) }}</span>
+            </div>
+          }
+        </div>
+      </section>
+    }
+  }
+</div>

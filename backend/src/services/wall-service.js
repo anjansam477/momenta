@@ -1,4 +1,5 @@
 const wallRepository = require("../repositories/wall-repository");
+const analyticsRepository = require('../repositories/analytics-repository');
 const postRepository = require("../repositories/post-repository");
 const interactionRepository = require("../repositories/interaction-repository");
 const Response = require("../utils/error-handler");
@@ -31,6 +32,7 @@ class WallService {
       const hasAccess = wall.anyoneCanView || wall.anyoneCanPost || await wallRepository.hasAccess(wallId, userEmail);
       if (!hasAccess) throw new Error(Response.generateMessage(Response.errorMessage.NO_ACCESS, "wall"));
       await wallRepository.recordInteraction(wallId, userEmail);
+      analyticsRepository.incrementView(wallId).catch(() => {});
     }
 
     const wallObj = wall.toObject ? wall.toObject() : wall;

@@ -57,6 +57,11 @@ export const routes: Routes = [
     loadComponent: () => import('./components/walls/view-wall/view-wall.component').then((m) => m.ViewWallComponent)
   },
   {
+    path: 'moment/:momentId/analytics',
+    canActivate: [AuthguardService],
+    loadComponent: () => import('./components/walls/wall-analytics/wall-analytics.component').then((m) => m.WallAnalyticsComponent)
+  },
+  {
     path: 'download/:momentId',
     canActivate: [AuthguardService],
     loadComponent: () => import('./components/walls/download-wall/download-wall.component').then((m) => m.DownloadWallComponent)

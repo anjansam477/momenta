@@ -1,3 +1,16 @@
+export interface WallAnalyticsDay {
+  date: string;
+  views: number;
+  postCount: number;
+  reactionCount: number;
+}
+
+export interface WallAnalyticsTotals {
+  totalViews: number;
+  totalPosts: number;
+  totalReactions: number;
+}
+
 export type WallStatus = 'active' | 'locked' | 'archived';
 export type SaveType = 'saved' | 'favourite';
 export type ReactionType = 'heart' | 'like' | 'laugh' | 'wow' | 'sad' | 'celebrate';

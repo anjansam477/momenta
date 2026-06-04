@@ -81,6 +81,12 @@
         <i class="bi bi-send-check"></i>
         <span>Schedule</span>
       </button>
+      @if (isCreatorOrMaintainer) {
+        <button type="button" (click)="openAnalytics()" aria-label="Analytics">
+          <i class="bi bi-bar-chart-line"></i>
+          <span>Analytics</span>
+        </button>
+      }
     </nav>
 
     <div class="control-center__body">

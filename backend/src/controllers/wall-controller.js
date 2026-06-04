@@ -1,4 +1,5 @@
 ﻿const wallService = require("../services/wall-service");
+const analyticsRepository = require('../repositories/analytics-repository');
 const reactionsRepository = require("../repositories/reactions-repository");
 const authMiddleware = require("../middleware/auth");
 const Response = require("../utils/error-handler");
@@ -90,4 +91,22 @@ exports.viewReceiverWall = asyncHandler(async (req, res) => {
   if (!decoded) return Response.respondError(res, new Error(Response.errorMessage.INVALID_TOKEN));
   const result = await wallService.getWall(decoded.wallId, decoded.email);
   return Response.respondOk(res, result);
+});
+
+exports.getWallAnalytics = asyncHandler(async (req, res) => {
+  const { wallId } = req.params;
+  const days = parseInt(req.query.days) || 30;
+  const [daily, totals] = await Promise.all([
+    analyticsRepository.getAnalytics(wallId, days),
+    analyticsRepository.getTotals(wallId)
+  ]);
+  return Response.respondOk(res, { daily, totals });
+});
+
+exports.generateInviteLink = asyncHandler(async (req, res) => {
+  const { wallId } = req.params;
+  const { email } = req.body;
+  if (!email) return Response.respondError(res, new Error('Email is required'));
+  const token = authMiddleware.generateTokenForReceiver(email, wallId);
+  return Response.respondOk(res, { token });
 });

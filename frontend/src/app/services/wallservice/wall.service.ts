@@ -3,7 +3,9 @@ import { Injectable } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { SERVICE_BASE_URL } from '../../environment-config';
 import { SharedDataService } from '../sharedDataService/shared-data.service';
-import { Wall } from '../../shared/models';
+import { Wall, WallAnalyticsDay, WallAnalyticsTotals } from '../../shared/models';
+
+export { WallAnalyticsDay, WallAnalyticsTotals };
 
 @Injectable({
   providedIn: 'root',
@@ -30,6 +32,10 @@ export class WallService {
 
   getRecentWalls(userEmail: string): Observable<Wall[]> {
    return this.http.get<Wall[]>(`${this.wallServiceBaseUrl}/recents/${userEmail}`);
+  }
+
+  generateInviteLink(wallId: string, email: string): Observable<{ token: string }> {
+    return this.http.post<{ token: string }>(`${this.wallServiceBaseUrl}/${wallId}/invite-link`, { email });
   }
 
   getStarredWalls(userEmail: string): Observable<Wall[]> {
@@ -113,5 +119,9 @@ export class WallService {
   removeWall(wallId: string, emailId: string, saveType: string): Observable<void> {
     const params = new HttpParams().set('saveType', saveType);
     return this.http.delete<void>(`${this.wallServiceBaseUrl}/save/${wallId}/${emailId}`, { params });
+  }
+
+  getWallAnalytics(wallId: string, days = 30): Observable<{ daily: WallAnalyticsDay[]; totals: WallAnalyticsTotals }> {
+    return this.http.get<{ daily: WallAnalyticsDay[]; totals: WallAnalyticsTotals }>(`${this.wallServiceBaseUrl}/${wallId}/analytics?days=${days}`);
   }
 }

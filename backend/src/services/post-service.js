@@ -1,4 +1,5 @@
 const postRepository = require("../repositories/post-repository");
+const analyticsRepository = require('../repositories/analytics-repository');
 const wallRepository = require("../repositories/wall-repository");
 const Response = require("../utils/error-handler");
 const { publishNotification } = require("./notification-event-service");
@@ -9,6 +10,7 @@ class PostService {
     const requiresApproval = wall?.postConfig?.requireApproval;
     const status = requiresApproval ? "pending_approval" : "active";
     const post = await postRepository.addPost({ ...postData, status });
+    analyticsRepository.incrementPost(postData.wallId).catch(() => {});
     if (!requiresApproval) {
       await publishNotification(NOTIFICATION_TYPES.POST_ADDED, {
         wallId: postData.wallId,

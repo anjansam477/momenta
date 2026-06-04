@@ -50,6 +50,7 @@ export class WallNavbarComponent {
   closeDate: string | Date | null = null;
   isArchived: boolean = false;
   isPreview: boolean= false;
+  isCreatorOrMaintainer = false;
   sharedWallUrl: string = '';
   baseUrl: string = UI_BASE_URL; 
   constructor(
@@ -130,6 +131,9 @@ export class WallNavbarComponent {
         this.wallTitle = wallData.title;
         this.wallDescription = wallData.description;
         this.wallCreator = wallData.ownerEmail;
+        const userEmail = localStorage.getItem('email') || '';
+        const creatorMails = [...(wallData.maintainerEmails || []), wallData.ownerEmail].filter(Boolean);
+        this.isCreatorOrMaintainer = creatorMails.includes(userEmail);
         this.openDate = wallData.openDate ?? null;
         this.closeDate = wallData.closeDate ?? null;
         this.isArchived = wallData.isArchived;
@@ -158,6 +162,10 @@ export class WallNavbarComponent {
     this.sharedService.setMyPost(false);
   }
   
+  openAnalytics(): void {
+    this.router.navigate(['/moment', this.wallId, 'analytics']);
+  }
+
   download() {
     const downloadUrl = `download/${this.wallId}`;
     const windowOptions = 'toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,copyhistory=no,resizable=yes,width=1920,height=1080';
