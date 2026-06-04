@@ -4,6 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidatorFn } from '@angular/forms';
 import { filter, take } from 'rxjs/operators';
 import { UserService } from '../../../services/userservice/user.service';
+import { UserCacheService } from '../../../services/userservice/user-cache.service';
 import { SharedDataService } from '../../../services/sharedDataService/shared-data.service';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../services/authservice/auth.service';
@@ -67,6 +68,7 @@ export class AddUserComponent implements OnInit {
     private fb: FormBuilder,
     private router: Router,
     private userService: UserService,
+    private userCache: UserCacheService,
     private sharedService: SharedDataService,
     private authService: AuthService
   ) { }
@@ -95,7 +97,7 @@ export class AddUserComponent implements OnInit {
   
 
   fetchUserDetails(email: string): void {
-    this.userService.fetchUserNamesByEmail(email).subscribe({
+    this.userCache.getUser(email).subscribe({
       next: (userDetails: UserDetails | null) => {
         if (userDetails) {
           this.selectedUsers.push({

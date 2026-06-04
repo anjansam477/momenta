@@ -34,16 +34,43 @@ class AnalyticsRepository {
     );
   }
 
-  async getAnalytics(wallId, days = 30) {
-    const since = new Date();
-    since.setUTCDate(since.getUTCDate() - days);
-    since.setUTCHours(0,0,0,0);
-    return WallAnalytics.find({ wallId, date: { $gte: since } }).sort({ date: 1 });
+  async getAnalytics(wallId, { days, from, to } = {}) {
+    let startDate;
+    if (from) {
+      startDate = new Date(from);
+    } else {
+      startDate = new Date();
+      startDate.setUTCDate(startDate.getUTCDate() - (days || 30));
+      startDate.setUTCHours(0, 0, 0, 0);
+    }
+    const query = { wallId, date: { $gte: startDate } };
+    if (to) query.date.$lte = new Date(to);
+    return WallAnalytics.find(query).sort({ date: 1 });
   }
 
   async getTotals(wallId) {
     const result = await WallAnalytics.aggregate([
       { $match: { wallId: require('mongoose').Types.ObjectId.createFromHexString(wallId.toString()) } },
+      { $group: { _id: null, totalViews: { $sum: '$views' }, totalPosts: { $sum: '$postCount' }, totalReactions: { $sum: '$reactionCount' } } }
+    ]);
+    return result[0] || { totalViews: 0, totalPosts: 0, totalReactions: 0 };
+  }
+
+  async getPreviousTotals(wallId, { days, from, to } = {}) {
+    let startDate, endDate;
+    if (from && to) {
+      const len = new Date(to) - new Date(from);
+      endDate = new Date(from);
+      startDate = new Date(endDate - len);
+    } else {
+      endDate = new Date();
+      endDate.setUTCDate(endDate.getUTCDate() - (days || 30));
+      endDate.setUTCHours(0, 0, 0, 0);
+      startDate = new Date(endDate);
+      startDate.setUTCDate(startDate.getUTCDate() - (days || 30));
+    }
+    const result = await WallAnalytics.aggregate([
+      { $match: { wallId: require('mongoose').Types.ObjectId.createFromHexString(wallId.toString()), date: { $gte: startDate, $lt: endDate } } },
       { $group: { _id: null, totalViews: { $sum: '$views' }, totalPosts: { $sum: '$postCount' }, totalReactions: { $sum: '$reactionCount' } } }
     ]);
     return result[0] || { totalViews: 0, totalPosts: 0, totalReactions: 0 };

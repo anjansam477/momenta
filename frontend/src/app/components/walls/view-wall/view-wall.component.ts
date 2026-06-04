@@ -128,8 +128,6 @@ export class ViewWallComponent implements OnInit ,OnDestroy{
   }
 
   fetchWallDetails() {
-    this.isMomentReady = true;
-
     if (this.wallDetailsSubscription) {
       this.wallDetailsSubscription.unsubscribe();
     }

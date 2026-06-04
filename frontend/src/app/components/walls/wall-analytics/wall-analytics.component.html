@@ -1,83 +1,166 @@
 <div class="analytics-wrap">
 
-  <header class="analytics-header">
-    <button class="analytics-back" (click)="back()" aria-label="Back to moment">
-      <i class="bi bi-arrow-left"></i>
-    </button>
-    <div class="analytics-header-title">
-      <span class="analytics-eyebrow">Moment</span>
+  <!-- Header -->
+  <header class="an-header">
+    <button class="an-back" (click)="back()"><i class="bi bi-arrow-left"></i></button>
+    <div class="an-title">
+      <span class="an-eyebrow">Moment</span>
       <h1>Analytics</h1>
     </div>
-    <div class="analytics-filter">
-      <button [class.active]="days === 7"  (click)="setDays(7)">7d</button>
-      <button [class.active]="days === 30" (click)="setDays(30)">30d</button>
-      <button [class.active]="days === 90" (click)="setDays(90)">90d</button>
+    <div class="an-presets">
+      @for (p of presets; track p) {
+        @if (p !== 'custom') {
+          <button [class.active]="filter.preset === p" (click)="selectPreset(p)">{{ p }}</button>
+        } @else {
+          <button [class.active]="filter.preset === 'custom'" (click)="selectPreset('custom')">
+            <i class="bi bi-calendar-range"></i> Custom
+          </button>
+        }
+      }
     </div>
   </header>
 
+  <!-- Custom date picker -->
+  @if (showCustom) {
+    <div class="an-custom-range">
+      <input type="date" [(ngModel)]="customFrom" class="an-date-input" />
+      <span>to</span>
+      <input type="date" [(ngModel)]="customTo" class="an-date-input" />
+      <button class="an-apply-btn" (click)="applyCustom()" [disabled]="!customFrom || !customTo">Apply</button>
+    </div>
+  }
+
   @if (loading) {
-    <div class="analytics-state">
-      <div class="analytics-spinner"></div>
-      <span>Loading analytics…</span>
-    </div>
+    <div class="an-state"><div class="an-spinner"></div><span>Loading analytics…</span></div>
   } @else if (error) {
-    <div class="analytics-state analytics-state--error">
-      <i class="bi bi-exclamation-circle"></i>
-      <span>Failed to load analytics.</span>
-      <button class="analytics-retry" (click)="setDays(days)">Retry</button>
-    </div>
+    <div class="an-state an-state--error"><i class="bi bi-exclamation-circle"></i><span>Failed to load.</span></div>
   } @else {
 
-    <section class="analytics-stats">
-      <div class="stat-card">
-        <div class="stat-icon stat-icon--views"><i class="bi bi-eye"></i></div>
-        <div class="stat-body">
+    <!-- Stat cards -->
+    <section class="an-stats">
+      <div class="an-card an-card--views">
+        <div class="an-card-icon"><i class="bi bi-eye"></i></div>
+        <div class="an-card-body">
           <strong>{{ totals.totalViews }}</strong>
           <span>Views</span>
+          <div class="an-trend" [class.up]="trend(totals.totalViews, previousTotals.totalViews) >= 0" [class.down]="trend(totals.totalViews, previousTotals.totalViews) < 0">
+            <i class="bi" [class.bi-arrow-up-short]="trend(totals.totalViews, previousTotals.totalViews) >= 0" [class.bi-arrow-down-short]="trend(totals.totalViews, previousTotals.totalViews) < 0"></i>
+            {{ trend(totals.totalViews, previousTotals.totalViews) | abs }}% vs prev
+          </div>
         </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon stat-icon--posts"><i class="bi bi-chat-square-heart"></i></div>
-        <div class="stat-body">
+      <div class="an-card an-card--posts">
+        <div class="an-card-icon"><i class="bi bi-chat-square-heart"></i></div>
+        <div class="an-card-body">
           <strong>{{ totals.totalPosts }}</strong>
           <span>Posts</span>
+          <div class="an-trend" [class.up]="trend(totals.totalPosts, previousTotals.totalPosts) >= 0" [class.down]="trend(totals.totalPosts, previousTotals.totalPosts) < 0">
+            <i class="bi" [class.bi-arrow-up-short]="trend(totals.totalPosts, previousTotals.totalPosts) >= 0" [class.bi-arrow-down-short]="trend(totals.totalPosts, previousTotals.totalPosts) < 0"></i>
+            {{ trend(totals.totalPosts, previousTotals.totalPosts) | abs }}% vs prev
+          </div>
         </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon stat-icon--reactions"><i class="bi bi-emoji-smile"></i></div>
-        <div class="stat-body">
+      <div class="an-card an-card--reactions">
+        <div class="an-card-icon"><i class="bi bi-emoji-smile"></i></div>
+        <div class="an-card-body">
           <strong>{{ totals.totalReactions }}</strong>
           <span>Reactions</span>
+          <div class="an-trend" [class.up]="trend(totals.totalReactions, previousTotals.totalReactions) >= 0" [class.down]="trend(totals.totalReactions, previousTotals.totalReactions) < 0">
+            <i class="bi" [class.bi-arrow-up-short]="trend(totals.totalReactions, previousTotals.totalReactions) >= 0" [class.bi-arrow-down-short]="trend(totals.totalReactions, previousTotals.totalReactions) < 0"></i>
+            {{ trend(totals.totalReactions, previousTotals.totalReactions) | abs }}% vs prev
+          </div>
         </div>
       </div>
     </section>
 
     @if (daily.length === 0) {
-      <div class="analytics-state">
-        <i class="bi bi-bar-chart" style="font-size:2rem;color:#10a7a4"></i>
-        <span>No activity in this period yet.</span>
-      </div>
+      <div class="an-state"><i class="bi bi-bar-chart" style="font-size:2.5rem;color:#10a7a4"></i><span>No activity in this period yet.</span></div>
     } @else {
-      <section class="analytics-chart-section">
-        <div class="chart-header">
+
+      <!-- SVG Chart -->
+      <section class="an-chart-section">
+        <div class="an-chart-header">
           <h2>Activity over time</h2>
-          <div class="chart-legend">
-            <span class="legend-dot legend-dot--views"></span>Views
-            <span class="legend-dot legend-dot--posts"></span>Posts
-            <span class="legend-dot legend-dot--reactions"></span>Reactions
+          <div class="an-legend">
+            <span class="dot dot--views"></span>Views
+            <span class="dot dot--posts"></span>Posts
+            <span class="dot dot--reactions"></span>Reactions
           </div>
         </div>
-        <div class="bar-chart cst-scrollbar">
-          @for (day of daily; track day.date) {
-            <div class="bar-col">
-              <div class="bar-group">
-                <div class="bar bar--views"     [style.height.%]="barHeight(day.views)"         [title]="day.views + ' views'"></div>
-                <div class="bar bar--posts"     [style.height.%]="barHeight(day.postCount)"     [title]="day.postCount + ' posts'"></div>
-                <div class="bar bar--reactions" [style.height.%]="barHeight(day.reactionCount)" [title]="day.reactionCount + ' reactions'"></div>
-              </div>
-              <span class="bar-label">{{ formatDate(day.date) }}</span>
+        <div class="an-chart-scroll cst-scrollbar">
+          <svg [attr.viewBox]="'0 0 ' + CHART_W + ' ' + CHART_H" [attr.width]="CHART_W" [attr.height]="CHART_H" class="an-svg" aria-hidden="true">
+            <!-- Y grid lines -->
+            @for (y of yLabels(); track y.label) {
+              <line [attr.x1]="PAD_L" [attr.x2]="CHART_W - 16" [attr.y1]="y.y" [attr.y2]="y.y" stroke="#f0f2f5" stroke-width="1"/>
+              <text [attr.x]="PAD_L - 6" [attr.y]="y.y + 4" text-anchor="end" class="svg-label">{{ y.label }}</text>
+            }
+            <!-- Area fills -->
+            <path [attr.d]="areaPath('reactionCount')" fill="rgba(249,123,107,0.07)"/>
+            <path [attr.d]="areaPath('postCount')"     fill="rgba(99,102,241,0.07)"/>
+            <path [attr.d]="areaPath('views')"         fill="rgba(16,167,164,0.08)"/>
+            <!-- Lines -->
+            <path [attr.d]="linePath('reactionCount')" fill="none" stroke="#f97b6b" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+            <path [attr.d]="linePath('postCount')"     fill="none" stroke="#6366f1" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+            <path [attr.d]="linePath('views')"         fill="none" stroke="#10a7a4" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+            <!-- X labels -->
+            @for (lbl of xLabels(); track lbl.label) {
+              <text [attr.x]="lbl.x" [attr.y]="CHART_H - 4" text-anchor="middle" class="svg-label">{{ lbl.label }}</text>
+            }
+          </svg>
+        </div>
+      </section>
+
+      <!-- Insights row -->
+      <section class="an-insights">
+        @if (peakDay(); as peak) {
+          <div class="an-insight-card">
+            <i class="bi bi-fire"></i>
+            <div>
+              <strong>Peak day</strong>
+              <span>{{ fmtDate(peak.date) }} — {{ peak.value }} {{ peak.metric }}</span>
             </div>
-          }
+          </div>
+        }
+        <div class="an-insight-card">
+          <i class="bi bi-eye"></i>
+          <div>
+            <strong>Avg views/day</strong>
+            <span>{{ avgPerDay('views') }}</span>
+          </div>
+        </div>
+        <div class="an-insight-card">
+          <i class="bi bi-chat-square-heart"></i>
+          <div>
+            <strong>Avg posts/day</strong>
+            <span>{{ avgPerDay('postCount') }}</span>
+          </div>
+        </div>
+        <div class="an-insight-card">
+          <i class="bi bi-emoji-smile"></i>
+          <div>
+            <strong>Avg reactions/day</strong>
+            <span>{{ avgPerDay('reactionCount') }}</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Data table -->
+      <section class="an-table-section">
+        <h2>Daily breakdown</h2>
+        <div class="an-table-wrap cst-scrollbar">
+          <table class="an-table">
+            <thead><tr><th>Date</th><th>Views</th><th>Posts</th><th>Reactions</th></tr></thead>
+            <tbody>
+              @for (day of daily; track day.date) {
+                <tr>
+                  <td>{{ fmtDate(day.date) }}</td>
+                  <td><span class="td-views">{{ day.views }}</span></td>
+                  <td><span class="td-posts">{{ day.postCount }}</span></td>
+                  <td><span class="td-reactions">{{ day.reactionCount }}</span></td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
       </section>
     }

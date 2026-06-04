@@ -1,30 +1,41 @@
 ﻿import { ChangeDetectorRef, Component, ElementRef, Input, ViewChild , ChangeDetectionStrategy } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ClipboardService } from 'ngx-clipboard';
 import { QRCodeComponent } from 'angularx-qrcode';
 import { SafeUrl } from '@angular/platform-browser';
 import { BackgroundImageService } from '../../services/backgroundimageservice/background-image.service';
+import { WallService } from '../../services/wallservice/wall.service';
+import { ToastrService } from 'ngx-toastr';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-sharemodal',
   standalone: true,
-  imports: [QRCodeComponent],
+  imports: [QRCodeComponent, FormsModule],
   templateUrl: './sharemodal.component.html',
   styleUrl: './sharemodal.component.css',
 })
 export class SharemodalComponent {
   @Input() sharedWallUrl: string = '';
   @Input() wallTitle: string = '';
+  @Input() wallId: string = '';
+  @Input() isCreator: boolean = false;
   isLinkCopied: boolean = false;
   linkCopied:string='';
   qrCodeDownloadLink: SafeUrl = "";
   qrCopied:string="";
   isqrCopied:boolean=false;
+  inviteEmail: string = '';
+  inviteLink: string = '';
+  isGenerating: boolean = false;
+  inviteCopied: boolean = false;
   @ViewChild('qrcodeElement', { static: false }) qrcodeElement!: ElementRef;
 
   constructor(
     private clipboardService: ClipboardService,
     private imagesService: BackgroundImageService,
-    private changeDetectorRef: ChangeDetectorRef
+    private changeDetectorRef: ChangeDetectorRef,
+    private wallService: WallService,
+    private toastr: ToastrService
   ) { }
 
   share() {
@@ -206,5 +217,30 @@ export class SharemodalComponent {
     const textWidth = ctx.measureText(text).width;
     const centerX = (canvasWidth - textWidth) / 2;
     ctx.fillText(text, centerX, yPosition);
+  }
+
+  generateInviteLink(): void {
+    if (!this.inviteEmail || !this.wallId) return;
+    this.isGenerating = true;
+    this.wallService.generateInviteLink(this.wallId, this.inviteEmail).subscribe({
+      next: ({ token }) => {
+        this.inviteLink = `${window.location.origin}/moment/${this.wallId}?token=${token}`;
+        this.isGenerating = false;
+        this.changeDetectorRef.markForCheck();
+      },
+      error: () => {
+        this.isGenerating = false;
+        this.toastr.error('Failed to generate invite link');
+        this.changeDetectorRef.markForCheck();
+      }
+    });
+  }
+
+  copyInviteLink(): void {
+    navigator.clipboard.writeText(this.inviteLink).then(() => {
+      this.inviteCopied = true;
+      this.changeDetectorRef.markForCheck();
+      setTimeout(() => { this.inviteCopied = false; this.changeDetectorRef.markForCheck(); }, 3000);
+    });
   }
 }

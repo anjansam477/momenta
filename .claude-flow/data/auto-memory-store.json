@@ -1,0 +1,14 @@
+[
+  {
+    "id": "task-task_1780376989070_gs2yi0",
+    "key": "task_1780376989070_gs2yi0",
+    "content": "Task completed: task_1780376989070_gs2yi0",
+    "namespace": "tasks",
+    "type": "task-outcome",
+    "metadata": {
+      "success": true,
+      "quality": 0.85
+    },
+    "createdAt": 1780376990398
+  }
+]

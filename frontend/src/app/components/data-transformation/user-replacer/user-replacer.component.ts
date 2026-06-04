@@ -1,6 +1,7 @@
-import { Component, DestroyRef, inject, Input, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectorRef, DestroyRef, inject, Input, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UserService } from '../../../services/userservice/user.service';
+import { UserCacheService } from '../../../services/userservice/user-cache.service';
 import { NotificationsService } from '../../../services/notificationservice/notifications.service';
 import { ActivatedRoute } from '@angular/router';
 import { NgClass, DatePipe } from '@angular/common';
@@ -29,11 +30,13 @@ export class UserReplacerComponent {
   profilePicture: string = '';
 
   constructor(
-    private userService: UserService, 
+    private userService: UserService,
+    private userCache: UserCacheService,
     private notificationService: NotificationsService,
     private sharedService: SharedDataService,
     private authService: AuthService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef
   ) { }
 
   ngOnInit(): void {
@@ -70,12 +73,13 @@ export class UserReplacerComponent {
     const reader = new FileReader();
     reader.onload = () => {
       this.profilePicture = reader.result as string;
+      this.cdr.markForCheck();
     };
     reader.readAsDataURL(blob);
   }
 
   fetchUserDetails(): void {
-    this.userService.fetchUserNamesByEmail(this.email).subscribe({
+    this.userCache.getUser(this.email).subscribe({
       next: (userDetails: UserDetails | null) => {
         if (userDetails) {
           this.userName = userDetails.fullName || this.email;
@@ -83,9 +87,11 @@ export class UserReplacerComponent {
         } else {
           this.userName = this.email;
         }
+        this.cdr.markForCheck();
       },
       error: () => {
         this.userName = this.email;
+        this.cdr.markForCheck();
       }
     });
   }

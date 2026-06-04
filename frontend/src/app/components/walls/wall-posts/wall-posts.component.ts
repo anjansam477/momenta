@@ -182,6 +182,7 @@ export class WallPostsComponent {
           if (updatedMediaUrl && updatedMediaUrl !== '#' && updatedMediaUrl !== '' && (!existingMediaUrl || existingMediaUrl === '#')) {
             this.myUrl(updatedMediaUrl).subscribe((safeUrl: SafeUrl) => {
               this.mediaUrls[updatedMediaUrl] = safeUrl;
+              this.cdr.markForCheck();
             });
           }
           updatedPost.profilePicture = existingPost.profilePicture;
@@ -462,6 +463,7 @@ export class WallPostsComponent {
       )) {
         this.myUrl(mediaUrl).subscribe((safeUrl: SafeUrl) => {
           this.mediaUrls[mediaUrl] = safeUrl;
+          this.cdr.markForCheck();
         });
       }
     });
@@ -664,6 +666,7 @@ export class WallPostsComponent {
             if (newMediaUrl && newMediaUrl !== '#') {
               this.myUrl(newMediaUrl).subscribe((safeUrl: SafeUrl) => {
                 this.mediaUrls[newMediaUrl] = safeUrl;
+                this.cdr.markForCheck();
               });
             }
             this.posts.push(data);

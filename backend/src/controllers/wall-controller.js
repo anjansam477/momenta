@@ -95,12 +95,14 @@ exports.viewReceiverWall = asyncHandler(async (req, res) => {
 
 exports.getWallAnalytics = asyncHandler(async (req, res) => {
   const { wallId } = req.params;
-  const days = parseInt(req.query.days) || 30;
-  const [daily, totals] = await Promise.all([
-    analyticsRepository.getAnalytics(wallId, days),
-    analyticsRepository.getTotals(wallId)
+  const { days, from, to } = req.query;
+  const filter = { days: parseInt(days) || 30, from, to };
+  const [daily, totals, previousTotals] = await Promise.all([
+    analyticsRepository.getAnalytics(wallId, filter),
+    analyticsRepository.getTotals(wallId),
+    analyticsRepository.getPreviousTotals(wallId, filter)
   ]);
-  return Response.respondOk(res, { daily, totals });
+  return Response.respondOk(res, { daily, totals, previousTotals });
 });
 
 exports.generateInviteLink = asyncHandler(async (req, res) => {

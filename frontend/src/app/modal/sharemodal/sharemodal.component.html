@@ -52,6 +52,26 @@
                     @else{
                     <p class="modal-para mt-2" style="color:rgb(225, 17, 17)">{{linkCopied}}</p>
                     }
+                    @if (isCreator) {
+                      <div class="partition mt-3"><span>INVITE PRIVATELY</span></div>
+                      <div class="invite-link-section mt-3">
+                        <div class="input-group">
+                          <input type="email" class="form-control" placeholder="Enter email to invite"
+                            [(ngModel)]="inviteEmail" (keyup.enter)="generateInviteLink()" />
+                          <button class="btn btn-primary" (click)="generateInviteLink()" [disabled]="isGenerating || !inviteEmail">
+                            {{ isGenerating ? 'Generating...' : 'Generate' }}
+                          </button>
+                        </div>
+                        @if (inviteLink) {
+                          <div class="invite-result mt-2">
+                            <input type="text" class="form-control" [value]="inviteLink" readonly />
+                            <button class="btn btn-outline-primary w-100 mt-2" (click)="copyInviteLink()">
+                              <i class="bi bi-copy me-1"></i>{{ inviteCopied ? 'Copied!' : 'Copy Invite Link' }}
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    }
                 </div>
             </div>
         </div>

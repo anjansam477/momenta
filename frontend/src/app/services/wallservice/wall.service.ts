@@ -121,7 +121,10 @@ export class WallService {
     return this.http.delete<void>(`${this.wallServiceBaseUrl}/save/${wallId}/${emailId}`, { params });
   }
 
-  getWallAnalytics(wallId: string, days = 30): Observable<{ daily: WallAnalyticsDay[]; totals: WallAnalyticsTotals }> {
-    return this.http.get<{ daily: WallAnalyticsDay[]; totals: WallAnalyticsTotals }>(`${this.wallServiceBaseUrl}/${wallId}/analytics?days=${days}`);
+  getWallAnalytics(wallId: string, filter: { days?: number; from?: string; to?: string } = {}): Observable<{ daily: WallAnalyticsDay[]; totals: WallAnalyticsTotals; previousTotals: WallAnalyticsTotals }> {
+    const params = new URLSearchParams();
+    if (filter.from) { params.set('from', filter.from); params.set('to', filter.to ?? ''); }
+    else params.set('days', String(filter.days ?? 30));
+    return this.http.get<{ daily: WallAnalyticsDay[]; totals: WallAnalyticsTotals; previousTotals: WallAnalyticsTotals }>(`${this.wallServiceBaseUrl}/${wallId}/analytics?${params}`);
   }
 }
