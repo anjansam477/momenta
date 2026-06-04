@@ -3,6 +3,7 @@
   Component,
   DestroyRef,
   EventEmitter,
+  Input,
   OnInit,
   Output,
   ViewChild,
@@ -58,6 +59,8 @@ export class SettingsComponent implements OnInit {
   activeViewTab: 'email' | 'domain' = 'email';
   activePostTab: 'email' | 'domain' = 'email';
   @Output() closeModal = new EventEmitter<void>();
+  @Output() openAnalytics = new EventEmitter<void>();
+  @Input() isCreatorOrMaintainer = false;
   minDate: Date = new Date();
   maxDate: Date | undefined;
   closeMinDate: Date | null = null;

@@ -319,3 +319,7 @@
 
 .cc-btn--primary:hover:not(:disabled) { background: #0a9099; }
 .cc-btn--primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.cc-row--action { cursor: pointer; }
+.cc-row--action:hover { background: #f6f8fb; }
+.cc-row-chevron { color: #adb5bd; font-size: 0.8rem; margin-left: auto; }

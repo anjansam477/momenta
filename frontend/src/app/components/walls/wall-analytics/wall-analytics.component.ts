@@ -2,10 +2,9 @@ import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, DestroyR
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { WallService, WallAnalyticsDay, WallAnalyticsTotals } from '../../../services/wallservice/wall.service';
-import { SharedDataService } from '../../../services/sharedDataService/shared-data.service';
 import { AuthService } from '../../../services/authservice/auth.service';
 import { isWallCreator } from '../../../utils/wall.util';
-import { filter, take } from 'rxjs';
+import { switchMap } from 'rxjs';
 import { Wall } from '../../../shared/models';
 
 @Component({
@@ -29,7 +28,6 @@ export class WallAnalyticsComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private wallService: WallService,
-    private sharedService: SharedDataService,
     private authService: AuthService,
     private cdr: ChangeDetectorRef
   ) {}
@@ -37,25 +35,17 @@ export class WallAnalyticsComponent implements OnInit {
   ngOnInit(): void {
     this.wallId = this.route.snapshot.paramMap.get('momentId') ?? this.route.snapshot.paramMap.get('wallId') ?? '';
 
-    // Guard: only creator/maintainer can view
-    this.sharedService.getWallDetails().pipe(
-      filter(w => !!w), take(1), takeUntilDestroyed(this.destroyRef)
-    ).subscribe((wall: Wall) => {
-      const userEmail = this.authService.getEmail() ?? '';
-      const creatorMails = [...(wall.maintainerEmails || []), wall.ownerEmail].filter(Boolean);
-      if (!isWallCreator(userEmail, creatorMails)) {
-        this.router.navigateByUrl('error');
-        return;
-      }
-      this.loadAnalytics();
-    });
-  }
-
-  loadAnalytics(): void {
-    this.loading = true;
-    this.error = false;
-    this.wallService.getWallAnalytics(this.wallId, this.days).pipe(
-      takeUntilDestroyed(this.destroyRef)
+    this.wallService.getWallById(this.wallId).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      switchMap((response) => {
+        const wallData: Wall = (response as { wallDetails?: Wall }).wallDetails ?? (response as Wall);
+        const userEmail = this.authService.getEmail() ?? '';
+        const creatorMails = [...(wallData.maintainerEmails || []), wallData.ownerEmail].filter(Boolean);
+        if (!isWallCreator(userEmail, creatorMails)) {
+          this.router.navigateByUrl('error');
+        }
+        return this.wallService.getWallAnalytics(this.wallId, this.days);
+      })
     ).subscribe({
       next: (data) => {
         this.daily = data.daily;
@@ -73,7 +63,23 @@ export class WallAnalyticsComponent implements OnInit {
 
   setDays(d: number): void {
     this.days = d;
-    this.loadAnalytics();
+    this.loading = true;
+    this.cdr.markForCheck();
+    this.wallService.getWallAnalytics(this.wallId, this.days).pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
+      next: (data) => {
+        this.daily = data.daily;
+        this.totals = data.totals;
+        this.loading = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.error = true;
+        this.loading = false;
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   back(): void {

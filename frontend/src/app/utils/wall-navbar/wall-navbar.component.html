@@ -81,16 +81,10 @@
         <i class="bi bi-send-check"></i>
         <span>Schedule</span>
       </button>
-      @if (isCreatorOrMaintainer) {
-        <button type="button" (click)="openAnalytics()" aria-label="Analytics">
-          <i class="bi bi-bar-chart-line"></i>
-          <span>Analytics</span>
-        </button>
-      }
     </nav>
 
     <div class="control-center__body">
-      <app-settings [hidden]="activeControl !== 'settings'" (closeModal)="closeModal()"></app-settings>
+      <app-settings [hidden]="activeControl !== 'settings'" (closeModal)="closeModal()" [isCreatorOrMaintainer]="isCreatorOrMaintainer" (openAnalytics)="openAnalytics()"></app-settings>
       <app-background [hidden]="activeControl !== 'style'" (closeModal)="closeModal()"></app-background>
       <app-schedule-delivery [hidden]="activeControl !== 'schedule'" (closeModal)="closeModal()"></app-schedule-delivery>
     </div>

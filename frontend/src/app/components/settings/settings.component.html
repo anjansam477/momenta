@@ -170,6 +170,20 @@
 
   </div>
 
+  <!-- Analytics -->
+  @if (isCreatorOrMaintainer) {
+    <section class="cc-section cc-section--last">
+      <h4 class="cc-section-label"><i class="bi bi-bar-chart-line"></i> Insights</h4>
+      <div class="cc-row cc-row--action" (click)="openAnalytics.emit()" role="button" tabindex="0" aria-label="View analytics">
+        <div class="cc-row-text">
+          <strong>Analytics</strong>
+          <span>Views, posts and reactions over time</span>
+        </div>
+        <i class="bi bi-chevron-right cc-row-chevron"></i>
+      </div>
+    </section>
+  }
+
   <!-- Footer -->
   <footer class="cc-footer">
     <button type="button" class="cc-btn cc-btn--ghost" (click)="closeSidebar()">Cancel</button>
