@@ -1,6 +1,7 @@
-﻿import { AfterViewInit, Component, ElementRef, EventEmitter, OnInit, Output, ViewChild , ChangeDetectionStrategy } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, DestroyRef, ElementRef, EventEmitter, OnInit, Output, ViewChild, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { GifsService } from '../../services/gifservice/gifs.service';
-import {FormsModule } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { GiphyGif } from '../../shared/models';
 
 @Component({
@@ -11,77 +12,84 @@ import { GiphyGif } from '../../shared/models';
   templateUrl: './gif-modal.component.html',
   styleUrl: './gif-modal.component.css'
 })
-export class GifModalComponent implements OnInit,AfterViewInit{
+export class GifModalComponent implements OnInit, AfterViewInit {
   @ViewChild('searchInput') searchInput!: ElementRef;
-  searchTerm: string = '';
-  gifs: GiphyGif[] = [];
-  errorMessage:string="";
-  recievedGifs:boolean=true;
   @Output() gifSelected = new EventEmitter<string>();
-  loader: boolean=false;
 
-  constructor(private gifsService: GifsService) { }
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  searchTerm = '';
+  gifs: GiphyGif[] = [];
+  suggestions: string[] = [];
+  errorMessage = '';
+  receivedGifs = true;
+  loading = false;
+
+  constructor(private gifsService: GifsService) {}
 
   ngOnInit(): void {
-    this.gifsService.trendingGifs().subscribe(
-      (response: GiphyGif[]) => {
-        this.gifs = response;
-      },
-      error => {
-        this.errorMessage='Error fetching GIFs';
-        console.error('Error fetching GIFs', error);
-      }
-    );
+    // Load trending + trending search term suggestions in parallel
+    this.gifsService.trendingGifs()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(data => { this.gifs = data; this.cdr.markForCheck(); });
+
+    this.gifsService.trendingSearchTerms()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(terms => { this.suggestions = terms.slice(0, 8); this.cdr.markForCheck(); });
   }
 
   ngAfterViewInit(): void {
     this.searchInput.nativeElement.focus();
   }
 
-  searchGifs() {
+  searchGifs(term = this.searchTerm): void {
+    const q = term.trim();
+    if (!q) { this.errorMessage = 'Type something to search'; return; }
 
-    if (this.searchTerm.trim() === '') {
-      this.errorMessage="Type something to search";
-      return;
+    this.searchTerm = q;
+    this.loading = true;
+    this.errorMessage = '';
+    this.cdr.markForCheck();
+
+    this.gifsService.searchGifs(q)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: data => {
+          this.gifs = data;
+          this.receivedGifs = data.length > 0;
+          if (!this.receivedGifs) this.errorMessage = 'No results found.';
+          this.loading = false;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.errorMessage = 'Error fetching GIFs';
+          this.loading = false;
+          this.cdr.markForCheck();
+        }
+      });
+  }
+
+  selectGif(gif: GiphyGif): void {
+    // Track analytics per Giphy ToS
+    if (gif.analytics_response_payload) {
+      this.gifsService.trackAction(gif.analytics_response_payload, 'click');
     }
-
-    this.loader = true; 
-    this.errorMessage = "";  
-  
-    const timeout = setTimeout(() => {
-      this.loader = false;
-    }, 2000);
-    
-    this.gifsService.searchGifs(this.searchTerm).subscribe(
-      (response: GiphyGif[]) => {
-        clearTimeout(timeout);
-        this.gifs=[];
-        this.loader = false;
-
-        if(response.length!==0){
-          this.gifs = response;
-          this.recievedGifs = true;
-        }
-        else{
-          this.recievedGifs=false;
-          this.errorMessage="Oops! No result found."
-        }
-      },
-      error => {
-        clearTimeout(timeout); 
-        this.loader = false;
-        console.error('Error fetching GIFs', error);
-        this.errorMessage='Error fetching GIFs';
-      }
-    );
+    this.gifSelected.emit(gif.images.fixed_height?.url ?? gif.images.original.url);
   }
 
-  selectGif(gif: GiphyGif) {
-    this.gifSelected.emit(gif.images.original.url);
+  // Grid thumbnail: use fixed_height (smaller) if available, else original
+  thumbUrl(gif: GiphyGif): string {
+    return gif.images.fixed_height?.url ?? gif.images.original.url;
   }
 
-  onChange(){
-    this.errorMessage="";
-    this.recievedGifs=true;
+  // Static preview before play: fixed_height_still
+  stillUrl(gif: GiphyGif): string {
+    return gif.images.fixed_height_still?.url ?? this.thumbUrl(gif);
+  }
+
+  onChange(): void {
+    this.errorMessage = '';
+    this.receivedGifs = true;
   }
 }

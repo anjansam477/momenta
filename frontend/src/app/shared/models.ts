@@ -21,6 +21,9 @@ export interface WallTheme {
   bgImg: string;
   animationId: string;
   audio: string;
+  bgColor?: string;     // hex color for solid background (overrides bgImg when set)
+  fontFamily?: string;  // CSS font-family name
+  textColor?: string;   // hex color for post text
 }
 
 export interface PostConfig {
@@ -132,13 +135,19 @@ export interface AccessControl {
   domains?: string[];
 }
 
+export interface GiphyRendition { url: string; width?: string; height?: string; }
+
 export interface GiphyGif {
   id: string;
   title?: string;
+  alt_text?: string;
+  analytics_response_payload?: string;
   images: {
-    original: { url: string };
-    fixed_height?: { url: string };
-    downsized?: { url: string };
+    original:           GiphyRendition;
+    fixed_height?:      GiphyRendition;
+    fixed_height_still?: GiphyRendition;
+    fixed_height_small?: GiphyRendition;
+    downsized?:          GiphyRendition;
   };
 }
 

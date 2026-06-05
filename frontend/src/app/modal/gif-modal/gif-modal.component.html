@@ -1,46 +1,54 @@
 <div class="gif-modal container-fluid">
     <div class="wrapper">
-        <div class="flex">
-            <div class="position-relative mb-2">
-                <div>
-                    <input #searchInput type="text" placeholder="Search GIFs" class="form-control ps__40 pe-5"
-                        [(ngModel)]="searchTerm" (keyup.enter)="searchGifs()" (keypress)="onChange()" />
-                    <i class="bi bi-filetype-gif login-input-icon"></i>
-                    <button type="button" class="passwor_show_icon" (click)="searchGifs()" aria-label="Search GIFs">
-                        <i class="bi bi-search" aria-hidden="true"></i>
-                    </button>
-                </div>
-                <div class="validation-text">
-                    {{errorMessage}}
-                </div>
+        <div class="search-wrap mb-2">
+            <div class="search-bar">
+                <i class="bi bi-filetype-gif search-icon-left"></i>
+                <input #searchInput type="text" placeholder="Search GIFs…" class="search-input"
+                    [(ngModel)]="searchTerm" (keyup.enter)="searchGifs()" (input)="onChange()" autocomplete="off" />
+                <button type="button" class="search-btn" (click)="searchGifs()" aria-label="Search GIFs">
+                    <i class="bi bi-search"></i>
+                </button>
             </div>
-        </div>
-        <div class="searched_content">
-            @defer(on timer(2s)){
-                @if(recievedGifs && !loader){
-                    @for (gif of gifs; track gif.id) {
-                        <div class="pic">
-                            <img [src]="gif.images.original.url" alt="GIF" (click)="selectGif(gif)">
-                        </div>
-                    }
-                }
-                @else if(loader){
-                    <div class="pic">
-                        <img
-                            src="https://img.pikbest.com/png-images/20190918/cartoon-snail-loading-loading-gif-animation_2734139.png!bw700" />
-                    </div>
-                }
-                @else{
-                    <div class="pic" style="text-align: center;" >
-                        <img src="assets/images/extra_images/empty.png" style="width: 90%; height: auto; "/>
-                    </div>
-                }
+            @if (errorMessage) {
+                <div class="validation-text mt-1 px-1">{{ errorMessage }}</div>
             }
-            @placeholder{
-            <div class="pic">
-                <img
-                    src="https://img.pikbest.com/png-images/20190918/cartoon-snail-loading-loading-gif-animation_2734139.png!bw700" />
+        </div>
+
+        <!-- Trending search suggestions -->
+        @if (suggestions.length && !searchTerm) {
+            <div class="suggestions">
+                @for (s of suggestions; track s) {
+                    <button type="button" class="suggestion-chip" (click)="searchGifs(s)">{{ s }}</button>
+                }
             </div>
+        }
+
+        <div class="searched_content">
+            @if (loading) {
+                <div class="loader-wrap">
+                    <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+                </div>
+            } @else if (receivedGifs && gifs.length) {
+                @for (gif of gifs; track gif.id) {
+                    <div class="pic" (click)="selectGif(gif)" [title]="gif.title || gif.alt_text || 'GIF'">
+                        <!-- Show still first, swap to animated on hover -->
+                        <img [src]="stillUrl(gif)" [attr.data-src]="thumbUrl(gif)"
+                             [alt]="gif.alt_text || gif.title || 'GIF'"
+                             (mouseenter)="$any($event.target).src = thumbUrl(gif)"
+                             (mouseleave)="$any($event.target).src = stillUrl(gif)"
+                             loading="lazy" />
+                    </div>
+                }
+            } @else if (!receivedGifs) {
+                <div class="empty-state">
+                    <i class="bi bi-emoji-frown"></i>
+                    <span>No GIFs found</span>
+                </div>
+            } @else {
+                <div class="empty-state">
+                    <i class="bi bi-filetype-gif"></i>
+                    <span>Trending GIFs</span>
+                </div>
             }
         </div>
     </div>
