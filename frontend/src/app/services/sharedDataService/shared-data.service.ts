@@ -28,6 +28,11 @@ export class SharedDataService {
 
   private wallDetailsSubject = new BehaviorSubject<Wall | null>(null);
 
+  private stylePreviewSubject = new BehaviorSubject<{ bgColor?: string; font?: string; textColor?: string } | null>(null);
+  stylePreview$ = this.stylePreviewSubject.asObservable();
+  setStylePreview(v: { bgColor?: string; font?: string; textColor?: string } | null) { this.stylePreviewSubject.next(v); }
+  clearStylePreview() { this.stylePreviewSubject.next(null); }
+
   themes = signal<BackgroundTheme[]>([]);
 
   private updatedPost = new BehaviorSubject<Post | null>(null);

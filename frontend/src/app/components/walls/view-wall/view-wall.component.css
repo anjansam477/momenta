@@ -12,10 +12,10 @@
     inset: 0;
     pointer-events: none;
     background:
-        linear-gradient(175deg, rgba(255, 252, 248, 0.82) 0%, rgba(248, 255, 253, 0.75) 60%, rgba(255, 250, 245, 0.8) 100%),
-        radial-gradient(ellipse at 8% 12%, rgba(255, 104, 92, 0.13), transparent 38%),
-        radial-gradient(ellipse at 92% 8%, rgba(8, 124, 131, 0.13), transparent 36%),
-        radial-gradient(ellipse at 50% 95%, rgba(255, 159, 28, 0.08), transparent 40%);
+        linear-gradient(175deg, rgba(255, 252, 248, 0.32) 0%, rgba(248, 255, 253, 0.28) 60%, rgba(255, 250, 245, 0.30) 100%),
+        radial-gradient(ellipse at 8% 12%, rgba(255, 104, 92, 0.06), transparent 38%),
+        radial-gradient(ellipse at 92% 8%, rgba(8, 124, 131, 0.06), transparent 36%),
+        radial-gradient(ellipse at 50% 95%, rgba(255, 159, 28, 0.04), transparent 40%);
     z-index: 0;
 }
 
@@ -78,3 +78,24 @@
         box-shadow: 0 18px 36px rgba(8, 124, 131, 0.18);
     }
 }
+
+/* ── Dark mode ── */
+:host-context([data-theme="dark"]) .moment-page::before {
+    background:
+        linear-gradient(175deg, rgba(15,25,35,0.88) 0%, rgba(12,20,30,0.82) 60%, rgba(15,22,32,0.88) 100%),
+        radial-gradient(ellipse at 8% 12%, rgba(16,167,164,0.08), transparent 38%),
+        radial-gradient(ellipse at 92% 8%, rgba(255,104,92,0.06), transparent 36%) !important;
+}
+:host-context([data-theme="dark"]) .moment-page {
+    background-color: #0F1923 !important;
+}
+:host-context([data-theme="dark"]) .moment-loading-shell {
+    background: linear-gradient(135deg, #0f1923 0%, #141e2a 52%, #0d1820 100%) !important;
+}
+:host-context([data-theme="dark"]) .moment-loading-card {
+    background: rgba(26,38,53,0.95) !important;
+    border-color: #243447 !important;
+    color: #E2EAF2 !important;
+}
+:host-context([data-theme="dark"]) .moment-loading-card strong,
+:host-context([data-theme="dark"]) .moment-loading-card p { color: #E2EAF2 !important; }

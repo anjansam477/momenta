@@ -8,19 +8,19 @@ import { AudioService } from '../../services/audioservice/audio.service';
 import { themes } from '../../constants/themes';
 import { animations, MomentAnimation } from '../../constants/animations';
 import { audios, MomentAudio } from '../../constants/audios';
-import { Wall } from '../../shared/models';
+import { Wall, WallTheme } from '../../shared/models';
 import { BackgroundTheme } from '../../shared/models';
+import { WALL_BG_COLORS, WALL_FONTS, WALL_TEXT_COLORS, WallBgColor, WallFont, WallTextColor } from '../../constants/wall-style.constants';
 import { filter } from 'rxjs';
 import { Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-background',
   standalone: true,
-  imports: [
-    
-],
+  imports: [FormsModule],
   templateUrl: './background.component.html',
   styleUrl: './background.component.css'
 })
@@ -29,7 +29,7 @@ export class BackgroundComponent implements OnInit{
   themes: BackgroundTheme[] = [];
   chooseTheme: string = 'All';
   occasion: string = '';
-  activeTab: 'themes' | 'effects' | 'sounds' = 'themes';
+  activeTab: 'themes' | 'effects' | 'sounds' | 'colors' = 'themes';
   selectedImage: string = '';
   selectedAnimation: string = '';
   selectedAudio: string = '';
@@ -53,6 +53,16 @@ export class BackgroundComponent implements OnInit{
   @Output() closeModal = new EventEmitter<void>();
   showText: boolean = false;
   hoveredGifSrc: { [key: string]: string } = {};
+
+  // ── Colors & Fonts ──
+  bgColors: WallBgColor[]   = WALL_BG_COLORS;
+  wallFonts: WallFont[]     = WALL_FONTS;
+  textColors: WallTextColor[] = WALL_TEXT_COLORS;
+  selectedBgColor: string   = '';
+  selectedFont: string      = '';
+  selectedTextColor: string = '';
+  customBgColor: string     = '#FFFFFF';
+  colorsBtnDisabled: boolean = true;
 
   constructor(
     private wallService: WallService,
@@ -89,6 +99,16 @@ export class BackgroundComponent implements OnInit{
           this.selectedAnimation = wallData.animationId;
           this.shiftAnimation(this.selectedAnimation);
           this.btnDisabled = this.currentBackgroundImage === this.selectedImage && this.animationService.getSelectedAnimation() === this.selectedAnimation && this.audioService.getAudioFile() === this.selectedAudio;
+          // Load color/font settings
+          this.selectedBgColor   = wallData.theme?.bgColor   || '';
+          this.selectedFont      = wallData.theme?.fontFamily || '';
+          this.selectedTextColor = wallData.theme?.textColor  || '';
+          this.colorsBtnDisabled = true;
+          // Restore custom picker to saved color if it's not a preset
+          const isPreset = WALL_BG_COLORS.some(c => c.value === this.selectedBgColor && c.value !== '');
+          if (this.selectedBgColor && !isPreset) {
+            this.customBgColor = this.selectedBgColor;
+          }
       },
       error: (err)=>{
         this.router.navigateByUrl('error');
@@ -103,6 +123,7 @@ export class BackgroundComponent implements OnInit{
     if (this.imageChanged == false) {
       this.backgroundService.setSelectedBackground(bgImage);
     }
+    this.sharedService.clearStylePreview();
     this.closeModal.emit();
   }
 
@@ -126,6 +147,8 @@ export class BackgroundComponent implements OnInit{
     this.backgroundService.setSelectedBackground(bgImagePath);
     this.selectedImage = imageFileName;
     this.imageChanged = false;
+    // Preview image — temporarily clear bgColor so image is visible
+    this.sharedService.setStylePreview({ bgColor: '', font: this.selectedFont, textColor: this.selectedTextColor });
     if (this.selectedAnimation == this.wall.animationId && this.selectedImage == this.wall.bgImg && this.selectedAudio === this.wall.audio)
       this.btnDisabled = true;
     else
@@ -200,7 +223,17 @@ export class BackgroundComponent implements OnInit{
    */
   applyBackgroundImage(): void {
     if (this.wallId) {
-      this.wallService.updateWall(this.wallId, { bgImg: this.selectedImage, animationId: this.selectedAnimation, audio: this.selectedAudio })
+      // Applying an image clears any solid bgColor so they don't conflict
+      const themeUpdate = {
+        ...(this.wall.theme || {}),
+        bgImg: this.selectedImage,
+        animationId: this.selectedAnimation,
+        audio: this.selectedAudio,
+        bgColor: '',
+      };
+      this.selectedBgColor = '';
+      this.sharedService.clearStylePreview();
+      this.wallService.updateWall(this.wallId, { bgImg: this.selectedImage, animationId: this.selectedAnimation, audio: this.selectedAudio, theme: themeUpdate })
         .subscribe({
           next: (updatedWall) => {
             this.wall = updatedWall;
@@ -347,6 +380,61 @@ export class BackgroundComponent implements OnInit{
     // Force reloading the gif by changing the src
     this.hoveredGifSrc[gif.id] = 'assets/animation/gifs/' + gif.path + '?t=' + new Date().getTime();
     this.setHoveredIndex(gif.id);
+  }
+
+  // ── Colors & Fonts ────────────────────────────────────────────
+
+  selectBgColor(value: string): void {
+    this.selectedBgColor = value === 'custom' ? this.customBgColor : value;
+    this.colorsBtnDisabled = this.colorsUnchanged();
+    this.sharedService.setStylePreview({ bgColor: this.selectedBgColor, font: this.selectedFont, textColor: this.selectedTextColor });
+  }
+
+  onCustomColorInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.customBgColor = value;
+    this.selectedBgColor = value;
+    this.colorsBtnDisabled = this.colorsUnchanged();
+    this.sharedService.setStylePreview({ bgColor: value, font: this.selectedFont, textColor: this.selectedTextColor });
+  }
+
+  selectFont(value: string): void {
+    this.selectedFont = value;
+    this.colorsBtnDisabled = this.colorsUnchanged();
+    this.sharedService.setStylePreview({ bgColor: this.selectedBgColor, font: value, textColor: this.selectedTextColor });
+  }
+
+  selectTextColor(value: string): void {
+    this.selectedTextColor = value;
+    this.colorsBtnDisabled = this.colorsUnchanged();
+    this.sharedService.setStylePreview({ bgColor: this.selectedBgColor, font: this.selectedFont, textColor: value });
+  }
+
+  private colorsUnchanged(): boolean {
+    return this.selectedBgColor   === (this.wall?.theme?.bgColor   || '')
+        && this.selectedFont      === (this.wall?.theme?.fontFamily || '')
+        && this.selectedTextColor === (this.wall?.theme?.textColor  || '');
+  }
+
+  applyColors(): void {
+    if (!this.wallId) return;
+    const themeUpdate: WallTheme = {
+      bgImg:       this.wall.theme?.bgImg       || this.wall.bgImg       || '',
+      animationId: this.wall.theme?.animationId || this.wall.animationId || '',
+      audio:       this.wall.theme?.audio       || this.wall.audio       || '',
+      bgColor:     this.selectedBgColor,
+      fontFamily:  this.selectedFont,
+      textColor:   this.selectedTextColor,
+    };
+    this.wallService.updateWall(this.wallId, { theme: themeUpdate }).subscribe({
+      next: (updatedWall) => {
+        this.wall = updatedWall;
+        this.colorsBtnDisabled = true;
+        this.toastr.success('Style saved');
+        this.sharedService.updateWallDetailsPartially({ theme: themeUpdate });
+      },
+      error: (err) => this.toastr.error(err?.error?.message || 'Failed to save style'),
+    });
   }
 
 }

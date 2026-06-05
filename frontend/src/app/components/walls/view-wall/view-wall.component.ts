@@ -9,7 +9,7 @@ import { WallPostsComponent } from '../wall-posts/wall-posts.component';
 import { SharedDataService } from '../../../services/sharedDataService/shared-data.service';
 import { Params } from '@angular/router';
 import { Wall } from '../../../shared/models';
-import { Subscription, catchError, filter, of, timeout } from 'rxjs';
+import { catchError, filter, of, timeout } from 'rxjs';
 
 import { BackgroundImageService } from '../../../services/backgroundimageservice/background-image.service';
 import { AnimationService } from '../../../services/animationservice/animation.service';
@@ -44,12 +44,14 @@ export class ViewWallComponent implements OnInit ,OnDestroy{
   viewAccess: { emails?: string[], domains?: string[] } = {};
   postAccess: { emails?: string[], domains?: string[] } = {};
   userEmail: string = '';
-  private wallDetailsSubscription: Subscription | undefined;
   private readonly destroyRef = inject(DestroyRef);
   selectedBackground: string = '';
   selectedAnimation:string ='';
   selectedAudio:string='';
   hasAudio: boolean = false;
+  selectedBgColor: string = '';
+  selectedFont: string = '';
+  selectedTextColor: string = '';
   isMuted:boolean=false;
   currentPage: string | undefined;
   animation: string="";
@@ -80,10 +82,11 @@ export class ViewWallComponent implements OnInit ,OnDestroy{
       this.authService.removeUserCookie();
     }
     
-    this.route.queryParams.subscribe((params: Params) => {
+    this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params: Params) => {
       const token = params['token'];
       if (token) {
         sessionStorage.setItem('viewToken', token);
+        this.wallService.acceptInvite(this.wallId, token).subscribe({ error: () => {} });
         this.router.navigate(['/moment', this.wallId], { replaceUrl: true });
       }else if(localStorage.getItem('authToken') || sessionStorage.getItem('viewToken')){
         this.fetchWallDetails();
@@ -97,6 +100,15 @@ export class ViewWallComponent implements OnInit ,OnDestroy{
       filter(wallData => !!wallData), takeUntilDestroyed(this.destroyRef)
     ).subscribe((wallData: Wall) => {
       this.applyMomentDetails(wallData);
+    });
+
+    this.sharedService.stylePreview$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(preview => {
+      if (preview) {
+        if (preview.bgColor !== undefined) this.selectedBgColor = preview.bgColor;
+        if (preview.font     !== undefined) this.selectedFont    = preview.font;
+        if (preview.textColor !== undefined) this.selectedTextColor = preview.textColor;
+      }
+      this.cdr.markForCheck();
     });
 
     this.sharedService.getIsPreview().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data)=>{
@@ -121,19 +133,13 @@ export class ViewWallComponent implements OnInit ,OnDestroy{
   ngOnDestroy(): void {
     this.animationService.stopAnimation();
     this.audioService.stopAudio();
-    if (this.wallDetailsSubscription) {
-      this.wallDetailsSubscription.unsubscribe();
-    }
     this.sharedService.setWallDetails(null);
   }
 
   fetchWallDetails() {
-    if (this.wallDetailsSubscription) {
-      this.wallDetailsSubscription.unsubscribe();
-    }
-
-    this.wallDetailsSubscription = this.wallService.getWallById(this.wallId).pipe(
+    this.wallService.getWallById(this.wallId).pipe(
       timeout(8000),
+      takeUntilDestroyed(this.destroyRef),
       catchError((error) => {
         this.isMomentReady = true;
         if (error?.name !== 'TimeoutError') {
@@ -184,6 +190,9 @@ export class ViewWallComponent implements OnInit ,OnDestroy{
     this.selectedBackground = wallData.theme?.bgImg || wallData.bgImg || '';
     this.selectedAnimation = wallData.theme?.animationId || wallData.animationId || '';
     this.selectedAudio = wallData.theme?.audio || wallData.audio || '';
+    this.selectedBgColor   = wallData.theme?.bgColor   || '';
+    this.selectedFont      = wallData.theme?.fontFamily || '';
+    this.selectedTextColor = wallData.theme?.textColor  || '';
     this.animation = this.selectedAnimation;
     this.animationService.setSelectedAnimation(this.selectedAnimation);
 
@@ -229,7 +238,7 @@ export class ViewWallComponent implements OnInit ,OnDestroy{
 
   updateBackgroundImage(): void {
     if (this.selectedBackground === '') {
-      this.backgroundService.getSelectedBgSubject().subscribe((bg) => {
+      this.backgroundService.getSelectedBgSubject().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((bg) => {
         this.selectedBackground = bg;
       });
     }

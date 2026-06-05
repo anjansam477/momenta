@@ -11,6 +11,9 @@
     <button class="cc-tab-btn" [class.cc-tab-btn--active]="activeTab === 'sounds'" (click)="activeTab = 'sounds'" type="button">
       <i class="bi bi-music-note-beamed"></i> Sounds
     </button>
+    <button class="cc-tab-btn" [class.cc-tab-btn--active]="activeTab === 'colors'" (click)="activeTab = 'colors'" type="button">
+      <i class="bi bi-palette"></i> Appearance
+    </button>
   </div>
 
   <!-- ── THEMES ── -->
@@ -127,12 +130,97 @@
 
   </div>
 
-  <!-- Apply button -->
+  <!-- ── COLORS & FONTS ── -->
+  <div class="cc-body cst-scrollbar" [hidden]="activeTab !== 'colors'">
+
+    <!-- Background color -->
+    <div class="cc-style-section">
+      <h5 class="cc-group-label"><i class="bi bi-droplet-half me-1"></i> Background Color</h5>
+      <p class="cc-style-hint">Overrides background image when set</p>
+      <div class="cc-color-grid">
+        @for (c of bgColors; track c.value) {
+          @if (c.value !== 'custom') {
+            <button type="button" class="cc-color-swatch"
+              [class.cc-color-swatch--active]="selectedBgColor === c.value"
+              [class.cc-color-swatch--dark]="c.dark"
+              [style.background]="c.value || 'linear-gradient(135deg,#ddd 25%,transparent 25%) 0 0 / 8px 8px, linear-gradient(225deg,#ddd 25%,transparent 25%) 0 0 / 8px 8px, linear-gradient(45deg,#ddd 25%,transparent 25%) 0 0 / 8px 8px, linear-gradient(315deg,#ddd 25%,#f0f0f0 25%) 0 0 / 8px 8px'"
+              [title]="c.label"
+              (click)="selectBgColor(c.value)">
+              @if (selectedBgColor === c.value) {
+                <i class="bi bi-check2 cc-swatch-check" [class.cc-swatch-check--dark]="!c.dark"></i>
+              }
+            </button>
+          }
+        }
+      </div>
+      <!-- Custom color picker -->
+      <div class="cc-custom-color-row">
+        <label class="cc-custom-color-label" for="customBgColor">
+          <i class="bi bi-eyedropper"></i> Custom color
+        </label>
+        <input id="customBgColor" type="color" class="cc-color-input"
+          [(ngModel)]="customBgColor"
+          (input)="onCustomColorInput($event)"
+          [title]="'Pick a custom background color'" />
+        <button type="button" class="cc-use-custom-btn"
+          [class.cc-use-custom-btn--active]="selectedBgColor === customBgColor && selectedBgColor !== ''"
+          (click)="selectBgColor('custom')">
+          Use
+        </button>
+      </div>
+    </div>
+
+    <!-- Font family -->
+    <div class="cc-style-section">
+      <h5 class="cc-group-label"><i class="bi bi-type me-1"></i> Font</h5>
+      <div class="cc-font-list">
+        @for (f of wallFonts; track f.value) {
+          <button type="button" class="cc-font-row"
+            [class.cc-font-row--active]="selectedFont === f.value"
+            [style.font-family]="f.value || 'League Spartan, sans-serif'"
+            (click)="selectFont(f.value)">
+            <span class="cc-font-preview">Aa Bb Cc 123</span>
+            <span class="cc-font-name">{{ f.label }}</span>
+            @if (selectedFont === f.value) {
+              <i class="bi bi-check2 cc-font-check"></i>
+            }
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Text color -->
+    <div class="cc-style-section">
+      <h5 class="cc-group-label"><i class="bi bi-fonts me-1"></i> Post Text Color</h5>
+      <div class="cc-text-color-list">
+        @for (tc of textColors; track tc.value) {
+          <button type="button" class="cc-text-color-btn"
+            [class.cc-text-color-btn--active]="selectedTextColor === tc.value"
+            (click)="selectTextColor(tc.value)">
+            <span class="cc-text-color-dot"
+              [style.background]="tc.value || 'linear-gradient(135deg,#142536 50%,#fff 50%)'"
+              [style.border]="tc.value === '#FFFFFF' ? '1.5px solid #ccc' : 'none'">
+            </span>
+            {{ tc.label }}
+          </button>
+        }
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Apply button — switches based on active tab -->
   @if(wallDisplay != false) {
     <footer class="cc-footer">
-      <button type="button" class="cc-btn cc-btn--full" [disabled]="btnDisabled" (click)="applyBackgroundImage()">
-        <i class="bi bi-check2-circle"></i> Apply changes
-      </button>
+      @if (activeTab === 'colors') {
+        <button type="button" class="cc-btn cc-btn--full" [disabled]="colorsBtnDisabled" (click)="applyColors()">
+          <i class="bi bi-check2-circle"></i> Apply style
+        </button>
+      } @else {
+        <button type="button" class="cc-btn cc-btn--full" [disabled]="btnDisabled" (click)="applyBackgroundImage()">
+          <i class="bi bi-check2-circle"></i> Apply changes
+        </button>
+      }
     </footer>
   }
 
