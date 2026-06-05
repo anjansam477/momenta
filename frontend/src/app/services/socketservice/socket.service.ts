@@ -47,13 +47,13 @@ export class SocketService {
     }
   }
 
-  onHandler(event: string, callback: (data: any) => void): void {
+  onHandler<T = unknown>(event: string, callback: (data: T) => void): void {
     this.setupSocketConnection();
     this.socket?.off(event);
-    this.socket?.on(event, callback);
+    this.socket?.on(event, callback as (data: unknown) => void);
   }
 
-  emitHandler(event: string, data?: any, callback?: (response: any) => void): void {
+  emitHandler(event: string, data?: unknown, callback?: (response: unknown) => void): void {
     this.setupSocketConnection();
     this.socket?.emit(event, data, callback);
   }

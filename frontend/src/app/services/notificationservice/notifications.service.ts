@@ -14,10 +14,24 @@ export interface MomentNotification {
   timestamp: string;
   status: 'unread' | 'read' | 'archived';
   type: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   notificationIds: string[];
   userDetails: Array<{ userName: string; profilePicture: string }>;
   postCreator?: string;
+}
+
+/** Raw socket payload for a single notification event (email is singular, not yet grouped) */
+interface RawSocketNotification {
+  _id: string;
+  wallId: string;
+  wallName?: string;
+  postId?: string;
+  email: string;
+  timestamp: string;
+  status: 'unread' | 'read' | 'archived';
+  type: string;
+  metadata?: Record<string, unknown>;
+  notificationIds?: string[];
 }
 
 @Injectable({
@@ -46,7 +60,7 @@ export class NotificationsService {
       this.hydrateNotifications(notifications || []);
     });
 
-    this.socketService.onHandler('newNotification', (notification: any) => {
+    this.socketService.onHandler<RawSocketNotification>('newNotification', (notification) => {
       this.addNotification(notification);
     });
 
@@ -55,7 +69,7 @@ export class NotificationsService {
 
   updateNotificationStatus(notification: MomentNotification, state: 'read' | 'unread' | 'archived'): void {
     this.socketService.emitHandler('updateNotification', { notification, state }, (response) => {
-      if (!response?.ok) {
+      if (!(response as { ok?: boolean })?.ok) {
         return;
       }
 
@@ -101,7 +115,7 @@ export class NotificationsService {
     return `${diffYears} year${diffYears > 1 ? 's' : ''} ago`;
   }
 
-  addNotification(notification: any): void {
+  addNotification(notification: RawSocketNotification): void {
     const groupId = this.groupId(notification);
     const currentNotifications = [...this.notificationsSubject.getValue()];
     const existingGroup = currentNotifications.find((group) => group._id === groupId);
@@ -150,7 +164,7 @@ export class NotificationsService {
 
   fetchUsersDetails(email: string): Observable<{ userName: string; profilePicture: string }> {
     return this.userService.fetchUserNamesByEmail(email).pipe(
-      map((userDetails: any) => ({
+      map((userDetails: { fullName?: string; profilePicture?: string | null } | null) => ({
         userName: userDetails?.fullName || email,
         profilePicture: userDetails?.profilePicture || ''
       })),
@@ -195,12 +209,14 @@ export class NotificationsService {
     });
   }
 
-  private groupId(notification: any): string {
+  private groupId(notification: RawSocketNotification): string {
     const status = notification.status || 'unread';
     switch (notification.type) {
       case 'reactionAdded':
         return `${status}-${notification.type}-${notification.wallId}-${notification.postId}`;
       case 'postAdded':
+      case 'postPending':
+      case 'inviteAccepted':
       case 'accessGranted':
       case 'momentUpdated':
       case 'momentLocked':

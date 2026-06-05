@@ -4,6 +4,7 @@ import { Observable, tap } from 'rxjs';
 import { SERVICE_BASE_URL } from '../../environment-config';
 import { SharedDataService } from '../sharedDataService/shared-data.service';
 import { Wall, WallAnalyticsDay, WallAnalyticsTotals } from '../../shared/models';
+import { SAVE_TYPE } from '../../constants/wall.constants';
 
 export { WallAnalyticsDay, WallAnalyticsTotals };
 
@@ -40,7 +41,7 @@ export class WallService {
 
   getStarredWalls(userEmail: string): Observable<Wall[]> {
     const query = {
-      params: { savedEmailId: userEmail, saveType: 'favourite' },
+      params: { savedEmailId: userEmail, saveType: SAVE_TYPE.FAVOURITE },
     };
 
     return this.http.get<Wall[]>(`${this.wallServiceBaseUrl}/`, query);
@@ -119,6 +120,10 @@ export class WallService {
   removeWall(wallId: string, emailId: string, saveType: string): Observable<void> {
     const params = new HttpParams().set('saveType', saveType);
     return this.http.delete<void>(`${this.wallServiceBaseUrl}/save/${wallId}/${emailId}`, { params });
+  }
+
+  acceptInvite(wallId: string, token: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.wallServiceBaseUrl}/${wallId}/accept-invite`, { token });
   }
 
   getWallAnalytics(wallId: string, filter: { days?: number; from?: string; to?: string } = {}): Observable<{ daily: WallAnalyticsDay[]; totals: WallAnalyticsTotals; previousTotals: WallAnalyticsTotals }> {

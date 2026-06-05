@@ -200,6 +200,7 @@ export class SettingsComponent implements OnInit {
     }
   }
 
+  // Angular AbstractControl.value is typed as `any` by the framework — this wrapper preserves that.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getFormControlValue(controlName: string): any {
     return this.wallForm.get(controlName)?.value;
@@ -406,16 +407,19 @@ export class SettingsComponent implements OnInit {
   }
 
   watchDateChanges() {
-    this.openingDateSub = this.wallForm.get('openingDate')?.valueChanges?.subscribe(selectedDate => {
-      this.updateMinTime(selectedDate);
-      this.selectDate('openDate');
-    }) || new Subscription();
+    this.openingDateSub = this.wallForm.get('openingDate')?.valueChanges
+      ?.pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(selectedDate => {
+        this.updateMinTime(selectedDate);
+        this.selectDate('openDate');
+      }) ?? new Subscription();
 
-    this.closingDateSub = this.wallForm.get('closingDate')?.valueChanges?.subscribe(selectedDate => {
-      this.updateCloseMinTime(selectedDate);
-      this.selectDate('closeDate');
-    }) || new Subscription();
-
+    this.closingDateSub = this.wallForm.get('closingDate')?.valueChanges
+      ?.pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(selectedDate => {
+        this.updateCloseMinTime(selectedDate);
+        this.selectDate('closeDate');
+      }) ?? new Subscription();
   }
 
   setMinTimeToCurrent() {

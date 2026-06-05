@@ -16,10 +16,11 @@ import { Post } from '../../../models/post.model';
 import { Params } from '@angular/router';
 import { Wall } from '../../../shared/models';
 import { postPageSize } from '../../../environment-config';
-import { WALL_STATUS } from '../../../constants/wall.constants';
+import { WALL_STATUS, POST_STATUS } from '../../../constants/wall.constants';
 import { UserReplacerComponent } from '../../data-transformation/user-replacer/user-replacer.component';
 import { SanitizeAndCleanHtmlPipe } from '../../../utils/custom-pipe/sanitize-and-clean-html.pipe';
 import { WallService } from '../../../services/wallservice/wall.service';
+import { SocketService } from '../../../services/socketservice/socket.service';
 import { isWallCreator } from '../../../utils/wall.util';
 import { handleHttpError } from '../../../utils/error-handler.util';
 
@@ -76,7 +77,14 @@ export class WallPostsComponent {
   requireApproval: boolean = false;
   showPendingQueue: boolean = false;
   searchQuery: string = '';
-  
+  viewerCount: number = 0;
+
+  // Undo delete state
+  undoDeleteToast: { post: Post; columnIndex: number; postIndex: number } | null = null;
+  private undoTimer: ReturnType<typeof setTimeout> | null = null;
+  undoCountdown = 30;
+  private undoInterval: ReturnType<typeof setInterval> | null = null;
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -87,16 +95,37 @@ export class WallPostsComponent {
     private postService: PostService,
     private sharedService: SharedDataService,
     private wallService: WallService,
+    private socketService: SocketService,
     private cdr: ChangeDetectorRef
-  ) {}
+  ) {
+    this.destroyRef.onDestroy(() => {
+      if (this.wallId) {
+        this.socketService.emitHandler('leaveWall', this.wallId);
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.isLoggedIn();
     if(this.loginBoolean || sessionStorage.getItem('viewToken')){
       this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params: Params) => {
+        // Leave previous wall if navigating to a new one
+        if (this.wallId) {
+          this.socketService.emitHandler('leaveWall', this.wallId);
+        }
         this.wallId = params['momentId'] ?? params['wallId'];
         this.fetchWallDetails();
         this.fetchPosts();
+        // Join presence room for this wall
+        this.socketService.emitHandler('joinWall', this.wallId);
+      });
+
+      // Listen for presence updates
+      this.socketService.onHandler<{ wallId: string; count: number }>('presenceUpdate', (data) => {
+        if (data.wallId === this.wallId) {
+          this.viewerCount = data.count;
+          this.cdr.markForCheck();
+        }
       });
 
       this.route.url.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((urlSegments) => {
@@ -173,7 +202,7 @@ export class WallPostsComponent {
       if (postIndex !== -1) {
         const existingPost = column[postIndex];
   
-        if (updatedPost.isArchived || updatedPost.status === 'deleted' || ((updatedPost.openReportCount ?? updatedPost.reportedBy?.length ?? 0) > 0 && !this.checkWallCreator())) {
+        if (updatedPost.isArchived || updatedPost.status === POST_STATUS.DELETED || ((updatedPost.openReportCount ?? updatedPost.reportedBy?.length ?? 0) > 0 && !this.checkWallCreator())) {
           column.splice(postIndex, 1);
           postRemoved = true;
         } else {
@@ -441,7 +470,7 @@ export class WallPostsComponent {
   }
 
   filterPosts(posts: Post[]): Post[] {
-    const isActivePost = (post: Post) => post.status === 'active' || (!post.status && !post.isArchived);
+    const isActivePost = (post: Post) => post.status === POST_STATUS.ACTIVE || (!post.status && !post.isArchived);
     if (this.currentPage === 'download') {
       return posts.filter(post => isActivePost(post) && (post.openReportCount ?? post.reportedBy?.length ?? 0) === 0);
     }
@@ -576,6 +605,45 @@ export class WallPostsComponent {
   }  
 
   deletePost(post: Post) {
+    // Cancel any existing undo in flight — commit the previous delete immediately
+    if (this.undoTimer) {
+      clearTimeout(this.undoTimer);
+      clearInterval(this.undoInterval!);
+      if (this.undoDeleteToast) this.commitDelete(this.undoDeleteToast.post);
+    }
+
+    // Find column + position so we can restore if undone
+    let savedColumnIndex = 0;
+    let savedPostIndex = 0;
+    this.columns.forEach((col, ci) => {
+      const pi = col.findIndex(p => p._id === post._id);
+      if (pi !== -1) { savedColumnIndex = ci; savedPostIndex = pi; }
+    });
+
+    // Optimistically remove from view
+    this.posts = this.posts.filter(p => p._id !== post._id);
+    this.updatePostInColumns({ ...post, status: POST_STATUS.DELETED });
+
+    // Show undo toast
+    this.undoDeleteToast = { post, columnIndex: savedColumnIndex, postIndex: savedPostIndex };
+    this.undoCountdown = 30;
+    this.cdr.detectChanges();
+
+    this.undoInterval = setInterval(() => {
+      this.undoCountdown--;
+      this.cdr.detectChanges();
+      if (this.undoCountdown <= 0) clearInterval(this.undoInterval!);
+    }, 1000);
+
+    this.undoTimer = setTimeout(() => {
+      clearInterval(this.undoInterval!);
+      this.undoDeleteToast = null;
+      this.commitDelete(post);
+      this.cdr.detectChanges();
+    }, 30000);
+  }
+
+  private commitDelete(post: Post) {
     this.postService.deletePost(this.wallId, post._id).subscribe({
       next: () => {
         this.sharedService.updateWallDetailsPartially({
@@ -584,18 +652,28 @@ export class WallPostsComponent {
             nonArchivedNonReportedCount: this.nonArchivedNonReportedCount - 1
           }
         });
-        this.posts = this.posts.filter(p => p._id !== post._id);
-      if(this.posts.length===0){
-        this.sharedService.setPostAvailable(false);
-      }
-      const userHasPost = this.posts.some(p => (p.authorEmail || p.email) === this.userEmail);
-      if(!userHasPost){
-        this.sharedService.setMyPost(false);
-      }
-      this.updatePostInColumns({ ...post, status: 'deleted' })
-    },
-    error: (err) => handleHttpError(err, this.toastr)
-  });
+        if (this.posts.length === 0) this.sharedService.setPostAvailable(false);
+        const userHasPost = this.posts.some(p => (p.authorEmail || p.email) === this.userEmail);
+        if (!userHasPost) this.sharedService.setMyPost(false);
+      },
+      error: (err) => handleHttpError(err, this.toastr)
+    });
+  }
+
+  undoDelete() {
+    if (!this.undoDeleteToast) return;
+    if (this.undoTimer) { clearTimeout(this.undoTimer); this.undoTimer = null; }
+    if (this.undoInterval) { clearInterval(this.undoInterval); this.undoInterval = null; }
+
+    const { post, columnIndex, postIndex } = this.undoDeleteToast;
+    this.undoDeleteToast = null;
+
+    // Restore post to posts array and columns
+    this.posts.push(post);
+    const col = this.columns[columnIndex];
+    col.splice(Math.min(postIndex, col.length), 0, post);
+    this.columns = [...this.columns];
+    this.cdr.detectChanges();
   }
 
   pinPost(post: Post) {
@@ -619,7 +697,7 @@ export class WallPostsComponent {
   }
 
   redistributePinnedPosts() {
-    const allPosts = this.posts.filter(p => p.status === 'active' || (!p.status && !p.isArchived));
+    const allPosts = this.posts.filter(p => p.status === POST_STATUS.ACTIVE || (!p.status && !p.isArchived));
     const pinned = allPosts.filter(p => p.pinned);
     const rest = allPosts.filter(p => !p.pinned);
     this.columns = [[], [], []];
@@ -661,7 +739,15 @@ export class WallPostsComponent {
           this.cdr.detectChanges();
           this.sharedService.setPost(null);
         } else {
-          if (this.allLoaded) {
+          if (data.status === POST_STATUS.PENDING_APPROVAL) {
+            // Creator sees it appear in the pending queue immediately
+            if (this.checkWallCreator() && !this.pendingPosts.some(p => p._id === data._id)) {
+              this.pendingPosts = [data, ...this.pendingPosts];
+              this.showPendingQueue = true;
+              this.cdr.detectChanges();
+            }
+            this.sharedService.setPost(null);
+          } else if (this.allLoaded) {
             const newMediaUrl = data.media?.url || data.mediaUrl;
             if (newMediaUrl && newMediaUrl !== '#') {
               this.myUrl(newMediaUrl).subscribe((safeUrl: SafeUrl) => {
@@ -701,6 +787,7 @@ export class WallPostsComponent {
     this.postService.getPendingPosts(this.wallId).subscribe({
       next: (posts: Post[]) => {
         this.pendingPosts = posts;
+        if (posts.length > 0) this.showPendingQueue = true;
         this.cdr.detectChanges();
       },
       error: () => {}

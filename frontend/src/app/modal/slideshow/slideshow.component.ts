@@ -17,8 +17,14 @@ import { MediaService } from '../../services/mediaservice/media.service';
 import { SanitizeAndCleanHtmlPipe } from '../../utils/custom-pipe/sanitize-and-clean-html.pipe';
 import { Wall } from '../../shared/models';
 import { handleHttpError } from '../../utils/error-handler.util';
+import { POST_STATUS } from '../../constants/wall.constants';
 
-declare const bootstrap: any;
+declare const bootstrap: {
+  Modal: {
+    new (el: Element, opts?: Record<string, unknown>): { show(): void; hide(): void; dispose(): void };
+    getOrCreateInstance(el: Element): { show(): void; hide(): void; dispose(): void };
+  }
+};
 
 const SLIDE_DURATION_MS = 6000;
 
@@ -135,7 +141,7 @@ export class SlideshowComponent implements OnInit, OnDestroy {
     this.postService.getPostsForWall(this.wallId, this.currentPage, this.pageSize).subscribe({
       next: (data: Post[]) => {
         const filtered = data.filter((p: Post) =>
-          p.status !== 'deleted' && !p.isArchived &&
+          p.status !== POST_STATUS.DELETED && !p.isArchived &&
           ((p.openReportCount ?? p.reportedBy?.length ?? 0) === 0)
         );
         this.posts = [...this.posts, ...filtered];

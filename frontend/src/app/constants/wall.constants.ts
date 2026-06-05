@@ -15,6 +15,16 @@ export const SAVE_TYPE = {
 
 export type SaveType = (typeof SAVE_TYPE)[keyof typeof SAVE_TYPE];
 
+/** Post status values */
+export const POST_STATUS = {
+  ACTIVE: 'active',
+  PENDING_APPROVAL: 'pending_approval',
+  REJECTED: 'rejected',
+  DELETED: 'deleted',
+} as const;
+
+export type PostStatusConst = (typeof POST_STATUS)[keyof typeof POST_STATUS];
+
 /** Access component types used by add-user / add-domain */
 export const ACCESS_COMPONENT = {
   MAINTAINER: 'maintainer',
