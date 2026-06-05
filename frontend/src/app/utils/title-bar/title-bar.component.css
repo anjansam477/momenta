@@ -297,20 +297,20 @@
 .tb__pill-strip {
   display: flex;
   align-items: center;
-  gap: 0;
-  background: rgba(255,255,255,0.82);
-  border: 1px solid rgba(13,31,54,0.09);
-  border-radius: 18px;
-  padding: 5px;
-  box-shadow: 0 2px 12px rgba(13,31,54,0.06);
+  gap: 6px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
 }
 
 /* ── Pill button ────────────────────────────────────────── */
 .tb__pill {
-  min-height: 42px;
-  padding: 0 18px;
-  border: 0;
-  border-radius: 12px;
+  min-height: 44px;
+  padding: 0 20px;
+  border: 1.5px solid rgba(13,31,54,0.13);
+  border-radius: 14px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -319,24 +319,34 @@
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 150ms ease, box-shadow 150ms ease, transform 150ms ease, opacity 150ms ease;
+  transition: background 150ms ease, box-shadow 150ms ease, transform 150ms ease, opacity 150ms ease, border-color 150ms ease;
+  box-shadow: 0 2px 8px rgba(13,31,54,0.06);
 }
 
 .tb__pill--ghost {
-  background: transparent;
+  background: rgba(255,255,255,0.88);
   color: var(--navy-mid);
+  border-color: rgba(13,31,54,0.12);
 }
 
+.tb__pill--ghost i { color: var(--teal); }
+
 .tb__pill--ghost:hover:not(:disabled) {
-  background: var(--teal-soft);
+  background: rgba(255,255,255,1);
+  border-color: var(--teal);
   color: var(--teal);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(10,148,153,0.12);
 }
 
 .tb__pill--primary {
   background: var(--coral);
   color: var(--white);
+  border-color: transparent;
   box-shadow: 0 4px 18px var(--coral-glow);
 }
+
+.tb__pill--primary i { color: var(--white); }
 
 .tb__pill--primary:hover:not(:disabled) {
   transform: translateY(-1px);
@@ -350,23 +360,25 @@
 
 /* ── Icon button (audio) ────────────────────────────────── */
 .tb__icon-btn {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  border: 1px solid var(--card-border);
-  background: var(--white);
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(13,31,54,0.12);
+  background: rgba(255,255,255,0.88);
   color: var(--teal);
-  font-size: 19px;
+  font-size: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 12px rgba(13,31,54,0.06);
-  transition: box-shadow 160ms ease, transform 160ms ease;
+  box-shadow: 0 2px 8px rgba(13,31,54,0.06);
+  transition: box-shadow 160ms ease, transform 160ms ease, background 160ms ease, border-color 160ms ease;
 }
 
 .tb__icon-btn:hover {
-  box-shadow: 0 6px 20px rgba(13,31,54,0.12);
+  background: rgba(255,255,255,1);
+  border-color: var(--teal);
+  box-shadow: 0 6px 18px rgba(10,148,153,0.12);
   transform: translateY(-1px);
 }
 
@@ -440,4 +452,48 @@
   .tb--viewer::before {
     inset: 10px 8px 10px;
   }
+}
+
+/* ── Dark mode ── */
+:host-context([data-theme="dark"]) .tb::before {
+    background:
+        linear-gradient(145deg, rgba(26,38,53,0.97) 0%, rgba(20,30,45,0.94) 100%),
+        radial-gradient(circle at 12% 18%, rgba(10,148,153,0.08) 0%, transparent 42%),
+        radial-gradient(circle at 90% 12%, rgba(255,95,84,0.05) 0%, transparent 38%) !important;
+    border: 1px solid rgba(36,52,71,0.9) !important;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.4) !important;
+}
+:host-context([data-theme="dark"]) .tb__title { color: #E2EAF2 !important; }
+:host-context([data-theme="dark"]) .tb__desc,
+:host-context([data-theme="dark"]) .tb__field span { color: #9BB0C4 !important; }
+:host-context([data-theme="dark"]) .tb__back {
+    background: #1E2D3D !important;
+    border-color: #243447 !important;
+    color: #10A7A4 !important;
+}
+:host-context([data-theme="dark"]) .tb__pill--ghost {
+    background: #1E2D3D !important;
+    border-color: #243447 !important;
+    color: #C4D8E8 !important;
+}
+:host-context([data-theme="dark"]) .tb__pill--ghost i { color: #10A7A4 !important; }
+:host-context([data-theme="dark"]) .tb__pill--ghost:hover:not(:disabled) {
+    background: #243447 !important;
+    border-color: #10A7A4 !important;
+    color: #10A7A4 !important;
+}
+:host-context([data-theme="dark"]) .tb__inline-input {
+    background: #1E2D3D !important;
+    border-color: #243447 !important;
+    color: #E2EAF2 !important;
+}
+:host-context([data-theme="dark"]) .tb__icon-btn {
+    background: #1E2D3D !important;
+    border-color: #243447 !important;
+    color: #10A7A4 !important;
+}
+:host-context([data-theme="dark"]) .tb__icon-btn:hover {
+    background: #243447 !important;
+    border-color: #10A7A4 !important;
+    color: #10A7A4 !important;
 }

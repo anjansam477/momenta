@@ -16,6 +16,7 @@ import { handleHttpError } from '../error-handler.util';
 import { isWallCreator } from '../wall.util';
 import { Wall } from '../../shared/models';
 import { Params } from '@angular/router';
+import { WALL_STATUS } from '../../constants/wall.constants';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -177,8 +178,8 @@ export class TitleBarComponent implements OnInit,OnDestroy{
           : [wallData.ownerEmail];
         this.openDate = wallData.openDate ?? null;
         this.closeDate = wallData.closeDate ?? null;
-        this.isArchived = wallData.status === 'archived';
-        this.isOpen = wallData.status === 'active';
+        this.isArchived = wallData.status === WALL_STATUS.ARCHIVED;
+        this.isOpen = wallData.status === WALL_STATUS.ACTIVE;
         this.anyoneCanPost = wallData.anyoneCanPost ?? false;
         this.postAccess = wallData.postAccess || {};
         this.audio = wallData.theme?.audio || wallData.audio || '';

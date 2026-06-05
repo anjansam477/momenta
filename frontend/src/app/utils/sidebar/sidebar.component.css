@@ -13,3 +13,9 @@
     background: none;
     border: none;
 }
+/* ── Dark mode ── */
+:host-context([data-theme="dark"]) .sidebar-wrapper { background: transparent !important; box-shadow: 2px 0 16px rgba(0,0,0,0.45) !important; }
+:host-context([data-theme="dark"]) .sidebar-wrapper .sidebar { background: none !important; }
+:host-context([data-theme="dark"]) li a,
+:host-context([data-theme="dark"]) .nav-item { color: #C4D8E8 !important; }
+:host-context([data-theme="dark"]) .momenta-text-logo { filter: brightness(2) !important; }

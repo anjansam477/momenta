@@ -287,3 +287,33 @@
 
 .cc-btn--primary:hover:not(:disabled) { background: #0a9099; }
 .cc-btn--primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Dark mode ── */
+:host-context([data-theme="dark"]) .cc-panel { background: #1A2635 !important; }
+:host-context([data-theme="dark"]) .cc-status { background: #111b27 !important; border-color: #243447 !important; }
+:host-context([data-theme="dark"]) .cc-chip { background: rgba(255,255,255,0.05) !important; color: #9BB0C4 !important; }
+:host-context([data-theme="dark"]) .cc-chip--on { background: rgba(16,167,164,0.15) !important; color: #10A7A4 !important; border-color: rgba(16,167,164,0.25) !important; }
+:host-context([data-theme="dark"]) .cc-section { border-color: #243447 !important; }
+:host-context([data-theme="dark"]) .cc-recipient { background: #1E2D3D !important; border-color: #243447 !important; }
+:host-context([data-theme="dark"]) .cc-time-btn {
+    background: #1E2D3D !important;
+    border-color: #243447 !important;
+}
+:host-context([data-theme="dark"]) .cc-time-btn:hover { background: #243447 !important; border-color: #10A7A4 !important; }
+:host-context([data-theme="dark"]) .cc-time-btn--active { background: rgba(8,124,131,0.2) !important; border-color: #087c83 !important; }
+:host-context([data-theme="dark"]) .cc-time-btn strong { color: #E2EAF2 !important; }
+:host-context([data-theme="dark"]) .cc-time-btn span { color: #9BB0C4 !important; }
+:host-context([data-theme="dark"]) .cc-summary { background: rgba(16,167,164,0.1) !important; border-color: rgba(16,167,164,0.2) !important; color: #E2EAF2 !important; }
+:host-context([data-theme="dark"]) .cc-footer { background: #111b27 !important; border-color: #243447 !important; }
+:host-context([data-theme="dark"]) .cc-btn--ghost { color: #9BB0C4 !important; border-color: #243447 !important; }
+:host-context([data-theme="dark"]) .cc-btn--ghost:hover { background: #1E2D3D !important; }
+:host-context([data-theme="dark"]) .cc-delivery-time { background: rgba(16,167,164,0.12) !important; }
+
+/* Fix white email/form inputs inside this component */
+:host-context([data-theme="dark"]) input:not([type=hidden]),
+:host-context([data-theme="dark"]) .form-control {
+    background: #1E2D3D !important;
+    color: #E2EAF2 !important;
+    border-color: #243447 !important;
+}
+:host-context([data-theme="dark"]) input::placeholder { color: #6B8AA3 !important; }

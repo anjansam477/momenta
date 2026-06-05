@@ -11,6 +11,7 @@ import { BackgroundImageService } from '../../services/backgroundimageservice/ba
 import { getPostAuthorDisplayName } from '../../shared/post/post-author.util';
 import { User, Wall } from '../../shared/models';
 import { NotificationsComponent } from '../dropdown/notifications/notifications.component';
+import { ThemeService } from '../../services/themeservice/theme.service';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -44,6 +45,7 @@ export class NavbarComponent implements OnInit{
     private wallService: WallService,
     private imagesService: BackgroundImageService,
     private cdr: ChangeDetectorRef,
+    public themeService: ThemeService,
   ) {}
 
   ngOnInit(): void {
@@ -118,6 +120,7 @@ export class NavbarComponent implements OnInit{
     } else {
       this.image = "";
     }
+    this.cdr.markForCheck();
   }
 
   logout() {

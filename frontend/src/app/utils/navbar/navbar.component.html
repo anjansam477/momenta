@@ -58,6 +58,18 @@
             </div>
 
             <div class="nav-right-side">
+                <!-- Dark / Light mode toggle -->
+                <button class="nav-theme-toggle notif" type="button"
+                    [title]="themeService.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+                    [attr.aria-label]="themeService.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+                    (click)="themeService.toggle()">
+                    @if (themeService.isDark) {
+                        <i class="bi bi-sun-fill"></i>
+                    } @else {
+                        <i class="bi bi-moon-fill"></i>
+                    }
+                </button>
+
                 <app-notifications></app-notifications>
                 <div class="dropdown cst-dropdown">
                     <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="User menu">
@@ -86,7 +98,7 @@
                             </div>
                         </li>
                         <li class="hr-line"></li>
-                        <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#settingsModal"><i class="bi bi-gear"></i>Settings</a></li>
+                        <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#settingsModal"><i class="bi bi-person-circle"></i>Profile & Settings</a></li>
                         <li><a class="dropdown-item" (click)="logout()"><i class="bi bi-box-arrow-in-right"></i>Logout</a></li>
                     </ul>
                 </div>

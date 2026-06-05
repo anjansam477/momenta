@@ -1,8 +1,17 @@
 @if (requireApproval && checkWallCreator() && pendingPosts.length > 0) {
 <div class="pending-queue">
     <div class="pending-queue__header" (click)="showPendingQueue = !showPendingQueue">
-        <span><i class="bi bi-hourglass-split me-2"></i>Pending approval <span class="badge bg-warning text-dark ms-1">{{ pendingPosts.length }}</span></span>
-        <i class="bi" [ngClass]="showPendingQueue ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+        <div class="pending-queue__title">
+            <i class="bi bi-hourglass-split"></i>
+            <span>Pending approval</span>
+            <span class="pending-badge">{{ pendingPosts.length }}</span>
+        </div>
+        <div class="pending-queue__controls" (click)="$event.stopPropagation()">
+            <button class="pq-icon-btn" (click)="fetchPendingPosts()" title="Refresh" aria-label="Refresh pending posts">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <i class="bi" [ngClass]="showPendingQueue ? 'bi-chevron-up' : 'bi-chevron-down'" (click)="showPendingQueue = !showPendingQueue"></i>
+        </div>
     </div>
     @if (showPendingQueue) {
         <div class="pending-queue__body">
@@ -16,9 +25,22 @@
                             <p [innerHTML]="post.content | sanitizeAndCleanHtmlPipe"></p>
                         </div>
                     }
+                    @if (post.media?.url && post.media?.url !== '#') {
+                        <div class="pending-card__media">
+                            @if (post.media?.type === 'image' || post.media?.type === 'gif') {
+                                <img [src]="post.media?.url" alt="Post media" class="pending-media-img" loading="lazy" />
+                            } @else if (post.media?.type === 'video') {
+                                <video class="pending-media-img" [src]="post.media?.url" controls muted preload="metadata"></video>
+                            }
+                        </div>
+                    }
                     <div class="pending-card__actions">
-                        <button class="btn btn-sm btn-success me-2" (click)="approvePost(post)" aria-label="Approve post"><i class="bi bi-check-lg me-1"></i>Approve</button>
-                        <button class="btn btn-sm btn-outline-danger" (click)="rejectPost(post)" aria-label="Reject post"><i class="bi bi-x-lg me-1"></i>Reject</button>
+                        <button class="pq-btn pq-btn--approve" (click)="approvePost(post)" aria-label="Approve post">
+                            <i class="bi bi-check-lg"></i> Approve
+                        </button>
+                        <button class="pq-btn pq-btn--reject" (click)="rejectPost(post)" aria-label="Reject post">
+                            <i class="bi bi-x-lg"></i> Reject
+                        </button>
                     </div>
                 </div>
             }
@@ -96,10 +118,10 @@
                         @if (post.media?.url || post.mediaUrl) {
                             <div class="media-container" (click)="$event.stopPropagation()">
                                 @if (isImage(post.media?.type || post.mediaType, post.media?.url || post.mediaUrl)) {
-                                    <img [src]="mediaUrls[post.media?.url || post.mediaUrl]" alt="Image" />
+                                    <img [src]="mediaUrls[post.media?.url || post.mediaUrl]" alt="Image" loading="lazy" />
                                 }
                                 @if (isGif(post.media?.type || post.mediaType, post.media?.url || post.mediaUrl)) {
-                                    <img [src]="mediaUrls[post.media?.url || post.mediaUrl]" alt="GIF" />
+                                    <img [src]="mediaUrls[post.media?.url || post.mediaUrl]" alt="GIF" loading="lazy" />
                                 }
                                 @if (isVideo(post.media?.type || post.mediaType)) {
                                     <video #videoPlayer id="videoPlayer" [src]="mediaUrls[post.media?.url || post.mediaUrl]" controls (click)="stopVideo(videoPlayer)">
@@ -202,3 +224,18 @@
 <app-loginmodal></app-loginmodal>
 
 <app-messagemodal></app-messagemodal>
+
+@if (undoDeleteToast) {
+  <div class="undo-toast" role="alert" aria-live="assertive">
+    <div class="undo-toast__body">
+      <i class="bi bi-trash3 undo-toast__icon"></i>
+      <span>Post deleted</span>
+    </div>
+    <div class="undo-toast__actions">
+      <button class="undo-toast__btn" (click)="undoDelete()">
+        <i class="bi bi-arrow-counterclockwise"></i> Undo <span class="undo-countdown">({{ undoCountdown }}s)</span>
+      </button>
+    </div>
+    <div class="undo-toast__progress" [style.width.%]="(undoCountdown / 30) * 100"></div>
+  </div>
+}

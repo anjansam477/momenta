@@ -1,6 +1,12 @@
 @if (isMomentReady) {
   @if (checkWallCreator() && !isPreview) { <app-wall-navbar></app-wall-navbar> }
-  <div class="moment-page wall-page" [ngStyle]="{'background-image': 'url(' + selectedBackground + ')'}">
+  <div class="moment-page wall-page"
+    [ngStyle]="{
+      'background-image':  selectedBgColor ? 'none' : 'url(' + selectedBackground + ')',
+      'background-color':  selectedBgColor || 'transparent',
+      'font-family':       selectedFont ? selectedFont + ', sans-serif' : '',
+      '--wall-text-color': selectedTextColor || ''
+    }">
     <app-title-bar></app-title-bar>
     <app-wall-posts></app-wall-posts>
   </div>

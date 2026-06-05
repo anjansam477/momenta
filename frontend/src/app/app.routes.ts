@@ -49,7 +49,7 @@ export const routes: Routes = [
         path: 'shared',
         canActivate: [AuthguardService],
         loadComponent: () => import('./components/dashboard/shared/shared.component').then((m) => m.SharedComponent)
-      }
+      },
     ]
   },
   {

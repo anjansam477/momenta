@@ -368,3 +368,61 @@
         display: none;
     }
 }
+
+/* ── Dark mode ── */
+:host-context([data-theme="dark"]) .moment-command-bar {
+    background: rgba(15, 25, 35, 0.97) !important;
+    border-bottom-color: #243447 !important;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.55) !important;
+}
+:host-context([data-theme="dark"]) .moment-command-title strong { color: #E2EAF2 !important; }
+:host-context([data-theme="dark"]) .command-icon {
+    background: rgba(16,167,164,0.10) !important;
+    color: #10A7A4 !important;
+}
+:host-context([data-theme="dark"]) .command-button {
+    background: rgba(255,255,255,0.04) !important;
+    border-color: rgba(255,255,255,0.07) !important;
+    color: #9BB0C4 !important;
+}
+:host-context([data-theme="dark"]) .command-button i { color: #10A7A4 !important; }
+:host-context([data-theme="dark"]) .command-button:hover {
+    background: rgba(16,167,164,0.12) !important;
+    color: #E2EAF2 !important;
+}
+:host-context([data-theme="dark"]) .command-button.is-active {
+    background: #087c83 !important;
+    color: #fff !important;
+}
+:host-context([data-theme="dark"]) .component-container {
+    background-color: #1A2635 !important;
+    box-shadow: -8px 0 48px rgba(0,0,0,0.65) !important;
+}
+:host-context([data-theme="dark"]) .control-center { background: #1A2635 !important; }
+:host-context([data-theme="dark"]) .control-center__header {
+    background: #1A2635 !important;
+    border-bottom-color: #243447 !important;
+    color: #E2EAF2 !important;
+}
+:host-context([data-theme="dark"]) .control-center__header span,
+:host-context([data-theme="dark"]) .control-center__header strong { color: #E2EAF2 !important; }
+:host-context([data-theme="dark"]) .control-close {
+    color: #9BB0C4 !important;
+    background: #1E2D3D !important;
+    border-color: #243447 !important;
+}
+:host-context([data-theme="dark"]) .control-tabs {
+    background: #1E2D3D !important;
+    border-bottom-color: #243447 !important;
+}
+:host-context([data-theme="dark"]) .control-tabs button { color: #9BB0C4 !important; }
+:host-context([data-theme="dark"]) .control-tabs button.is-active { color: #10A7A4 !important; }
+:host-context([data-theme="dark"]) .search-bar-strip {
+    background: #1A2635 !important;
+    border-bottom-color: #243447 !important;
+}
+:host-context([data-theme="dark"]) .search-bar-input {
+    background: transparent !important;
+    color: #E2EAF2 !important;
+}
+:host-context([data-theme="dark"]) .search-bar-input::placeholder { color: #6B8AA3 !important; }

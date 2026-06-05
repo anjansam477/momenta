@@ -245,6 +245,22 @@
 
 .delete-list:hover { background: rgba(255, 104, 92, 0.1); }
 
+/* ── Dark mode ── */
+:host-context([data-theme="dark"]) .summary-row { background: #1E2D3D !important; border-color: #243447 !important; }
+:host-context([data-theme="dark"]) .summary-label { color: #E2EAF2 !important; }
+:host-context([data-theme="dark"]) .user-showList { background: #1E2D3D !important; border-color: #243447 !important; }
+:host-context([data-theme="dark"]) .list-item { border-color: rgba(36,52,71,0.5) !important; }
+:host-context([data-theme="dark"]) .add__user_name { color: #E2EAF2 !important; }
+:host-context([data-theme="dark"]) .add__user_email { color: #9BB0C4 !important; }
+:host-context([data-theme="dark"]) .no-people-text { color: #9BB0C4 !important; }
+:host-context([data-theme="dark"]) .search__people_input {
+    background: #1A2635 !important;
+    color: #E2EAF2 !important;
+    border-color: #243447 !important;
+}
+:host-context([data-theme="dark"]) .stacked-avatar,
+:host-context([data-theme="dark"]) .user___img { border-color: #1E2D3D !important; }
+
 /* ── Validation ───────────────────────────────────────── */
 .validation-text {
     font-size: 11.5px;

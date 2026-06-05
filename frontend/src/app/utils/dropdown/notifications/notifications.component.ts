@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, inject , ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject , ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { NgClass, SlicePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -25,7 +25,8 @@ export class NotificationsComponent implements OnInit {
   constructor(
     private notificationsService: NotificationsService,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -33,6 +34,7 @@ export class NotificationsComponent implements OnInit {
     this.notificationsService.initializeSocketListener();
     this.notificationsService.notifications$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((notifications) => {
       this.notifications = notifications;
+      this.cdr.markForCheck();
     });
   }
 
@@ -95,6 +97,14 @@ export class NotificationsComponent implements OnInit {
     switch (notification.type) {
       case 'postAdded':
         return `${actor} added a post to ${wallName}`;
+      case 'postPending':
+        return `${actor} submitted a post for review in ${wallName}`;
+      case 'postApproved':
+        return `Your post in ${wallName} was approved`;
+      case 'postRejected':
+        return `Your post in ${wallName} was not approved`;
+      case 'inviteAccepted':
+        return `${actor} joined ${wallName} via invite link`;
       case 'reactionAdded':
         return `${actor} reacted to your post in ${wallName}`;
       case 'postReported':
@@ -129,6 +139,14 @@ export class NotificationsComponent implements OnInit {
     switch (notification.type) {
       case 'postAdded':
         return 'bi-chat-square-heart';
+      case 'postPending':
+        return 'bi-hourglass-split';
+      case 'postApproved':
+        return 'bi-check-circle';
+      case 'postRejected':
+        return 'bi-x-circle';
+      case 'inviteAccepted':
+        return 'bi-person-check-fill';
       case 'reactionAdded':
         return 'bi-emoji-smile';
       case 'postReported':

@@ -275,6 +275,62 @@
     }
 }
 
+/* ── Dark mode ── */
+:host-context([data-theme="dark"]) .momenta-hero {
+    background:
+        radial-gradient(circle at 12% 12%, rgba(16,167,164,0.08), transparent 18rem),
+        radial-gradient(circle at 92% 18%, rgba(16,167,164,0.06), transparent 20rem),
+        radial-gradient(circle at 54% 112%, rgba(255,104,92,0.06), transparent 19rem),
+        linear-gradient(135deg, #0F1923 0%, #111b27 58%, #0d1820 100%) !important;
+    border-bottom-color: #243447 !important;
+}
+:host-context([data-theme="dark"]) .hero-copy h1 { color: #E2EAF2 !important; }
+:host-context([data-theme="dark"]) .hero-copy p { color: #9BB0C4 !important; }
+:host-context([data-theme="dark"]) .hero-eyebrow {
+    color: #10A7A4 !important;
+    background: rgba(16,167,164,0.12) !important;
+    border-color: rgba(16,167,164,0.22) !important;
+}
+:host-context([data-theme="dark"]) .occasion-heading { color: #E2EAF2 !important; }
+:host-context([data-theme="dark"]) .occasion-heading small { color: #9BB0C4 !important; }
+:host-context([data-theme="dark"]) .occasion-chip {
+    background: rgba(26,38,53,0.9) !important;
+    border-color: #243447 !important;
+    color: #10A7A4 !important;
+}
+:host-context([data-theme="dark"]) .occasion-chip .bi {
+    background: rgba(16,167,164,0.15) !important;
+    color: #10A7A4 !important;
+}
+:host-context([data-theme="dark"]) .occasion-chip:nth-child(6n+1) {
+    color: #ff9590 !important; background: rgba(255,104,92,0.1) !important; border-color: rgba(255,104,92,0.2) !important;
+}
+:host-context([data-theme="dark"]) .occasion-chip:nth-child(6n+1) .bi {
+    color: #ff9590 !important; background: rgba(255,104,92,0.15) !important;
+}
+:host-context([data-theme="dark"]) .occasion-chip:nth-child(6n+2) {
+    color: #7ab0f5 !important; background: rgba(70,125,221,0.1) !important; border-color: rgba(70,125,221,0.2) !important;
+}
+:host-context([data-theme="dark"]) .occasion-chip:nth-child(6n+2) .bi {
+    color: #7ab0f5 !important; background: rgba(70,125,221,0.15) !important;
+}
+:host-context([data-theme="dark"]) .occasion-chip:nth-child(6n+3) {
+    color: #ff9590 !important; background: rgba(255,104,92,0.1) !important; border-color: rgba(255,104,92,0.18) !important;
+}
+:host-context([data-theme="dark"]) .occasion-chip:nth-child(6n+4) {
+    color: #b59cf7 !important; background: rgba(123,88,207,0.12) !important; border-color: rgba(123,88,207,0.22) !important;
+}
+:host-context([data-theme="dark"]) .occasion-chip:nth-child(6n+5) {
+    color: #ffd570 !important; background: rgba(253,186,45,0.12) !important; border-color: rgba(253,186,45,0.22) !important;
+}
+:host-context([data-theme="dark"]) .occasion-chip:nth-child(6n) {
+    color: #10A7A4 !important; background: rgba(16,167,164,0.12) !important; border-color: rgba(16,167,164,0.22) !important;
+}
+:host-context([data-theme="dark"]) .occasion-chip:hover {
+    background: #1E2D3D !important;
+    border-color: #10A7A4 !important;
+}
+
 @media (max-width: 640px) {
     .momenta-hero {
         padding: 32px 18px;
