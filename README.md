@@ -14,6 +14,8 @@ Momenta is a collaborative moment wall application. Users create a moment, invit
 - Google OAuth and JWT token-based auth
 - Real-time notifications via Socket.io
 - Structured JSON logging, Redis caching, rate limiting
+- Wall analytics with daily view, post and reaction tracking
+- Appearance customisation: background colours, fonts, text colours with live preview
 
 ## Tech Stack
 
