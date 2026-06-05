@@ -6,16 +6,22 @@ Momenta is a collaborative moment wall application. Users create a moment, invit
 
 - Moment creation with title, occasion, description, theme, animation, and audio
 - Contributor posting: text (rich text), image, GIF, sticker, video
+- GIF and sticker picker powered by Giphy with search, trending, and suggestions
 - Role-based access: owner, maintainer, poster, viewer, recipient
-- Reactions, post moderation, reporting workflow
+- Post pinning, post approval workflow, and report system with auto-threshold actioning
+- Reactions, post moderation, and reporting workflow
 - Scheduled delivery to recipients via email
 - Share modal with QR code, copy link, and social options
-- Download and slideshow presentation views
+- Download wall and slideshow presentation views
+- Dark mode with persistent theme across all pages
 - Google OAuth and JWT token-based auth
+- Email verification and password reset flows
 - Real-time notifications via Socket.io
 - Structured JSON logging, Redis caching, rate limiting
 - Wall analytics with daily view, post and reaction tracking
 - Appearance customisation: background colours, fonts, text colours with live preview
+- Access control: domain and email whitelist/blacklist with blocked page
+- Admin data tools: add users, add domains, user data replacement
 
 ## Tech Stack
 
