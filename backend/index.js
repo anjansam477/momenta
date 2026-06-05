@@ -27,10 +27,24 @@ const { increasePartitions } = require("./src/utils/message-broker/admin");
 const { connectConsumer } = require("./src/utils/message-broker/consumer");
 const auth = require("./src/middleware/auth");
 const { client: redisClient } = require("./src/utils/redis");
+const { addPresence, removePresence, getPresence } = require('./src/utils/redis-cache');
+const actuator = require("express-actuator");
+const mongoose = require("mongoose");
 const NotificationService = require("./src/services/notification-service");
 const Response = require("./src/utils/error-handler");
 const logger = require("./src/utils/logger");
 const requestContext = require("./src/middleware/request-context");
+
+// ── Prometheus metrics setup ──────────────────────────────────────────────────
+const promClient = require("prom-client");
+promClient.collectDefaultMetrics({ prefix: "nodejs_" });
+
+const httpRequestDuration = new promClient.Histogram({
+  name: "http_request_duration_seconds",
+  help: "Duration of HTTP requests in seconds",
+  labelNames: ["method", "route", "status_code"],
+  buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
+});
 
 const app = express();
 const server = http.createServer(app);
@@ -74,9 +88,45 @@ io.on("connection", (socket) => {
       .catch((error) => ack?.({ ok: false, message: error.message }));
   });
 
-  socket.on("disconnect", () => {
+  socket.on("joinWall", async (wallId) => {
+    if (!wallId) return;
+    socket.join(`wall:${wallId}`);
+    await addPresence(wallId, email);
+    const viewers = await getPresence(wallId);
+    io.to(`wall:${wallId}`).emit("presenceUpdate", { wallId, count: viewers.length });
+  });
+
+  socket.on("leaveWall", async (wallId) => {
+    if (!wallId) return;
+    socket.leave(`wall:${wallId}`);
+    await removePresence(wallId, email);
+    const viewers = await getPresence(wallId);
+    io.to(`wall:${wallId}`).emit("presenceUpdate", { wallId, count: viewers.length });
+  });
+
+  socket.on("disconnect", async () => {
+    // clean up all presence rooms this socket was in
+    const rooms = [...socket.rooms].filter((r) => r.startsWith("wall:"));
+    await Promise.all(rooms.map((r) => {
+      const wallId = r.replace("wall:", "");
+      return removePresence(wallId, email).then(() =>
+        getPresence(wallId).then((viewers) =>
+          io.to(r).emit("presenceUpdate", { wallId, count: viewers.length })
+        )
+      );
+    }));
     logger.debug({ email }, "socket disconnected");
   });
+});
+
+// ── HTTP metrics middleware (must be before routes) ───────────────────────────
+app.use((req, res, next) => {
+  const end = httpRequestDuration.startTimer();
+  res.on("finish", () => {
+    const route = req.route ? req.baseUrl + req.route.path : req.path;
+    end({ method: req.method, route, status_code: res.statusCode });
+  });
+  next();
 });
 
 // ── Express middleware stack ──────────────────────────────────────────────────
@@ -107,7 +157,42 @@ app.use(
   })
 );
 
+// ── Actuator ─────────────────────────────────────────────────────────────────
+app.use(actuator({
+  basePath: "/actuator",
+  customEndpoints: [
+    {
+      id: "health",
+      controller: async (_req, res) => {
+        const mongoOk = mongoose.connection.readyState === 1;
+        let redisOk = false;
+        try {
+          await redisClient.ping();
+          redisOk = true;
+        } catch (_) {
+          redisOk = false;
+        }
+        const status = mongoOk && redisOk ? "UP" : "DOWN";
+        res.status(mongoOk && redisOk ? 200 : 503).json({
+          status,
+          components: {
+            mongo: { status: mongoOk ? "UP" : "DOWN" },
+            redis: { status: redisOk ? "UP" : "DOWN" },
+          },
+        });
+      },
+    },
+  ],
+}));
+
 // ── Routes ───────────────────────────────────────────────────────────────────
+// Prometheus metrics — internal network only, no auth
+app.get("/metrics", async (req, res) => {
+  res.set("Content-Type", promClient.register.contentType);
+  res.end(await promClient.register.metrics());
+});
+
+// Thin alias kept for Docker HEALTHCHECK compatibility
 app.get("/health", (req, res) => res.status(200).json({ status: "ok" }));
 
 app.use("", o2router);
@@ -169,6 +254,9 @@ async function start() {
   const port = process.env.PORT || 5000;
   server.listen(port, () => {
     logger.info({ port }, "Server running");
+    // Pre-seed Giphy cache in background — non-blocking
+    const giphyService = require('./src/services/giphy-service');
+    giphyService.seedPopularTerms().catch(() => {});
   });
 }
 

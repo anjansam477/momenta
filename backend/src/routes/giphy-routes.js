@@ -1,9 +1,14 @@
 const express = require("express");
 const router = express.Router();
-const giphyController = require("../controllers/giphy-controller");
+const c = require("../controllers/giphy-controller");
 
-router.get("/gifs/trending", giphyController.getTrendingGifs);
-router.get("/gifs/search", giphyController.getGifsBySearch);
-router.get("/stickers/trending", giphyController.getTrendingStickers);
-router.get("/stickers/search", giphyController.getStickersBySearch);
+router.get("/gifs/trending",        c.getTrendingGifs);
+router.get("/gifs/search",          c.getGifsBySearch);       // ?q=&offset=
+router.get("/stickers/trending",    c.getTrendingStickers);
+router.get("/stickers/search",      c.getStickersBySearch);   // ?q=&offset=
+router.get("/trending/searches",    c.getTrendingSearchTerms);
+router.get("/gifs/autocomplete",    c.getAutocompleteTags);   // ?q=
+router.get("/tags/related/:term",   c.getRelatedTags);
+router.post("/analytics/action",    c.trackAction);           // { analytics_response_payload, action }
+
 module.exports = router;

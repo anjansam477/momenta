@@ -1,123 +1,200 @@
-const {GIPHY_API_KEY} = require("../../environment-config");
+const { GIPHY_API_KEY } = require("../../environment-config");
 const axios = require('axios');
-const { getAsync, setAsync , hgetAsync, hsetAsync} = require('../utils/redis');
+const { getAsync, setAsync } = require('../utils/redis');
 
-class GiphyService{
-    threshold = 5;
+const BASE   = 'https://api.giphy.com/v1';
+const LIMIT  = 50;   // Beta key max per request
+const RATING = 'g';  // Safe for all ages
+const BUNDLE = 'messaging_non_clips'; // Optimized renditions for messaging context
 
-    async getTrendingGifs(){
-        const cacheKey = 'trending_gifs';
-        const cachedData = await getAsync(cacheKey);
+// Only request fields we actually use — reduces payload ~60%
+const FIELDS = 'id,title,alt_text,images,analytics_response_payload';
 
-        if (cachedData) {
-        const data =  JSON.parse(cachedData);
-        return this.getRandomItems(data.data, 30);
-        }
+const TTL = {
+  trending:        24 * 60 * 60,       // 1 day  — content rotates daily
+  search:           3 * 24 * 60 * 60,  // 3 days — per user request
+  trendingSearches: 6 * 60 * 60,       // 6 hours — trends shift through day
+  autocomplete:     1 * 60 * 60,       // 1 hour
+  related:          6 * 60 * 60,       // 6 hours
+};
 
-        const data = await this.fetchFromGiphy(`https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_API_KEY}&limit=100`);
-        await setAsync(cacheKey, JSON.stringify(data), 'EX', 86400); //expires daily
-        return this.getRandomItems(data.data, 30);
+const SEED_TERMS = [
+  'happy', 'sad', 'birthday', 'love', 'funny', 'congratulations',
+  'thank you', 'celebration', 'excited', 'wow', 'laughing', 'crying',
+  'hello', 'bye', 'good morning', 'good night', 'party', 'heart',
+  'clapping', 'dancing', 'thumbs up', 'fire',
+];
+
+// Shared query params appended to every content request
+const BASE_PARAMS = `api_key=${GIPHY_API_KEY}&rating=${RATING}&bundle=${BUNDLE}&remove_low_contrast=true&fields=${encodeURIComponent(FIELDS)}`;
+
+class GiphyService {
+
+  /* ── Trending ─────────────────────────────────────────── */
+
+  async getTrendingGifs() {
+    const key = 'trending_gifs';
+    const cached = await getAsync(key);
+    if (cached) return this._sample(JSON.parse(cached), 30);
+
+    const data = await this._fetch(`${BASE}/gifs/trending?${BASE_PARAMS}&limit=${LIMIT}`);
+    await setAsync(key, JSON.stringify(data.data), 'EX', TTL.trending);
+    return this._sample(data.data, 30);
+  }
+
+  async getTrendingStickers() {
+    const key = 'trending_stickers';
+    const cached = await getAsync(key);
+    if (cached) return this._sample(JSON.parse(cached), 30);
+
+    const data = await this._fetch(`${BASE}/stickers/trending?${BASE_PARAMS}&limit=${LIMIT}`);
+    await setAsync(key, JSON.stringify(data.data), 'EX', TTL.trending);
+    return this._sample(data.data, 30);
+  }
+
+  /* ── Search (with optional pagination offset) ─────────── */
+
+  async getGifsBySearch(query, offset = 0) {
+    const q = query.toLowerCase().trim();
+    // Only cache offset=0 — deeper pages not worth a cache slot
+    const key = offset === 0 ? `search_gifs_${q}` : null;
+
+    if (key) {
+      const cached = await getAsync(key);
+      if (cached) return this._sample(JSON.parse(cached), 30);
     }
 
-    async getGifsBySearch(query) {
-        const searchCountKey = 'searchedGif';
-        const searchCount = await hgetAsync(searchCountKey, query);
-    
-        if (searchCount) {
-            const [count] = searchCount.split(':').map(Number);
-            if (count >= this.threshold) {
-                const cachedData = await getAsync(`search_gifs_${query}`);
-                if (cachedData) {
-                    const data = JSON.parse(cachedData);
-                    return this.getRandomItems(data.data, 30);
-                }
-            }
-        }
-        const limit = (searchCount && parseInt(searchCount.split(':')[0], 10) == this.threshold-1) ? 100 : 30;
-        const data = await this.fetchFromGiphy(`https://api.giphy.com/v1/gifs/search?q=${query}&api_key=${GIPHY_API_KEY}&limit=${limit}`);
-        const newCount = searchCount ? parseInt(searchCount.split(':')[0], 10) + 1 : 1;
-        const currentTimestamp = Math.floor(Date.now() / 1000);
-    
-        await hsetAsync(searchCountKey, query, `${newCount}:${currentTimestamp}`);
-    
-        if (newCount >= this.threshold) {
-            await setAsync(`search_gifs_${query}`, JSON.stringify(data), 'EX', 604800); // expires weekly (7 days)
-            return this.getRandomItems(data.data, 30); // Return 30 random items from the 100 fetched
-        }
-        return data.data; // Return the 30 fetched items directly
-    }
-    
-    
+    const data = await this._fetch(
+      `${BASE}/gifs/search?${BASE_PARAMS}&q=${encodeURIComponent(q)}&limit=${LIMIT}&offset=${offset}&lang=en`
+    );
+    if (key) await setAsync(key, JSON.stringify(data.data), 'EX', TTL.search);
+    return this._sample(data.data, 30);
+  }
 
-    async getTrendingStickers(){
-        const cacheKey = 'trending_stickers';
-        const cachedData = await getAsync(cacheKey);
+  async getStickersBySearch(query, offset = 0) {
+    const q = query.toLowerCase().trim();
+    const key = offset === 0 ? `search_stickers_${q}` : null;
 
-        if (cachedData) {
-        const data = JSON.parse(cachedData);
-        return this.getRandomItems(data.data, 30);
-        }
-
-        const data = await this.fetchFromGiphy(`https://api.giphy.com/v1/stickers/trending?api_key=${GIPHY_API_KEY}&limit=100`);
-        await setAsync(cacheKey, JSON.stringify(data), 'EX', 86400);   //expires daily
-        return this.getRandomItems(data.data, 30);
+    if (key) {
+      const cached = await getAsync(key);
+      if (cached) return this._sample(JSON.parse(cached), 30);
     }
 
-    async getStickersBySearch(query){
-        const searchCountKey = 'searchedSticker';
-        const searchCount = await hgetAsync(searchCountKey, query);
+    const data = await this._fetch(
+      `${BASE}/stickers/search?${BASE_PARAMS}&q=${encodeURIComponent(q)}&limit=${LIMIT}&offset=${offset}&lang=en`
+    );
+    if (key) await setAsync(key, JSON.stringify(data.data), 'EX', TTL.search);
+    return this._sample(data.data, 30);
+  }
 
-        if (searchCount) {
-            const [count] = searchCount.split(':').map(Number);
-            if (count >= this.threshold) {
-                const cachedData = await getAsync(`search_stickers_${query}`);
-                if (cachedData) {
-                    const data = JSON.parse(cachedData);
-                    return this.getRandomItems(data.data, 30);
-                }
-            }
-        }
-        const limit = (searchCount && parseInt(searchCount.split(':')[0], 10) == this.threshold-1) ? 100 : 30;
-        const data = await this.fetchFromGiphy(`https://api.giphy.com/v1/stickers/search?q=${query}&api_key=${GIPHY_API_KEY}&limit=${limit}`);
-        const newCount = searchCount ? parseInt(searchCount.split(':')[0], 10) + 1 : 1;
-        const currentTimestamp = Math.floor(Date.now() / 1000);
-        await hsetAsync(searchCountKey, query, `${newCount}:${currentTimestamp}`);
+  /* ── Discovery helpers ────────────────────────────────── */
 
-        if (newCount >= this.threshold) {
-            await setAsync(`search_stickers_${query}`, JSON.stringify(data), 'EX', 604800); //expires weekly
-            return this.getRandomItems(data.data, 30);
-        }
-        return data.data; // Return the 30 fetched items directly
+  async getTrendingSearchTerms() {
+    const key = 'trending_searches';
+    const cached = await getAsync(key);
+    if (cached) return JSON.parse(cached);
+
+    const data = await this._fetch(`${BASE}/trending/searches?api_key=${GIPHY_API_KEY}`);
+    await setAsync(key, JSON.stringify(data.data), 'EX', TTL.trendingSearches);
+    return data.data;
+  }
+
+  async getAutocompleteTags(query) {
+    const q = query.toLowerCase().trim();
+    const key = `autocomplete_${q}`;
+    const cached = await getAsync(key);
+    if (cached) return JSON.parse(cached);
+
+    const data = await this._fetch(
+      `${BASE}/gifs/search/tags?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(q)}&limit=8`
+    );
+    await setAsync(key, JSON.stringify(data.data), 'EX', TTL.autocomplete);
+    return data.data;
+  }
+
+  async getRelatedTags(term) {
+    const t = term.toLowerCase().trim();
+    const key = `related_${t}`;
+    const cached = await getAsync(key);
+    if (cached) return JSON.parse(cached);
+
+    const data = await this._fetch(
+      `${BASE}/tags/related/${encodeURIComponent(t)}?api_key=${GIPHY_API_KEY}`
+    );
+    await setAsync(key, JSON.stringify(data.data), 'EX', TTL.related);
+    return data.data;
+  }
+
+  /* ── Analytics action register ────────────────────────── */
+  // Call this when a user clicks/sends a GIF — Giphy compliance + improves recommendations.
+  // analyticsPayload comes from gif.analytics_response_payload in the GIF object.
+  async trackAction(analyticsPayload, action = 'click') {
+    if (!analyticsPayload) return;
+    try {
+      // Giphy embeds the full tracking URL in analytics_response_payload
+      await axios.get(`https://api.giphy.com/v1/gifs/action?api_key=${GIPHY_API_KEY}&ts=${Date.now()}&action=${action}&analytics_response_payload=${encodeURIComponent(analyticsPayload)}`);
+    } catch {
+      // Non-fatal — analytics failure should never affect the user
     }
+  }
 
-    async fetchFromGiphy(url) {
-        try {
-          if (!GIPHY_API_KEY) {
-            throw new Error('GIPHY_API_KEY is not configured');
-          }
-          const response = await axios.get(url);
-          return response.data;
-        } catch (error) {
-          throw new Error(error.message);
+  /* ── Startup seed ─────────────────────────────────────── */
+
+  async seedPopularTerms() {
+    if (!GIPHY_API_KEY) return;
+
+    // Seed trending search terms list
+    try {
+      if (!await getAsync('trending_searches')) {
+        const data = await this._fetch(`${BASE}/trending/searches?api_key=${GIPHY_API_KEY}`);
+        await setAsync('trending_searches', JSON.stringify(data.data), 'EX', TTL.trendingSearches);
+        await this._delay(800);
+      }
+    } catch { /* non-fatal */ }
+
+    for (const term of SEED_TERMS) {
+      try {
+        const gifKey     = `search_gifs_${term}`;
+        const stickerKey = `search_stickers_${term}`;
+
+        if (!await getAsync(gifKey)) {
+          const data = await this._fetch(
+            `${BASE}/gifs/search?${BASE_PARAMS}&q=${encodeURIComponent(term)}&limit=${LIMIT}&lang=en`
+          );
+          await setAsync(gifKey, JSON.stringify(data.data), 'EX', TTL.search);
+          await this._delay(800);
         }
+
+        if (!await getAsync(stickerKey)) {
+          const data = await this._fetch(
+            `${BASE}/stickers/search?${BASE_PARAMS}&q=${encodeURIComponent(term)}&limit=${LIMIT}&lang=en`
+          );
+          await setAsync(stickerKey, JSON.stringify(data.data), 'EX', TTL.search);
+          await this._delay(800);
+        }
+      } catch { /* skip term — will be served on demand */ }
     }
+  }
 
-    getRandomItems(array, count) {
-        const result = [];
-        const len = array.length;
+  /* ── Internals ────────────────────────────────────────── */
 
-        // Fisher-Yates shuffle
-        for (let i = len - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
-        }
+  async _fetch(url) {
+    if (!GIPHY_API_KEY) throw new Error('GIPHY_API_KEY is not configured');
+    const response = await axios.get(url);
+    return response.data;
+  }
 
-        for (let i = 0; i < count; i++) {
-            result.push(array[i]);
-        }
-
-        return result;
+  _sample(array, count) {
+    if (!array?.length) return [];
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
     }
+    return arr.slice(0, Math.min(count, arr.length));
+  }
+
+  _delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 }
 
 module.exports = new GiphyService();
