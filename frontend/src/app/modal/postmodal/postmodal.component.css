@@ -31,6 +31,8 @@
     border-radius: 24px;
     background: rgba(255, 255, 255, 0.98);
     box-shadow: 0 28px 80px rgba(7, 28, 46, 0.28);
+    /* Prevent absolutely-positioned children from causing horizontal scrollbar */
+    contain: layout;
 }
 
 .add-post-modal .modal-body {
@@ -334,6 +336,8 @@
     width: 30px;
     height: 30px;
     border-radius: 8px;
+    background: transparent;
+    border: none;
 }
 
 .options:hover {
@@ -354,6 +358,7 @@
     position: absolute;
     z-index: 1090;
     bottom: 45px;
+    right: 0;
 }
 
 .add-post-modal .modal-body form > .d-flex.justify-content-end {
@@ -496,3 +501,92 @@
         left: 50%;
     }
 }
+
+/* ── Dark mode ── */
+:host-context([data-theme="dark"]) .add-post-modal .modal-content {
+    background: #1A2635 !important;
+    box-shadow: 0 28px 80px rgba(0,0,0,0.6) !important;
+}
+:host-context([data-theme="dark"]) .media-panel {
+    background: #111b27 !important;
+    border-color: #243447 !important;
+}
+:host-context([data-theme="dark"]) .media-panel__copy span { color: #E2EAF2 !important; }
+:host-context([data-theme="dark"]) .btn-upload {
+    background: #1E2D3D !important;
+    border-color: #243447 !important;
+    color: #E2EAF2 !important;
+}
+:host-context([data-theme="dark"]) .btn-upload:hover { border-color: #10A7A4 !important; }
+:host-context([data-theme="dark"]) .media-action-label strong { color: #E2EAF2 !important; }
+:host-context([data-theme="dark"]) .write-message h4 { color: #E2EAF2 !important; }
+:host-context([data-theme="dark"]) .quill-editor-options {
+    background: #111b27 !important;
+    border-color: #243447 !important;
+}
+:host-context([data-theme="dark"]) .options:hover { background: #1E2D3D !important; }
+:host-context([data-theme="dark"]) .options i { color: #C4D8E8 !important; }
+:host-context([data-theme="dark"]) .preview-media {
+    background: #1E2D3D !important;
+    border-color: #243447 !important;
+}
+:host-context([data-theme="dark"]) .preview-details span { color: #E2EAF2 !important; }
+:host-context([data-theme="dark"]) .preview-frame { background: #243447 !important; }
+:host-context([data-theme="dark"]) .edit-box {
+    background: #1E2D3D !important;
+    border-color: #243447 !important;
+    color: #C4D8E8 !important;
+}
+:host-context([data-theme="dark"]) .modal-cancel { color: #9BB0C4 !important; }
+:host-context([data-theme="dark"]) .modal-cancel:hover { color: #10A7A4 !important; }
+/* Quill editor dark */
+:host-context([data-theme="dark"]) ::ng-deep .ql-toolbar.ql-snow {
+    background: #1E2D3D !important;
+    border-color: #243447 !important;
+}
+:host-context([data-theme="dark"]) ::ng-deep .ql-toolbar.ql-snow .ql-stroke { stroke: #9BB0C4 !important; }
+:host-context([data-theme="dark"]) ::ng-deep .ql-toolbar.ql-snow .ql-fill { fill: #9BB0C4 !important; }
+:host-context([data-theme="dark"]) ::ng-deep .ql-toolbar.ql-snow .ql-picker-label { color: #9BB0C4 !important; }
+:host-context([data-theme="dark"]) ::ng-deep .ql-toolbar.ql-snow .ql-picker-options {
+    background: #1A2635 !important;
+    border-color: #243447 !important;
+    color: #E2EAF2 !important;
+}
+:host-context([data-theme="dark"]) ::ng-deep .ql-container.ql-snow {
+    border-color: #243447 !important;
+    background: #131e2a !important;
+}
+:host-context([data-theme="dark"]) ::ng-deep .ql-editor {
+    color: #E2EAF2 !important;
+    background: #131e2a !important;
+}
+:host-context([data-theme="dark"]) ::ng-deep .ql-editor.ql-blank::before { color: #6B8AA3 !important; }
+/* Emoji/GIF/Sticker button icons dark */
+:host-context([data-theme="dark"]) .options { background: transparent !important; }
+:host-context([data-theme="dark"]) .options i { color: #9BB0C4 !important; }
+:host-context([data-theme="dark"]) .options:hover { background: #1E2D3D !important; }
+:host-context([data-theme="dark"]) .options:hover i { color: #10A7A4 !important; }
+/* Emoji mart dark override via ng-deep */
+:host-context([data-theme="dark"]) ::ng-deep emoji-mart {
+    --color-border: #243447 !important;
+    --rgb-background: 26, 38, 53 !important;
+    background: #1A2635 !important;
+    border: 1px solid #243447 !important;
+    border-radius: 12px !important;
+}
+:host-context([data-theme="dark"]) ::ng-deep emoji-mart .emoji-mart-search input {
+    background: #1E2D3D !important;
+    color: #E2EAF2 !important;
+    border-color: #243447 !important;
+}
+:host-context([data-theme="dark"]) ::ng-deep emoji-mart .emoji-mart-category-label span {
+    background: #1A2635 !important;
+    color: #9BB0C4 !important;
+}
+:host-context([data-theme="dark"]) ::ng-deep emoji-mart .emoji-mart-bar {
+    border-color: #243447 !important;
+}
+:host-context([data-theme="dark"]) ::ng-deep emoji-mart .emoji-mart-anchors {
+    background: #111b27 !important;
+}
+:host-context([data-theme="dark"]) ::ng-deep emoji-mart .emoji-mart-title-label { color: #E2EAF2 !important; }

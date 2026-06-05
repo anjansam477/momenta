@@ -37,8 +37,14 @@ import { POST_AUTHOR_NAME_MAX_LENGTH, POST_CONTENT_MAX_LENGTH } from '../../shar
 import { Wall } from '../../shared/models';
 import { normalizePostAuthor } from '../../shared/post/post-author.util';
 import { handleHttpError } from '../../utils/error-handler.util';
+import { POST_STATUS } from '../../constants/wall.constants';
 
-declare const bootstrap: any;
+declare const bootstrap: {
+  Modal: {
+    new (el: Element, opts?: Record<string, unknown>): { show(): void; hide(): void; dispose(): void };
+    getOrCreateInstance(el: Element): { show(): void; hide(): void; dispose(): void };
+  }
+};
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -515,45 +521,34 @@ export class PostmodalComponent implements OnInit {
 
   insertGifIntoEditor(gifUrl: string) {
     if (this.mediaPreviewUrl || this.postForm?.get('content')?.value?.includes('<img src=')) {
-      this.errorMessage= 'Only one media can be added in a post';
-      setTimeout(() => {
-        this.errorMessage = '';
-      }, 5000);
+      this.errorMessage = 'Only one media can be added in a post';
+      setTimeout(() => { this.errorMessage = ''; }, 5000);
       return;
     }
-    const quill = this.editorRef.quillEditor;
-    const range = quill.getSelection();
-    const index = range ? range.index : quill.getLength();
-  
-    const imageHtml = `<img src="${gifUrl}" width="220" height="auto">`;
-  
-    quill.clipboard.dangerouslyPasteHTML(index, imageHtml);
-  
-    this.postForm?.get('content')?.setValue(quill.root.innerHTML);
-  
-    quill.setSelection(index + 1);
-  
     this.closeAllModals();
+    const quill = this.editorRef.quillEditor;
+    quill.focus();
+    const range = quill.getSelection();
+    const index = range ? range.index : Math.max(0, quill.getLength() - 1);
+    quill.insertEmbed(index, 'image', gifUrl, 'user');
+    quill.setSelection(index + 1, 0, 'silent');
+    this.postForm?.get('content')?.setValue(quill.root.innerHTML);
   }
 
   insertStickerIntoEditor(stickerUrl: string) {
     if (this.mediaPreviewUrl || this.postForm?.get('content')?.value?.includes('<img src=')) {
-      this.errorMessage= 'Only one media can be added in a post';
-      setTimeout(() => {
-        this.errorMessage = '';
-      }, 5000);
+      this.errorMessage = 'Only one media can be added in a post';
+      setTimeout(() => { this.errorMessage = ''; }, 5000);
       return;
     }
+    this.closeAllModals();
     const quill = this.editorRef.quillEditor;
+    quill.focus();
     const range = quill.getSelection();
-    const index = range ? range.index : quill.getLength();
-    const imageHtml = `<img src="${stickerUrl}" width="128" height="128">`;
-  
-    quill.clipboard.dangerouslyPasteHTML(index, imageHtml);
-
+    const index = range ? range.index : Math.max(0, quill.getLength() - 1);
+    quill.insertEmbed(index, 'image', stickerUrl, 'user');
+    quill.setSelection(index + 1, 0, 'silent');
     this.postForm?.get('content')?.setValue(quill.root.innerHTML);
-    quill.setSelection(index + 1); 
-    this.closeAllModals(); 
   }
 
   work(event?: Event) {
@@ -617,13 +612,17 @@ export class PostmodalComponent implements OnInit {
       this.isSubmitting = true;
       this.postService.createPost(this.WallId, formData).subscribe({
         next: (data) => {
-          this.sharedService.setPost(data);
-          this.sharedService.setPostAvailable(true);
-          this.sharedService.setMyPost(true);
-          this.sharedService.updateWallDetailsPartially({ posts: {
-            nonArchivedCount: this.nonArchivedCount+1, 
-            nonArchivedNonReportedCount:this.nonArchivedNonReportedCount+1
-          }  });
+          if (data.status === POST_STATUS.PENDING_APPROVAL) {
+            this.toastr.info('Your post is pending approval by the wall owner', '', { timeOut: 5000 });
+          } else {
+            this.sharedService.setPost(data);
+            this.sharedService.setPostAvailable(true);
+            this.sharedService.setMyPost(true);
+            this.sharedService.updateWallDetailsPartially({ posts: {
+              nonArchivedCount: this.nonArchivedCount + 1,
+              nonArchivedNonReportedCount: this.nonArchivedNonReportedCount + 1
+            }});
+          }
           this.modalClosed.emit();
           this.close();
           this.hideModal();
