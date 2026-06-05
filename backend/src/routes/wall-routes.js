@@ -13,6 +13,7 @@ router.get("/view-receiver-wall/:token", wallController.viewReceiverWall);
 router.get("/",                          verifyToken, validateGetWalls, wallController.getWalls);
 router.post("/",                         verifyToken, validateWallData, wallController.createWall);
 router.post("/:wallId/invite-link",      verifyToken, wallController.generateInviteLink);
+router.post("/:wallId/accept-invite",    wallController.acceptInvite);
 router.get("/:wallId/analytics",         verifyToken, wallController.getWallAnalytics);
 router.get("/:wallId",                   verifyToken, wallController.getWall);
 router.put("/:wallId",                   verifyToken, validateWallUpdate, wallController.updateWall);

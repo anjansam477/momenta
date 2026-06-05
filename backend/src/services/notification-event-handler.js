@@ -9,22 +9,24 @@ async function loadContext(data = {}) {
   const wall   = wallId       ? await wallRepository.getWallById(wallId).catch(() => null)         : null;
 
   // Pre-fetch all member emails so notification-rules stays a pure function
-  const members      = wallId ? await wallRepository.getMembers(wallId).catch(() => []) : [];
-  const memberEmails = members.map((m) => m.userEmail);
+  const members           = wallId ? await wallRepository.getMembers(wallId).catch(() => []) : [];
+  const memberEmails      = members.map((m) => m.userEmail);
+  const maintainerEmails  = members.filter((m) => m.role === "maintainer").map((m) => m.userEmail);
 
-  return { wall: wall?.toObject?.() ?? wall ?? {}, post, memberEmails };
+  return { wall: wall?.toObject?.() ?? wall ?? {}, post, memberEmails, maintainerEmails };
 }
 
 async function handleNotificationEvent(event) {
   const { type, data = {} } = event || {};
-  const { wall, post, memberEmails } = await loadContext(data);
+  const { wall, post, memberEmails, maintainerEmails } = await loadContext(data);
 
   const notification = buildNotification(type, {
     wall,
     post,
-    actorEmail:   data.email,
+    actorEmail:      data.email,
     memberEmails,
-    metadata:     data.metadata || {},
+    maintainerEmails,
+    metadata:        data.metadata || {},
   });
 
   if (!notification.wallId || notification.recipients.length === 0) return null;

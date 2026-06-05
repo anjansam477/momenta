@@ -11,7 +11,14 @@ class PostService {
     const status = requiresApproval ? "pending_approval" : "active";
     const post = await postRepository.addPost({ ...postData, status });
     analyticsRepository.incrementPost(postData.wallId).catch(() => {});
-    if (!requiresApproval) {
+    if (requiresApproval) {
+      // Notify owner + maintainers that a post is waiting for review
+      await publishNotification(NOTIFICATION_TYPES.POST_PENDING, {
+        wallId: postData.wallId,
+        postId: post._id,
+        email: postData.authorEmail,
+      }).catch(() => {});
+    } else {
       await publishNotification(NOTIFICATION_TYPES.POST_ADDED, {
         wallId: postData.wallId,
         email: postData.authorEmail,
@@ -26,6 +33,13 @@ class PostService {
 
   async approvePost(postId, wallId, reviewerEmail) {
     const post = await postRepository.approvePost(postId);
+    // Notify the poster their post was approved
+    await publishNotification(NOTIFICATION_TYPES.POST_APPROVED, {
+      wallId,
+      postId,
+      email: reviewerEmail,
+    }).catch(() => {});
+    // Also fire POST_ADDED so all wall members see the new post notification
     await publishNotification(NOTIFICATION_TYPES.POST_ADDED, {
       wallId,
       email: reviewerEmail,
@@ -33,8 +47,15 @@ class PostService {
     return post;
   }
 
-  async rejectPost(postId) {
-    return postRepository.rejectPost(postId);
+  async rejectPost(postId, wallId, reviewerEmail) {
+    const post = await postRepository.rejectPost(postId);
+    // Notify the poster their post was rejected
+    await publishNotification(NOTIFICATION_TYPES.POST_REJECTED, {
+      wallId,
+      postId,
+      email: reviewerEmail,
+    }).catch(() => {});
+    return post;
   }
 
   async updatePost(postId, updates, userEmail) {

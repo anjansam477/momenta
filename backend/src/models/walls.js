@@ -14,6 +14,9 @@ const wallSchema = new mongoose.Schema(
       bgImg:       { type: String, default: "assets/images/background_images/Default/default_background.png" },
       animationId: { type: String, default: "" },
       audio:       { type: String, default: "" },
+      bgColor:     { type: String, default: "" },       // hex or empty = use bgImg
+      fontFamily:  { type: String, default: "" },       // CSS font-family name or empty = default
+      textColor:   { type: String, default: "" },       // hex or empty = default theme color
     },
     anyoneCanView: { type: Boolean, default: false },
     anyoneCanPost: { type: Boolean, default: false },

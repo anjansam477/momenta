@@ -4,6 +4,7 @@ const { verifyToken } = require("../middleware/auth");
 const postsController = require("../controllers/post-controller");
 const { upload } = require("../config/upload-config");
 const { authorizePost, validateWall, checkArchive, authorizePostAction, authorizeUnreportPost, authorizeApproval, authorizePinPost } = require("../middleware/post-validations");
+const { idempotencyCheck } = require("../middleware/idempotency");
 
 // Specific routes before param routes
 router.get("/:wallId/posts/pending",           verifyToken, authorizeApproval, postsController.getPendingPosts);
@@ -12,7 +13,7 @@ router.put("/:wallId/posts/:postId/reject",    verifyToken, authorizeApproval, p
 router.get("/:wallId/posts/mail",              verifyToken, authorizePost, checkArchive, postsController.getPostsByEmail);
 router.get("/:wallId/posts/:postId",           verifyToken, authorizePost, checkArchive, postsController.getPost);
 router.get("/:wallId/posts",                   verifyToken, authorizePost, checkArchive, postsController.getPosts);
-router.post("/:wallId/posts",                  verifyToken, authorizePostAction, validateWall, upload.single("file"), postsController.createPost);
+router.post("/:wallId/posts",                  verifyToken, idempotencyCheck, authorizePostAction, validateWall, upload.single("file"), postsController.createPost);
 router.put("/:wallId/posts/:postId",           verifyToken, authorizePostAction, validateWall, postsController.updatePost);
 router.delete("/:wallId/posts/:postId",        verifyToken, authorizePostAction, postsController.deletePost);
 router.put("/:wallId/posts/:postId/pin",        verifyToken, authorizePinPost, postsController.pinPost);

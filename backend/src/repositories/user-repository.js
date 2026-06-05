@@ -1,6 +1,7 @@
 const User = require("../models/users");
 const VerificationToken = require("../models/verification-tokens");
 const crypto = require("crypto");
+const { getUserProfilesCache, setUserProfileCache, invalidateUserProfileCache } = require('../utils/redis-cache');
 
 class UserRepository {
   async getAllUsers() {
@@ -20,18 +21,26 @@ class UserRepository {
   }
 
   async getUserNamesByEmails(emails) {
-    const emailArray = emails.map((e) => e.trim().toLowerCase());
+    const { results: cached, misses } = await getUserProfilesCache(emails);
+    if (misses.length === 0) return cached;
+
+    const emailArray = misses.map((e) => e.trim().toLowerCase());
     const users = await User.find({ email: { $in: emailArray } })
       .select("email firstname lastname profilePictureUrl")
       .lean();
-    return users.reduce((map, user) => {
-      map[user.email] = {
+
+    const dbResults = users.reduce((map, user) => {
+      const profile = {
         email: user.email,
         fullName: [user.firstname, user.lastname].filter(Boolean).join(" ").trim() || user.email,
         profilePicture: user.profilePictureUrl || null,
       };
+      map[user.email] = profile;
+      setUserProfileCache(user.email, profile); // fire-and-forget
       return map;
     }, {});
+
+    return { ...cached, ...dbResults };
   }
 
   async searchUsersByName(nameRegex) {
@@ -60,7 +69,9 @@ class UserRepository {
   }
 
   async updateUser(userId, updates) {
-    return User.findByIdAndUpdate(userId, updates, { new: true }).select("-password");
+    const user = await User.findByIdAndUpdate(userId, updates, { new: true }).select("-password");
+    if (user?.email) invalidateUserProfileCache(user.email); // fire-and-forget
+    return user;
   }
 
   async deleteUser(userId) {
@@ -68,11 +79,15 @@ class UserRepository {
   }
 
   async updateProfilePicture(userId, profilePictureUrl) {
-    return User.findByIdAndUpdate(userId, { profilePictureUrl }, { new: true }).select("-password");
+    const user = await User.findByIdAndUpdate(userId, { profilePictureUrl }, { new: true }).select("-password");
+    if (user?.email) invalidateUserProfileCache(user.email); // fire-and-forget
+    return user;
   }
 
   async removeProfilePicture(userId) {
-    return User.findByIdAndUpdate(userId, { profilePictureUrl: null }, { new: true }).select("-password");
+    const user = await User.findByIdAndUpdate(userId, { profilePictureUrl: null }, { new: true }).select("-password");
+    if (user?.email) invalidateUserProfileCache(user.email); // fire-and-forget
+    return user;
   }
 
   async updateLastLogin(userId) {

@@ -1,11 +1,15 @@
 const NOTIFICATION_TYPES = Object.freeze({
   POST_ADDED:               "postAdded",
+  POST_PENDING:             "postPending",
+  POST_APPROVED:            "postApproved",
+  POST_REJECTED:            "postRejected",
   POST_REPORTED:            "postReported",
   POST_REPORT_THRESHOLD:    "postReportThreshold",
   POST_UNREPORTED:          "postUnreported",
   POST_DELETED:             "postDeleted",
   REACTION_ADDED:           "reactionAdded",
   ACCESS_GRANTED:           "accessGranted",
+  INVITE_ACCEPTED:          "inviteAccepted",
   WALL_UPDATED:             "wallUpdated",
   WALL_LOCKED:              "wallLocked",
   WALL_UNLOCKED:            "wallUnlocked",
@@ -44,10 +48,11 @@ function toRecipients(emails, actorEmail) {
  * @param {object} ctx.wall       - Wall document
  * @param {object} ctx.post       - Post document (optional)
  * @param {string} ctx.actorEmail - Who triggered the action
- * @param {string[]} ctx.memberEmails - All emails with any wall access (pre-fetched from WallMember)
+ * @param {string[]} ctx.memberEmails      - All emails with any wall access (pre-fetched from WallMember)
+ * @param {string[]} ctx.maintainerEmails  - Emails of maintainer-role members only
  * @param {object} ctx.metadata   - Extra data for the notification
  */
-function buildNotification(type, { wall = {}, post = {}, actorEmail, memberEmails = [], metadata = {} }) {
+function buildNotification(type, { wall = {}, post = {}, actorEmail, memberEmails = [], maintainerEmails = [], metadata = {} }) {
   if (!Object.values(NOTIFICATION_TYPES).includes(type)) {
     throw new Error(`Unsupported notification type: ${type}`);
   }
@@ -64,6 +69,21 @@ function buildNotification(type, { wall = {}, post = {}, actorEmail, memberEmail
     case NOTIFICATION_TYPES.POST_ADDED:
       // Notify owner + all members except poster
       recipients = toRecipients([owner, ...memberEmails], actor);
+      break;
+
+    case NOTIFICATION_TYPES.POST_PENDING:
+      // Notify owner + maintainers that a post needs review (not the poster)
+      recipients = toRecipients([owner, ...maintainerEmails], actor);
+      break;
+
+    case NOTIFICATION_TYPES.POST_APPROVED:
+      // Notify the poster that their post was approved
+      recipients = toRecipients([postAuthor], actor);
+      break;
+
+    case NOTIFICATION_TYPES.POST_REJECTED:
+      // Notify the poster that their post was rejected
+      recipients = toRecipients([postAuthor], actor);
       break;
 
     case NOTIFICATION_TYPES.POST_REPORTED:
@@ -89,6 +109,11 @@ function buildNotification(type, { wall = {}, post = {}, actorEmail, memberEmail
 
     case NOTIFICATION_TYPES.ACCESS_GRANTED:
       recipients = toRecipients(metadata.grantedEmails || [], actor);
+      break;
+
+    case NOTIFICATION_TYPES.INVITE_ACCEPTED:
+      // Notify owner + maintainers that someone joined via invite link
+      recipients = toRecipients([owner, ...maintainerEmails], actor);
       break;
 
     case NOTIFICATION_TYPES.WALL_UPDATED:

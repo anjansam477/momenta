@@ -4,6 +4,11 @@ const WallInteraction = require("../models/wall-interactions");
 const SavedWall = require("../models/saved-walls");
 const MailJob = require("../models/mail-jobs");
 const Response = require("../utils/error-handler");
+const {
+  getWallCache, setWallCache, invalidateWallCache,
+  getRoleCache, setRoleCache, invalidateRoleCache,
+  getAccessCache, setAccessCache, invalidateAccessCache,
+} = require('../utils/redis-cache');
 
 function generateSlug(title) {
   const base = (title || "wall").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
@@ -27,6 +32,7 @@ class WallRepository {
     if (!Object.prototype.hasOwnProperty.call(updateData, "status")) {
       await WallInteraction.findOneAndUpdate({ wallId, userEmail }, { $set: { updatedAt: new Date() } }, { upsert: true });
     }
+    await invalidateWallCache(wallId);
     return wall;
   }
 
@@ -34,12 +40,16 @@ class WallRepository {
     await MailJob.updateMany({ wallId, status: "pending" }, { $set: { status: "cancelled" } });
     const wall = await Wall.findByIdAndUpdate(wallId, { status: "archived" }, { new: true });
     if (!wall) throw new Error(Response.generateMessage(Response.errorMessage.INVALID_REQUEST, "wall"));
+    await invalidateWallCache(wallId);
     return wall;
   }
 
   async getWallById(wallId) {
+    const cached = await getWallCache(wallId);
+    if (cached) return cached;
     const wall = await Wall.findById(wallId);
     if (!wall) throw new Error(Response.generateMessage(Response.errorMessage.INVALID_REQUEST, "wall"));
+    await setWallCache(wallId, wall);
     return wall;
   }
 
@@ -48,20 +58,29 @@ class WallRepository {
   }
 
   async getUserRole(wallId, userEmail) {
+    const cached = await getRoleCache(wallId, userEmail);
+    if (cached !== undefined) return cached;
     const member = await WallMember.findOne({ wallId, userEmail }).sort({ role: 1 });
-    return member ? member.role : null;
+    const role = member ? member.role : null;
+    await setRoleCache(wallId, userEmail, role);
+    return role;
   }
 
   async hasAccess(wallId, userEmail) {
+    const cached = await getAccessCache(wallId, userEmail);
+    if (cached !== undefined) return cached;
+    // Query Wall directly (not via getWallById) to avoid polluting wall cache with partial doc
     const wall = await Wall.findById(wallId);
-    if (!wall) return false;
-    if (wall.anyoneCanView || wall.anyoneCanPost) return true;
+    if (!wall) { await setAccessCache(wallId, userEmail, false); return false; }
+    if (wall.anyoneCanView || wall.anyoneCanPost) { await setAccessCache(wallId, userEmail, true); return true; }
     const domain = userEmail.split("@")[1];
     const member = await WallMember.findOne({
       wallId,
       $or: [{ userEmail }, { domain }],
     });
-    return !!member;
+    const result = !!member;
+    await setAccessCache(wallId, userEmail, result);
+    return result;
   }
 
   async setMembers(wallId, emails, role, addedBy, domain = null) {
@@ -73,10 +92,15 @@ class WallRepository {
       },
     }));
     if (ops.length) await WallMember.bulkWrite(ops);
+    await invalidateRoleCache(wallId, emails);
+    await invalidateAccessCache(wallId, emails);
   }
 
   async removeMember(wallId, userEmail, role) {
-    return WallMember.deleteOne({ wallId, userEmail, role });
+    const result = await WallMember.deleteOne({ wallId, userEmail, role });
+    await invalidateRoleCache(wallId, [userEmail]);
+    await invalidateAccessCache(wallId, [userEmail]);
+    return result;
   }
 
   async getMembers(wallId) {

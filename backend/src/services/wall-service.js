@@ -84,6 +84,21 @@ class WallService {
     return wallRepository.unsaveWall(wallId, userEmail, type);
   }
 
+  async addViewerByInvite(wallId, email) {
+    const wall = await wallRepository.getWallById(wallId);
+    if (!wall) throw new Error(Response.generateMessage(Response.errorMessage.INVALID_REQUEST, 'wall'));
+    const alreadyHasAccess = await wallRepository.hasAccess(wallId, email);
+    if (!alreadyHasAccess) {
+      await wallRepository.setMembers(wallId, [email], 'viewer', wall.ownerEmail);
+      await wallRepository.updateWall(wallId, { $addToSet: { 'viewAccess.emails': email } }, email).catch(() => {});
+      // Notify owner + maintainers that someone joined via invite link
+      await publishNotification(NOTIFICATION_TYPES.INVITE_ACCEPTED, {
+        wallId,
+        email,
+      }).catch(() => {});
+    }
+  }
+
   async setAccess(wallId, updateData, userEmail) {
     if (updateData.maintainerEmails) {
       await wallRepository.setMembers(wallId, updateData.maintainerEmails, "maintainer", userEmail);

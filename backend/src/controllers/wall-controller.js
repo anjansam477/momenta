@@ -112,3 +112,14 @@ exports.generateInviteLink = asyncHandler(async (req, res) => {
   const token = authMiddleware.generateTokenForReceiver(email, wallId);
   return Response.respondOk(res, { token });
 });
+
+exports.acceptInvite = asyncHandler(async (req, res) => {
+  const { wallId } = req.params;
+  const { token } = req.body;
+  if (!token) return Response.respondError(res, new Error('Token is required'));
+  const decoded = authMiddleware.getEmailAndWallIdFromToken(token);
+  if (!decoded || decoded.wallId !== wallId) return Response.respondError(res, new Error('Invalid invite token'));
+  const { email } = decoded;
+  await wallService.addViewerByInvite(wallId, email);
+  return Response.respondOk(res, { message: 'Access granted' });
+});

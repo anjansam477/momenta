@@ -111,8 +111,8 @@ exports.approvePost = asyncHandler(async (req, res) => {
 });
 
 exports.rejectPost = asyncHandler(async (req, res) => {
-  const { postId } = req.params;
-  const post = await postService.rejectPost(postId);
+  const { wallId, postId } = req.params;
+  const post = await postService.rejectPost(postId, wallId, req.email);
   return Response.respondOk(res, post);
 });
 

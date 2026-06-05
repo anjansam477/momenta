@@ -191,13 +191,17 @@ class NotificationService {
           key = `${emailStatus}-${notification.type}-${notification.wallId}-${notification.postId}`;
           break;
         case 'postAdded':
+        case 'postPending':
         case 'accessGranted':
+        case 'inviteAccepted':
         case 'momentUpdated':
         case 'momentLocked':
         case 'momentUnlocked':
         case 'momentArchived':
           key = `${emailStatus}-${notification.type}-${notification.wallId}`;
           break;
+        case 'postApproved':
+        case 'postRejected':
         case 'deletePost':
         case 'postreported':
         case 'postUnreported': key = `${emailStatus}-${notification.type}-${notification._id}`;
