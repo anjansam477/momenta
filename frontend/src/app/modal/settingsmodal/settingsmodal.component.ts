@@ -1,6 +1,7 @@
-import { Component, DestroyRef, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, DestroyRef, inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UserService } from '../../services/userservice/user.service';
+import { WallService } from '../../services/wallservice/wall.service';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/authservice/auth.service';
 import { ToastrService } from 'ngx-toastr';
@@ -8,8 +9,9 @@ import { NgClass, DatePipe } from '@angular/common';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
 import { ImageCropperComponent } from 'ngx-image-cropper';
 import { of } from 'rxjs';
-import { User } from '../../shared/models';
+import { User, Wall } from '../../shared/models';
 import { handleHttpError } from '../../utils/error-handler.util';
+import { WALL_STATUS } from '../../constants/wall.constants';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -32,39 +34,38 @@ export class SettingsmodalComponent {
   incorrect: boolean = false;
   defaultProfile: boolean = false;
 
+  walls: Wall[] = [];
+  wallsLoaded = false;
+
   constructor(
     private userService: UserService,
+    private wallService: WallService,
     private authService: AuthService,
     private sharedDataService: SharedDataService,
-    private toastr: ToastrService
+    private toastr: ToastrService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit() {
-    setTimeout(() => {
-      this.getUserData();
-    }, 0);
+    this.getUserData();
+    this.loadWalls();
   }
 
   getUserData() {
     const userEmail = this.authService.getEmail();
     const token = this.authService.getToken();
-    if (token) {
-      if (userEmail) {
-        this.sharedDataService.getUserData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data) => {
-          if (data) {
-            this.userData = data;
-            this.fullName = this.userData.firstname + ' ' + this.userData.lastname;
-            if (this.userData && this.userData._id) {
-              this.showImage();
-            }
-          }
-        });
-      } else {
-        this.toastr.error('Error fetching user details', 'Please Reload', {
-          timeOut: 3000,
-        });
-      }
+    if (!token || !userEmail) {
+      this.toastr.error('Error fetching user details', 'Please Reload', { timeOut: 3000 });
+      return;
     }
+    this.sharedDataService.getUserData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data) => {
+      if (data) {
+        this.userData = data;
+        this.fullName = this.userData.firstname + ' ' + this.userData.lastname;
+        if (this.userData._id) this.showImage();
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   toggleNameEditMode() {
@@ -185,5 +186,30 @@ export class SettingsmodalComponent {
       this.defaultProfile = true;
       this.image = "";
     }
+  }
+
+  loadWalls() {
+    if (this.wallsLoaded) return;
+    const email = this.authService.getEmail();
+    if (!email) return;
+    this.wallService.getAllWalls(email, 1, 100).subscribe({
+      next: (walls: Wall[]) => {
+        this.walls = walls || [];
+        this.wallsLoaded = true;
+        this.cdr.markForCheck();
+      },
+      error: () => { this.wallsLoaded = true; this.cdr.markForCheck(); }
+    });
+  }
+
+  get isVerified(): boolean {
+    return this.userData.status === 'active' || this.userData.active === true;
+  }
+
+  get activeWallCount()   { return this.walls.filter(w => w.status === WALL_STATUS.ACTIVE).length; }
+  get archivedWallCount() { return this.walls.filter(w => w.status === WALL_STATUS.ARCHIVED).length; }
+  get totalWallCount()    { return this.walls.length; }
+  get initials() {
+    return `${(this.userData.firstname || '')[0] || ''}${(this.userData.lastname || '')[0] || ''}`.toUpperCase();
   }
 }

@@ -1,12 +1,55 @@
+/* ── My Moments inside settings modal ── */
+.settings-moments {
+    border: 1px solid var(--momenta-line, #DDEBE9);
+    border-radius: 12px;
+    margin-bottom: 14px;
+    overflow: hidden;
+    cursor: default;
+}
+
+.settings-moments__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--momenta-soft, #F5FBF9);
+    cursor: pointer;
+    user-select: none;
+}
+
+.settings-moments__title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--momenta-ink, #142536);
+}
+
+.settings-moments__stats {
+    display: flex;
+    gap: 8px;
+}
+
+.sms-chip {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+}
+
+.sms-active   { background: #E0F7F5; color: #10A7A4; }
+.sms-archived { background: #FFF8E1; color: #FDBA2D; }
+
+.sms-total { background: #E8F0FE; color: #4875f7; }
+
+/* ────────────────────────────────── */
 .profile-wrapper {
-    margin-bottom: 30px;
+    margin-bottom: 16px;
     position: relative;
 }
 
 .profile-picture {
     border-radius: 50%;
-    width: 120px;
-    height: 120px;
+    width: 90px;
+    height: 90px;
     overflow: hidden;
     margin: auto;
     display: flex;
@@ -24,13 +67,13 @@
 }
 
 .profile-fallback-icon {
-    font-size: 54px;
+    font-size: 40px;
 }
 
 .form-group {
     border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
-    margin-bottom: 15px;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
 }
 
 .input-group input[type="text"] {
@@ -92,14 +135,49 @@ label {
     margin-bottom: 0px;
 }
 
-.done-icon{
-    color:#4875f7;
-    font-size: 16px;
-    padding-left: 5px;
+.icon-verified   { color: #22c55e; font-size: 15px; }
+.icon-unverified { color: #ef4444; font-size: 15px; }
+
+.settings-modal .modal-dialog {
+    max-height: 92vh;
 }
 
-
-.settings-modal .modal-content{
+.settings-modal .modal-content {
     height: fit-content;
     min-height: auto;
-} 
+    max-height: 92vh;
+    overflow: hidden;
+}
+
+.settings-modal .modal-body {
+    overflow: hidden;
+    padding-top: 14px;
+    padding-bottom: 14px;
+}
+
+/* ── Dark mode ── */
+:host-context([data-theme="dark"]) .modal-content {
+    background: #1A2635 !important;
+    border-color: #243447 !important;
+}
+:host-context([data-theme="dark"]) .modal-body { background: #1A2635 !important; }
+:host-context([data-theme="dark"]) .settings-moments {
+    border-color: #243447 !important;
+    background: #1A2635 !important;
+}
+:host-context([data-theme="dark"]) .settings-moments__header {
+    background: #111b27 !important;
+    border-color: #243447 !important;
+}
+:host-context([data-theme="dark"]) .settings-moments__title { color: #E2EAF2 !important; }
+:host-context([data-theme="dark"]) .sms-active { background: rgba(16,167,164,0.15) !important; color: #10A7A4 !important; }
+:host-context([data-theme="dark"]) .sms-archived { background: rgba(253,186,45,0.12) !important; color: #FDBA2D !important; }
+:host-context([data-theme="dark"]) .sms-total { background: rgba(72,117,247,0.15) !important; color: #7b9cff !important; }
+:host-context([data-theme="dark"]) .form-group { border-color: #243447 !important; }
+:host-context([data-theme="dark"]) label { color: #E2EAF2 !important; }
+:host-context([data-theme="dark"]) .input-group input[type="text"] {
+    background: #1E2D3D !important;
+    color: #E2EAF2 !important;
+    border-color: #243447 !important;
+}
+:host-context([data-theme="dark"]) .modal-cancel { color: #9BB0C4 !important; }

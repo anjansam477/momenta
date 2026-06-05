@@ -21,6 +21,18 @@
         }
         @if (!imageChangedEvent) {
           <div class="settings">
+            <!-- ── My Moments section ── -->
+            <div class="settings-moments">
+              <div class="settings-moments__header">
+                <span class="settings-moments__title"><i class="bi bi-postcard me-2"></i>My Moments</span>
+                <div class="settings-moments__stats">
+                  <span class="sms-chip sms-total">{{ totalWallCount }} total</span>
+                  <span class="sms-chip sms-active">{{ activeWallCount }} active</span>
+                  <span class="sms-chip sms-archived">{{ archivedWallCount }} archived</span>
+                </div>
+              </div>
+            </div>
+
             <div class="profile-wrapper">
               <div class="profile-picture">
                 @if (pictureBlob || image) {
@@ -68,10 +80,10 @@
             </div>
             <div class="form-group">
               <label for="email">Email Address</label>
-              <div class="input-group">
+              <div class="input-group align-items-center gap-2">
                 <span>{{ userData.email }}</span>
-                <span class="status-icon" data-bs-toggle="tooltip" [title]="userData.active ? 'Verified' : 'Not Verified'">
-                  <i class="bi {{ userData.active ? 'bi-check-circle-fill done-icon' : 'bi-x-circle-fill' }}"></i>
+                <span class="status-icon" [title]="isVerified ? 'Verified' : 'Not Verified'">
+                  <i class="bi {{ isVerified ? 'bi-check-circle-fill icon-verified' : 'bi-x-circle-fill icon-unverified' }}"></i>
                 </span>
               </div>
             </div>
