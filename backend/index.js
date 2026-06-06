@@ -1,6 +1,8 @@
+require("express-async-errors"); // makes async route errors propagate to the error handler
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+const hpp = require("hpp");
 const compression = require("compression");
 const cookieParser = require("cookie-parser");
 const http = require("http");
@@ -22,18 +24,23 @@ const giphyRoutes = require("./src/routes/giphy-routes");
 const eventRoutes = require("./src/routes/event-routes");
 const { themesFolderPath, UI_BASE_URL, SOCKET_PATH } = require("./environment-config");
 const { getAllowedCorsOrigins, sessionSecret } = require("./src/config/security-config");
-const { connectProducer } = require("./src/utils/message-broker/producer");
+const { connectProducer, disconnectProducer } = require("./src/utils/message-broker/producer");
 const { increasePartitions } = require("./src/utils/message-broker/admin");
-const { connectConsumer } = require("./src/utils/message-broker/consumer");
+const { connectConsumer, disconnectConsumers } = require("./src/utils/message-broker/consumer");
+const mailService = require("./src/services/mail-service");
 const auth = require("./src/middleware/auth");
 const { client: redisClient } = require("./src/utils/redis");
 const { addPresence, removePresence, getPresence } = require('./src/utils/redis-cache');
 const actuator = require("express-actuator");
 const mongoose = require("mongoose");
 const NotificationService = require("./src/services/notification-service");
+const wallRepository = require("./src/repositories/wall-repository");
 const Response = require("./src/utils/error-handler");
 const logger = require("./src/utils/logger");
 const requestContext = require("./src/middleware/request-context");
+const { validateEnv } = require("./src/config/validate-env");
+const { socketConnections } = require("./src/utils/metrics");
+const { startCounterReconciliation, stopCounterReconciliation } = require("./src/jobs/reconcile-counters");
 
 // ── Prometheus metrics setup ──────────────────────────────────────────────────
 const promClient = require("prom-client");
@@ -75,6 +82,7 @@ io.use((socket, next) => {
 
 io.on("connection", (socket) => {
   const email = socket.userEmail;
+  socketConnections.inc();
   socket.join(`user:${email}`);           // join personal room
   NotificationService.sendNotification(email);
 
@@ -90,6 +98,21 @@ io.on("connection", (socket) => {
 
   socket.on("joinWall", async (wallId) => {
     if (!wallId) return;
+    // Only allow presence/room join if the user can actually view this wall —
+    // prevents cross-wall presence spying/spoofing.
+    try {
+      const wall = await wallRepository.getWallById(wallId);
+      if (!wall) return;
+      const allowed =
+        wall.anyoneCanView ||
+        wall.anyoneCanPost ||
+        wall.ownerEmail === email ||
+        (await wallRepository.hasAccess(wallId, email));
+      if (!allowed) return;
+    } catch (err) {
+      logger.warn({ err: err.message, wallId, email }, "joinWall access check failed");
+      return;
+    }
     socket.join(`wall:${wallId}`);
     await addPresence(wallId, email);
     const viewers = await getPresence(wallId);
@@ -105,6 +128,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", async () => {
+    socketConnections.dec();
     // clean up all presence rooms this socket was in
     const rooms = [...socket.rooms].filter((r) => r.startsWith("wall:"));
     await Promise.all(rooms.map((r) => {
@@ -136,6 +160,7 @@ app.use(requestContext);                  // stamps X-Request-ID on every reques
 app.use(cors({ origin: getAllowedCorsOrigins(UI_BASE_URL), credentials: true }));
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
+app.use(hpp());                           // guard against HTTP parameter pollution
 app.use(cookieParser());
 // connect-redis v7 exports a function; v9 exports { RedisStore }
 const RedisStore = typeof connectRedisModule === "function"
@@ -229,8 +254,21 @@ app.get("/api/themes", async (req, res) => {
   }
 });
 
+// ── Global error handler ──────────────────────────────────────────────────────
+// Catches errors thrown from routes (sync + async via express-async-errors) that
+// weren't handled locally, so nothing leaks a stack trace or hangs the request.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  logger.error({ err: err.message, path: req.path }, "Unhandled route error");
+  if (res.headersSent) return;
+  return Response.respondError(res, err);
+});
+
 // ── Startup sequence ──────────────────────────────────────────────────────────
 async function start() {
+  // 0. Fail fast on misconfiguration before touching any external system
+  validateEnv();
+
   // 1. Database — must be ready before serving requests
   await connectDb();
 
@@ -257,6 +295,8 @@ async function start() {
     // Pre-seed Giphy cache in background — non-blocking
     const giphyService = require('./src/services/giphy-service');
     giphyService.seedPopularTerms().catch(() => {});
+    // Periodic counter reconciliation (drift self-heal)
+    startCounterReconciliation();
   });
 }
 
@@ -266,13 +306,48 @@ start().catch((err) => {
 });
 
 // ── Graceful shutdown ─────────────────────────────────────────────────────────
-function shutdown(signal) {
+let shuttingDown = false;
+async function shutdown(signal) {
+  if (shuttingDown) return;          // ignore repeated signals
+  shuttingDown = true;
   logger.info({ signal }, "Shutdown signal received");
-  server.close(() => {
-    logger.info("HTTP server closed");
-    process.exit(0);
-  });
-  setTimeout(() => process.exit(1), 10_000).unref();
+
+  // Hard-exit guard: if the ordered drain hangs, force-exit after 15s.
+  const guard = setTimeout(() => {
+    logger.error("Graceful shutdown timed out — forcing exit");
+    process.exit(1);
+  }, 15_000);
+  guard.unref();
+
+  const safe = (label, fn) => Promise.resolve().then(fn).catch((err) =>
+    logger.warn({ err: err.message, step: label }, "Shutdown step failed"));
+
+  // 1. Stop accepting new HTTP connections.
+  await new Promise((resolve) => server.close(resolve));
+  logger.info("HTTP server closed");
+
+  // 2. Close Socket.io (disconnects clients, stops new upgrades).
+  await safe("socket.io", () => new Promise((resolve) => io.close(resolve)));
+
+  // 3. Stop scheduled jobs + clear in-process mail timers (jobs remain pending in DB).
+  await safe("cron-jobs", () => stopCounterReconciliation());
+  await safe("mail-timers", () => mailService.clearAllTimers());
+
+  // 4. Disconnect Kafka producer + consumers (no-op if Kafka disabled).
+  await safe("kafka-consumers", () => disconnectConsumers());
+  await safe("kafka-producer", () => disconnectProducer());
+
+  // 5. Close MongoDB.
+  await safe("mongoose", () => mongoose.connection.close(false));
+
+  // 6. Close Redis (main client + socket adapter pub/sub).
+  await safe("redis-pub", () => pubClient.quit());
+  await safe("redis-sub", () => subClient.quit());
+  await safe("redis-client", () => redisClient.quit());
+
+  clearTimeout(guard);
+  logger.info("Graceful shutdown complete");
+  process.exit(0);
 }
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT",  () => shutdown("SIGINT"));
