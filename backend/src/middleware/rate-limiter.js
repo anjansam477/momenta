@@ -42,8 +42,50 @@ const generateTokenLimiter = rateLimit({
   handler: makeHandler(),
 });
 
+// Brute-force guard for login (per IP)
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  store: makeRedisStore("rl:login:"),
+  handler: makeHandler(),
+});
+
+// Signup abuse guard (per IP)
+const signupLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  store: makeRedisStore("rl:signup:"),
+  handler: makeHandler(),
+});
+
+// Authenticated write limiters — keyed by user email (falls back to IP).
+// These run after verifyToken, so req.email is populated.
+const byUser = (req) => req.email || req.ip;
+
+// Post creation spam guard
+const postWriteLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  keyGenerator: byUser,
+  store: makeRedisStore("rl:postwrite:"),
+  handler: makeHandler(),
+});
+
+// Reaction spam guard
+const reactionLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  keyGenerator: byUser,
+  store: makeRedisStore("rl:react:"),
+  handler: makeHandler(),
+});
+
 module.exports = {
   mailLimiter,
   forgotPasswordLimiter,
   generateTokenLimiter,
+  loginLimiter,
+  signupLimiter,
+  postWriteLimiter,
+  reactionLimiter,
 };

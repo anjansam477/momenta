@@ -4,25 +4,28 @@ const wallRepository = require("../repositories/wall-repository");
 const Response = require("../utils/error-handler");
 const { publishNotification } = require("./notification-event-service");
 const { NOTIFICATION_TYPES } = require("../domain/notifications/notification-rules");
+const { swallow } = require("../utils/async-safe");
+const { postsCreated } = require("../utils/metrics");
 
 class PostService {
   async createPost(postData, wall) {
     const requiresApproval = wall?.postConfig?.requireApproval;
     const status = requiresApproval ? "pending_approval" : "active";
     const post = await postRepository.addPost({ ...postData, status });
-    analyticsRepository.incrementPost(postData.wallId).catch(() => {});
+    postsCreated.inc();
+    analyticsRepository.incrementPost(postData.wallId).catch(swallow("analytics:incrementPost"));
     if (requiresApproval) {
       // Notify owner + maintainers that a post is waiting for review
       await publishNotification(NOTIFICATION_TYPES.POST_PENDING, {
         wallId: postData.wallId,
         postId: post._id,
         email: postData.authorEmail,
-      }).catch(() => {});
+      }).catch(swallow("notify:POST_PENDING"));
     } else {
       await publishNotification(NOTIFICATION_TYPES.POST_ADDED, {
         wallId: postData.wallId,
         email: postData.authorEmail,
-      }).catch(() => {});
+      }).catch(swallow("notify:POST_ADDED"));
     }
     return post;
   }
@@ -86,14 +89,14 @@ class PostService {
           postId,
           email: userEmail,
           metadata: { reportCount: openCount },
-        }).catch(() => {});
+        }).catch(swallow("notify"));
       }
     } else {
       await publishNotification(NOTIFICATION_TYPES.POST_REPORTED, {
         wallId,
         postId,
         email: userEmail,
-      }).catch(() => {});
+      }).catch(swallow("notify"));
     }
     return report;
   }

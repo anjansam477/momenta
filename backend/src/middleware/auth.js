@@ -5,6 +5,8 @@ const config = require("../config/security-config");
 const { client: redisClient } = require("../utils/redis");
 const Response = require("../utils/error-handler");
 const userRepository = require("../repositories/user-repository");
+const logger = require("../utils/logger");
+const { jwtBlacklistCheckFailures } = require("../utils/metrics");
 
 const BLACKLIST_PREFIX = "jwt:bl:";
 
@@ -43,8 +45,12 @@ async function isBlacklisted(iat) {
   try {
     const result = await redisClient.exists(`${BLACKLIST_PREFIX}${iat}`);
     return result === 1;
-  } catch {
-    // Redis down — fail open to avoid locking all users out
+  } catch (err) {
+    // EXPLICIT POLICY: fail OPEN. A Redis outage must not lock every user out,
+    // so we honor the token — at the cost of not enforcing revocation during the
+    // outage. This is observable (metric + warn) so it can be alerted on.
+    jwtBlacklistCheckFailures.inc();
+    logger.warn({ err: err.message }, "JWT blacklist check failed (Redis) — failing open");
     return false;
   }
 }

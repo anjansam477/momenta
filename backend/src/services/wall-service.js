@@ -5,10 +5,14 @@ const interactionRepository = require("../repositories/interaction-repository");
 const Response = require("../utils/error-handler");
 const { publishNotification } = require("./notification-event-service");
 const { NOTIFICATION_TYPES } = require("../domain/notifications/notification-rules");
+const { swallow } = require("../utils/async-safe");
+const { wallsCreated } = require("../utils/metrics");
 
 class WallService {
   async createWall(wallData) {
-    return wallRepository.createWall(wallData);
+    const wall = await wallRepository.createWall(wallData);
+    wallsCreated.inc();
+    return wall;
   }
 
   async updateWall(wallId, updateData, userEmail) {
@@ -20,7 +24,7 @@ class WallService {
 
   async deleteWall(wallId, userEmail) {
     const wall = await wallRepository.archiveWall(wallId);
-    await publishNotification(NOTIFICATION_TYPES.WALL_ARCHIVED, { wallId, email: userEmail }).catch(() => {});
+    await publishNotification(NOTIFICATION_TYPES.WALL_ARCHIVED, { wallId, email: userEmail }).catch(swallow("notify:WALL_ARCHIVED"));
     return wall;
   }
 
