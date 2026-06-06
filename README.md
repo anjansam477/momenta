@@ -203,10 +203,68 @@ cd frontend && npm audit
 - Secrets via environment variables only
 - JWT blacklist stored in Redis with auto-expiring TTL
 - Sessions backed by Redis store
-- Rate limiting backed by Redis (global across all instances)
+- Rate limiting backed by Redis (global across all instances) — login, signup, password reset, post/reaction writes
 - Helmet security headers on all responses
 - HttpOnly session cookies in production
 - Input validation via express-validator at middleware layer
+- File uploads: MIME whitelist + filename/ObjectId path-traversal guard
+- Socket `joinWall` validates wall access before emitting presence
+
+### Known hardening TODOs
+
+- **MongoDB auth is not yet enabled.** The compose files set `MONGODB_INITDB_ROOT_USERNAME` — but the official Mongo image variable is `MONGO_INITDB_ROOT_USERNAME` (no "DB"), so auth never actually turns on. Enabling it on a replica set also requires a shared **keyfile** for internal auth and credentials in `CONNECTION_STRING` (`mongodb://user:pass@host/db?replicaSet=rs0&authSource=admin`). Mongo is only on the internal Docker network (not host-published), so this is defense-in-depth. Do this before any networked deployment.
+- **Content-Security-Policy** not yet set on the frontend (needs an inventory of all external origins: API, websocket, Giphy media, Google OAuth, fonts).
+- **Dependency advisories**: `npm audit` shows a few moderate items. `hono` (flagged transitively) is a **dev/build-only** dep of `@angular/cli` — not in the runtime bundle.
+
+## Operations & Tooling
+
+### Production deployment
+
+```powershell
+# Build self-contained images (no source bind-mounts), run with healthchecks
+docker compose -f docker-compose.prod.yml up --build -d
+```
+
+Production requires these env vars (see `.env.example`): all dev vars plus
+`GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD`, and a strong `REDIS_PASSWORD`.
+The prod API image runs as a non-root user; the prod frontend is served as a
+static build via nginx.
+
+### Health & metrics
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /actuator/health` | Mongo + Redis readiness (`UP`/`DOWN`) |
+| `GET /health` | Thin liveness alias for Docker HEALTHCHECK |
+| `GET /metrics` | Prometheus metrics (HTTP latency, business counters, socket gauge) — internal network only |
+
+### Git hooks (one-time per clone)
+
+Hooks are version-controlled in `.githooks/` (co-author guard + pre-commit lint).
+Activate them once:
+
+```powershell
+git config core.hooksPath .githooks
+```
+
+### Lint, format, test
+
+```powershell
+# Backend
+cd backend
+npm run lint          # ESLint (flat config)
+npm run lint:fix
+npm run format        # Prettier
+npm test              # node --test
+
+# Frontend
+cd frontend
+npm run lint          # ng lint (angular-eslint)
+npm run build
+```
+
+CI (`.github/workflows/ci.yml`) runs lint + test (backend) and lint + build
+(frontend) on every push to `main` and on pull requests.
 
 ## License
 
