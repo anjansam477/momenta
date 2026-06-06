@@ -1,0 +1,8 @@
+node_modules
+dist
+coverage
+.angular
+*.min.js
+backend/assets
+frontend/src/assets
+media-files

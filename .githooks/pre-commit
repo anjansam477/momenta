@@ -1,0 +1,10 @@
+#!/bin/sh
+# Lint backend JS before committing. Fast (eslint), and only blocks on errors —
+# warnings are allowed through. Skips silently if eslint isn't installed yet.
+if [ -x backend/node_modules/.bin/eslint ]; then
+  echo "Running backend ESLint..."
+  ( cd backend && ./node_modules/.bin/eslint . ) || {
+    echo "ESLint reported errors — commit blocked. Run 'npm run lint:fix' in backend/."
+    exit 1
+  }
+fi
