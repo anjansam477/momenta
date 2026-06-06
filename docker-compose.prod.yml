@@ -1,0 +1,177 @@
+# Production compose — self-contained images, no source bind-mounts, healthchecks,
+# secured secrets, and a single-node Mongo replica set (required for transactions).
+#
+#   docker compose -f docker-compose.prod.yml up --build -d
+#
+# All secrets come from the environment / .env file. Nothing is defaulted here.
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: dockerfile
+    environment:
+      - ENV=docker
+      - NODE_ENV=production
+      - PORT=8071
+      - SERVICE_BASE_URL=${SERVICE_BASE_URL}
+      - UI_BASE_URL=${UI_BASE_URL}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      # replicaSet=rs0 enables multi-document transactions
+      - CONNECTION_STRING=mongodb://mongo_madness:27017/momenta?replicaSet=rs0
+      - REDIS_HOST=redis-node-1
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - DELIVERED_JWT_SECRET=${DELIVERED_JWT_SECRET}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - GIPHY_API_KEY=${GIPHY_API_KEY}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - DEFAULT_USER_PASS=${DEFAULT_USER_PASS}
+      - DISABLE_ACCESS_WHITELIST=${DISABLE_ACCESS_WHITELIST}
+      - ENABLE_KAFKA_NOTIFICATIONS=${ENABLE_KAFKA_NOTIFICATIONS}
+    volumes:
+      # Theme background images (read-only static assets) + uploaded media
+      - ./frontend/src/assets:/backend/assets:ro
+      - ${MEDIA_FILE_PATH}:/root
+    depends_on:
+      mongo_madness:
+        condition: service_healthy
+      redis-node-1:
+        condition: service_healthy
+    ports:
+      - "8071:8071"
+    restart: on-failure:5
+    networks:
+      - momenta-network
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+        reservations:
+          memory: 512M
+
+  ui:
+    build:
+      context: ./frontend
+      dockerfile: dockerfile.prod
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "80:8080"
+    restart: on-failure:5
+    networks:
+      - momenta-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+        reservations:
+          memory: 64M
+
+  mongo_madness:
+    image: mongo:latest
+    # Single-node replica set so Mongoose transactions work. Self-initiates via
+    # the healthcheck on first boot (idempotent — rs.status() short-circuits).
+    command: >
+      bash -c "mongod --port 27017 --replSet rs0 --bind_ip_all --wiredTigerCacheSizeGB 2"
+    expose:
+      - 27017
+    volumes:
+      - mongodb_data_volume:/data/db
+    restart: unless-stopped
+    healthcheck:
+      test: >
+        mongosh --quiet --port 27017 --eval
+        "try { rs.status().ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo_madness:27017'}]}) }"
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - momenta-network
+    deploy:
+      resources:
+        limits:
+          memory: 2.5G
+          cpus: "1.0"
+        reservations:
+          memory: 1G
+
+  redis-node-1:
+    image: redis:7.2.4
+    restart: unless-stopped
+    hostname: redis-node-1
+    expose:
+      - "6379"
+    volumes:
+      - ./redis/redis.config:/redis/redis.conf
+      - redis_data_volume:/data
+    command: redis-server /redis/redis.conf --appendonly yes --requirepass ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - momenta-network
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "1.0"
+        reservations:
+          memory: 1G
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=15d'
+    restart: unless-stopped
+    networks:
+      - momenta-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - momenta-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+
+volumes:
+  mongodb_data_volume:
+  redis_data_volume:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  momenta-network:
+    driver: bridge

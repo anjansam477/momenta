@@ -3,14 +3,21 @@ services:
     build:
       context: ./backend
       dockerfile: dockerfile
+    # Dev runs a runtime `npm install` into bind-mounted/anonymous volumes, which
+    # the image's non-root `node` user can't write to. Override to root for dev
+    # only — the production image (docker-compose.prod.yml) keeps the node user.
+    user: root
     depends_on:
-      - mongo_madness
+      mongo_madness:
+        condition: service_healthy
+      redis-node-1:
+        condition: service_healthy
     environment:
       - ENV=docker
       - PORT=8071
       - SERVICE_BASE_URL=http://localhost:8071
       - UI_BASE_URL=http://localhost:4200
-      - CONNECTION_STRING=mongodb://mongo_madness:27017/momenta
+      - CONNECTION_STRING=mongodb://mongo_madness:27017/momenta?replicaSet=rs0
       - REDIS_HOST=redis-node-1
       - REDIS_PORT=6379
 
@@ -34,6 +41,12 @@ services:
     # expose:
     #   - "8071"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:8071/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
     networks:
       - momenta-network
     deploy:
@@ -65,14 +78,24 @@ services:
     environment:
       - MONGODB_INITDB_ROOT_USERNAME=${MONGODB_INITDB_ROOT_USERNAME}
       - MONGODB_INITDB_ROOT_PASSWORD=${MONGODB_INITDB_ROOT_PASSWORD}
-    command: mongod --port 27017 --wiredTigerCacheSizeGB 2
+    # Single-node replica set so Mongoose transactions work in dev too. The
+    # healthcheck self-initiates the set on first boot (idempotent thereafter).
+    command: mongod --port 27017 --replSet rs0 --bind_ip_all --wiredTigerCacheSizeGB 2
     expose:
       - 27017
     volumes:
       - type: volume
         source: mongodb_data_volume
         target: /data/db
-    restart: unless-stopped        
+    restart: unless-stopped
+    healthcheck:
+      test: >
+        mongosh --quiet --port 27017 --eval
+        "try { rs.status().ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo_madness:27017'}]}) }"
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
     networks:
       - momenta-network
     deploy:
@@ -121,13 +144,19 @@ services:
     volumes:
       - ./redis/redis.config:/redis/redis.conf
     command: redis-server /redis/redis.conf --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     deploy:
       resources:
         limits:
           memory: 2G
           cpus: "1.0"
         reservations:
-          memory: 1G 
+          memory: 1G
 
   prometheus:
     image: prom/prometheus:latest
