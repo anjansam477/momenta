@@ -24,6 +24,10 @@ const postSchema = new mongoose.Schema(
 );
 
 postSchema.index({ wallId: 1, status: 1, createdAt: 1 });
+// Covers the wall feed query+sort: find({wallId,status}).sort({pinned:-1,createdAt:1})
+// so MongoDB serves it straight from the index instead of an in-memory sort
+// (the real cost on large walls / deep pages).
+postSchema.index({ wallId: 1, status: 1, pinned: -1, createdAt: 1 });
 postSchema.index({ authorEmail: 1 });
 
 module.exports = mongoose.model("Post", postSchema);

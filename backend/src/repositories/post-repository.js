@@ -3,17 +3,24 @@ const Reaction = require("../models/reactions");
 const PostReport = require("../models/post-reports");
 const WallInteraction = require("../models/wall-interactions");
 const counterCache = require("../utils/counter-cache");
+const { withTransaction } = require("../utils/with-transaction");
 const Response = require("../utils/error-handler");
 
 class PostRepository {
   async addPost(postData) {
-    const post = new Post(postData);
-    await post.save();
-    await WallInteraction.findOneAndUpdate(
-      { wallId: postData.wallId, userEmail: postData.authorEmail },
-      { $set: { updatedAt: new Date() } },
-      { upsert: true }
-    );
+    // Atomic: the post and the wall-interaction "touch" must both land or neither.
+    // The Redis post-count is eventually consistent and lives outside the txn.
+    const post = await withTransaction(async (session) => {
+      const opts = session ? { session } : {};
+      const [created] = await Post.create([postData], opts);
+      await WallInteraction.findOneAndUpdate(
+        { wallId: postData.wallId, userEmail: postData.authorEmail },
+        { $set: { updatedAt: new Date() } },
+        { upsert: true, ...opts }
+      );
+      return created;
+    });
+
     await counterCache.incrPostCount(postData.wallId).catch(() => {});
     return { ...post.toObject(), reactions: {} };
   }
