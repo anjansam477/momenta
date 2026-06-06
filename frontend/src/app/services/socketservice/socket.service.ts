@@ -1,7 +1,10 @@
 import { Injectable } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { AuthService } from '../../services/authservice/auth.service';
 import { SERVICE_BASE_URL } from '../../environment-config';
+
+export type SocketStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
 
 @Injectable({
   providedIn: 'root',
@@ -12,7 +15,15 @@ export class SocketService {
   private readonly socketPath = this.buildSocketPath();
   isSocketListenerInitialized = false;
 
+  // Live connection status — UI can subscribe to show a "reconnecting" banner.
+  private statusSubject = new BehaviorSubject<SocketStatus>('disconnected');
+  readonly connectionStatus$: Observable<SocketStatus> = this.statusSubject.asObservable();
+
   constructor(private authService: AuthService) {}
+
+  get connectionStatus(): SocketStatus {
+    return this.statusSubject.value;
+  }
 
   setupSocketConnection(): void {
     const token = this.authService.getToken();
@@ -21,6 +32,7 @@ export class SocketService {
     }
 
     if (!this.socket) {
+      this.statusSubject.next('connecting');
       this.socket = io(this.socketUrl, {
         auth: { token },
         path: this.socketPath,
@@ -30,11 +42,19 @@ export class SocketService {
         reconnectionDelay: 600,
       });
 
+      this.socket.on('connect', () => this.statusSubject.next('connected'));
       this.socket.on('disconnect', () => {
         this.isSocketListenerInitialized = false;
+        this.statusSubject.next('disconnected');
       });
+
+      // Manager-level reconnection lifecycle (drives the "reconnecting" indicator)
+      this.socket.io.on('reconnect_attempt', () => this.statusSubject.next('reconnecting'));
+      this.socket.io.on('reconnect', () => this.statusSubject.next('connected'));
+      this.socket.io.on('reconnect_failed', () => this.statusSubject.next('disconnected'));
     } else {
       this.socket.auth = { token };
+      this.statusSubject.next('connecting');
       this.socket.connect();
     }
   }
@@ -44,6 +64,7 @@ export class SocketService {
       this.socket.disconnect();
       this.socket = undefined;
       this.isSocketListenerInitialized = false;
+      this.statusSubject.next('disconnected');
     }
   }
 

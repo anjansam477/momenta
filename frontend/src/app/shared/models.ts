@@ -107,6 +107,19 @@ export interface User {
   name?: string;
 }
 
+export interface LoginResponse {
+  token?: string;
+  name?: string;
+  email?: string;
+  _id?: string;
+}
+
+export interface MediaUploadResponse {
+  uploadedPath: string;
+  type?: string;
+  thumbnailUrl?: string;
+}
+
 export interface UserDetails {
   _id?: string;
   email?: string;

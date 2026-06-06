@@ -5,6 +5,7 @@ import { SERVICE_BASE_URL } from '../../environment-config';
 import { AuthService } from '../authservice/auth.service';
 import { ReactionType } from '../../shared/models';
 import { Post } from '../../models/post.model';
+import { retryWithBackoff } from '../../utils/http-retry.util';
 
 @Injectable({
   providedIn: 'root',
@@ -24,7 +25,7 @@ export class PostService {
   }
 
   getPost(wallId: string, postId: string): Observable<Post> {
-    return this.http.get<Post>(`${this.postServiceBaseUrl}/${wallId}/posts/${postId}`);
+    return this.http.get<Post>(`${this.postServiceBaseUrl}/${wallId}/posts/${postId}`).pipe(retryWithBackoff());
   }
 
   getPostsForWall(wallId: string, page: number, pageSize?: number): Observable<Post[]> {
@@ -35,11 +36,11 @@ export class PostService {
       params = params.set('pageSize', pageSize.toString());
     }
 
-    return this.http.get<Post[]>(`${this.postServiceBaseUrl}/${wallId}/posts`, { params });
+    return this.http.get<Post[]>(`${this.postServiceBaseUrl}/${wallId}/posts`, { params }).pipe(retryWithBackoff());
   }
 
   getPostsForEmail(wallId: string, _userEmail: string): Observable<Post[]> {
-    return this.http.get<Post[]>(`${this.postServiceBaseUrl}/${wallId}/posts/mail`);
+    return this.http.get<Post[]>(`${this.postServiceBaseUrl}/${wallId}/posts/mail`).pipe(retryWithBackoff());
   }
 
   updatePost(wallId: string, postId: string, postData: Partial<Post> | FormData | Record<string, unknown>): Observable<Post> {
@@ -59,7 +60,7 @@ export class PostService {
   }
 
   getPendingPosts(wallId: string): Observable<Post[]> {
-    return this.http.get<Post[]>(`${this.postServiceBaseUrl}/${wallId}/posts/pending`);
+    return this.http.get<Post[]>(`${this.postServiceBaseUrl}/${wallId}/posts/pending`).pipe(retryWithBackoff());
   }
 
   approvePost(wallId: string, postId: string): Observable<Post> {

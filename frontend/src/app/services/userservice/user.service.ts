@@ -5,7 +5,8 @@ import { SERVICE_BASE_URL } from '../../environment-config';
 import { AuthService } from '../authservice/auth.service';
 import { SharedDataService } from '../sharedDataService/shared-data.service';
 import { SocketService } from '../socketservice/socket.service';
-import { User, UserDetails } from '../../shared/models';
+import { User, UserDetails, LoginResponse } from '../../shared/models';
+import { retryWithBackoff } from '../../utils/http-retry.util';
 
 @Injectable({
   providedIn: 'root'
@@ -26,11 +27,11 @@ export class UserService {
   }
 
   getUserByEmail(userEmail: string): Observable<User> {
-    return this.http.get<User>(`${this.userServiceBaseUrl}/${userEmail}`);
+    return this.http.get<User>(`${this.userServiceBaseUrl}/${userEmail}`).pipe(retryWithBackoff());
   }
 
-  loginUser(userData: { email: string; password: string }): Observable<{ token: string; name?: string }> {
-    return this.http.post<{ token: string; name?: string }>(`${this.userServiceBaseUrl}/account/login`, userData);
+  loginUser(userData: { email: string; password: string }): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${this.userServiceBaseUrl}/account/login`, userData);
   }
 
   forgotPassword(userData: { email: string }): Observable<{ message: string }> {
@@ -82,6 +83,6 @@ export class UserService {
   }
 
   searchNames(query: string): Observable<UserDetails[]> {
-    return this.http.get<UserDetails[]>(`${this.userServiceBaseUrl}/search/names?q=${query}`);
+    return this.http.get<UserDetails[]>(`${this.userServiceBaseUrl}/search/names?q=${query}`).pipe(retryWithBackoff());
   }
 }

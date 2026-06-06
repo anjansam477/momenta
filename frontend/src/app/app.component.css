@@ -1,0 +1,28 @@
+/* Fixed reconnecting banner — overlay, never affects page layout */
+.reconnect-banner {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 0 0 12px 12px;
+  background: #142536;
+  color: #fff;
+  font-size: 0.85rem;
+  box-shadow: 0 6px 20px rgba(7, 28, 46, 0.25);
+}
+
+.reconnect-spin {
+  display: inline-block;
+  animation: reconnect-rotate 0.9s linear infinite;
+}
+
+@keyframes reconnect-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}

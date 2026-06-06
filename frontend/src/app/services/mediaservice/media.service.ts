@@ -2,6 +2,8 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { SERVICE_BASE_URL } from '../../environment-config';
+import { MediaUploadResponse } from '../../shared/models';
+import { retryWithBackoff } from '../../utils/http-retry.util';
 
 @Injectable({
   providedIn: 'root',
@@ -30,7 +32,7 @@ export class MediaService {
     formData.append('fileType', fileType);
     formData.append('file', file);
 
-    return this.http.post<any>(`${this.mediaServiceBaseUrl}/media`, formData);
+    return this.http.post<MediaUploadResponse>(`${this.mediaServiceBaseUrl}/media`, formData);
   }
 
   /**
@@ -42,6 +44,6 @@ export class MediaService {
     return this.http.get<Blob>(`${this.mediaServiceBaseUrl}/retrieve-file`, {
       params: { mediaUrl },
       responseType: 'blob' as 'json'
-    });
+    }).pipe(retryWithBackoff());
   }
 }

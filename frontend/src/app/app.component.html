@@ -1,2 +1,7 @@
+@if (socketStatus() === 'reconnecting') {
+  <div class="reconnect-banner" role="status" aria-live="polite">
+    <i class="bi bi-arrow-repeat reconnect-spin"></i> Reconnecting…
+  </div>
+}
 <router-outlet></router-outlet>
 <app-loader></app-loader>
