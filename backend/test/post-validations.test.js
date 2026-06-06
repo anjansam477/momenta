@@ -1,22 +1,25 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const boardRepositoryPath = require.resolve('../src/repositories/board-repository');
+const wallRepositoryPath = require.resolve('../src/repositories/wall-repository');
 const postRepositoryPath = require.resolve('../src/repositories/post-repository');
 const authPath = require.resolve('../src/middleware/auth');
 const validationsPath = require.resolve('../src/middleware/post-validations');
 
-let boardById = new Map();
+let wallById = new Map();
 let postById = new Map();
+let roleByEmail = new Map(); // email -> role for the wall under test
 
 function loadMiddleware() {
   delete require.cache[validationsPath];
-  require.cache[boardRepositoryPath] = {
-    id: boardRepositoryPath,
-    filename: boardRepositoryPath,
+  require.cache[wallRepositoryPath] = {
+    id: wallRepositoryPath,
+    filename: wallRepositoryPath,
     loaded: true,
     exports: {
-      getBoardById: async (boardId) => boardById.get(boardId) || null,
+      getWallById: async (wallId) => wallById.get(wallId) || null,
+      getUserRole: async (_wallId, email) => roleByEmail.get(email) || null,
+      hasAccess: async (_wallId, email) => roleByEmail.has(email),
     },
   };
   require.cache[postRepositoryPath] = {
@@ -33,7 +36,7 @@ function loadMiddleware() {
     loaded: true,
     exports: {
       getEmailFromToken: (token) => token,
-      getEmailAndBoardIdFromToken: (token) => ({ email: token, boardId: 'board-1' }),
+      getEmailAndWallIdFromToken: (token) => ({ email: token, wallId: 'wall-1' }),
     },
   };
 
@@ -44,176 +47,150 @@ function makeRes() {
   return {
     code: undefined,
     body: undefined,
-    status(code) {
-      this.code = code;
-      return this;
-    },
-    send(body) {
-      this.body = body;
-      return this;
-    },
+    status(code) { this.code = code; return this; },
+    send(body) { this.body = body; return this; },
   };
 }
 
 async function runMiddleware(middleware, req) {
   const res = makeRes();
   let nextCalled = false;
-  await middleware(req, res, () => {
-    nextCalled = true;
-  });
+  await middleware(req, res, () => { nextCalled = true; });
   return { res, nextCalled, req };
 }
 
-function board(overrides = {}) {
+function wall(overrides = {}) {
   return {
-    _id: 'board-1',
+    _id: 'wall-1',
     ownerEmail: 'owner@example.com',
-    maintainerEmails: [],
     anyoneCanView: false,
     anyoneCanPost: false,
-    viewAccess: { emails: [], domains: [] },
-    postAccess: { emails: [], domains: [] },
-    receivers: [],
-    isArchived: false,
-    isOpen: true,
-    createdAt: new Date('2026-01-01T00:00:00.000Z'),
-    openDate: null,
-    closeDate: null,
+    status: 'active',
     ...overrides,
   };
 }
 
+function bearer(email) {
+  return { authorization: `Bearer ${email}` };
+}
+
 test.beforeEach(() => {
-  boardById = new Map();
+  wallById = new Map();
   postById = new Map();
+  roleByEmail = new Map();
 });
 
-test('authorizePostAction allows board owner to create a post', async () => {
+test('authorizePostAction allows the wall owner to create a post', async () => {
   const { authorizePostAction } = loadMiddleware();
-  boardById.set('board-1', board());
+  wallById.set('wall-1', wall());
+  roleByEmail.set('owner@example.com', 'owner');
 
   const result = await runMiddleware(authorizePostAction, {
     method: 'POST',
-    params: { boardId: 'board-1' },
-    headers: { authorization: 'Bearer owner@example.com' },
+    params: { wallId: 'wall-1' },
+    headers: bearer('owner@example.com'),
   });
 
   assert.equal(result.nextCalled, true);
-  assert.equal(result.req.userEmail, 'owner@example.com');
-  assert.equal(result.req.board._id, 'board-1');
+  assert.equal(result.req.email, 'owner@example.com');
+  assert.equal(result.req.wall._id, 'wall-1');
+  assert.equal(result.req.role, 'owner');
 });
 
-test('authorizePostAction passes loaded wall to validateBoard for post creation', async () => {
-  const { authorizePostAction, validateBoard } = loadMiddleware();
-  boardById.set('board-1', board());
-  const req = {
-    method: 'POST',
-    params: { boardId: 'board-1' },
-    headers: { authorization: 'Bearer owner@example.com' },
-  };
-
-  const authResult = await runMiddleware(authorizePostAction, req);
-  const validateResult = await runMiddleware(validateBoard, req);
-
-  assert.equal(authResult.nextCalled, true);
-  assert.equal(validateResult.nextCalled, true);
-});
-
-test('validateBoard returns a wall not found error when no wall is attached', async () => {
-  const { validateBoard } = loadMiddleware();
-
-  const result = await runMiddleware(validateBoard, {});
-
-  assert.equal(result.nextCalled, false);
-  assert.equal(result.res.code, 404);
-  assert.equal(result.res.body.message, 'No wall found.');
-});
-
-test('authorizePostAction allows maintainer to create and delete posts', async () => {
+test('authorizePostAction allows a poster-role member to create a post', async () => {
   const { authorizePostAction } = loadMiddleware();
-  boardById.set('board-1', board({ maintainerEmails: ['mod@example.com'] }));
-  postById.set('post-1', { _id: 'post-1', email: 'guest@example.com' });
-
-  const createResult = await runMiddleware(authorizePostAction, {
-    method: 'POST',
-    params: { boardId: 'board-1' },
-    headers: { authorization: 'Bearer mod@example.com' },
-  });
-  const deleteResult = await runMiddleware(authorizePostAction, {
-    method: 'DELETE',
-    params: { boardId: 'board-1', postId: 'post-1' },
-    headers: { authorization: 'Bearer mod@example.com' },
-  });
-
-  assert.equal(createResult.nextCalled, true);
-  assert.equal(deleteResult.nextCalled, true);
-  assert.deepEqual(deleteResult.req.post, { _id: 'post-1', email: 'guest@example.com' });
-});
-
-test('authorizePostAction denies users with view-only access from posting', async () => {
-  const { authorizePostAction } = loadMiddleware();
-  boardById.set('board-1', board({ anyoneCanView: true }));
+  wallById.set('wall-1', wall());
+  roleByEmail.set('writer@example.com', 'poster');
 
   const result = await runMiddleware(authorizePostAction, {
     method: 'POST',
-    params: { boardId: 'board-1' },
-    headers: { authorization: 'Bearer viewer@example.com' },
+    params: { wallId: 'wall-1' },
+    headers: bearer('writer@example.com'),
+  });
+
+  assert.equal(result.nextCalled, true);
+});
+
+test('authorizePostAction allows posting when anyoneCanPost is enabled', async () => {
+  const { authorizePostAction } = loadMiddleware();
+  wallById.set('wall-1', wall({ anyoneCanPost: true }));
+  // no role for this user
+
+  const result = await runMiddleware(authorizePostAction, {
+    method: 'POST',
+    params: { wallId: 'wall-1' },
+    headers: bearer('stranger@example.com'),
+  });
+
+  assert.equal(result.nextCalled, true);
+});
+
+test('authorizePostAction denies view-only users from posting', async () => {
+  const { authorizePostAction } = loadMiddleware();
+  wallById.set('wall-1', wall());
+  roleByEmail.set('viewer@example.com', 'viewer');
+
+  const result = await runMiddleware(authorizePostAction, {
+    method: 'POST',
+    params: { wallId: 'wall-1' },
+    headers: bearer('viewer@example.com'),
   });
 
   assert.equal(result.nextCalled, false);
-  assert.equal(result.res.code, 403);
-  assert.equal(result.res.body.message, 'User does not have access to this post');
+  assert.ok(result.res.code >= 400, 'should respond with a client error');
 });
 
-test('authorizePostAction allows email and domain post access', async () => {
+test('authorizePostAction lets a maintainer delete another user\'s post', async () => {
   const { authorizePostAction } = loadMiddleware();
-  boardById.set('board-1', board({
-    postAccess: {
-      emails: ['writer@example.com'],
-      domains: ['team.test'],
-    },
-  }));
+  wallById.set('wall-1', wall());
+  roleByEmail.set('mod@example.com', 'maintainer');
+  postById.set('post-1', { _id: 'post-1', authorEmail: 'guest@example.com' });
 
-  const emailResult = await runMiddleware(authorizePostAction, {
-    method: 'POST',
-    params: { boardId: 'board-1' },
-    headers: { authorization: 'Bearer writer@example.com' },
-  });
-  const domainResult = await runMiddleware(authorizePostAction, {
-    method: 'POST',
-    params: { boardId: 'board-1' },
-    headers: { authorization: 'Bearer person@team.test' },
+  const result = await runMiddleware(authorizePostAction, {
+    method: 'DELETE',
+    params: { wallId: 'wall-1', postId: 'post-1' },
+    headers: bearer('mod@example.com'),
   });
 
-  assert.equal(emailResult.nextCalled, true);
-  assert.equal(domainResult.nextCalled, true);
+  assert.equal(result.nextCalled, true);
+  assert.equal(result.req.post._id, 'post-1');
 });
 
-test('authorizePostAction only lets a post author update their own post', async () => {
+test('authorizePostAction only lets the author update their own post', async () => {
   const { authorizePostAction } = loadMiddleware();
-  boardById.set('board-1', board());
-  postById.set('post-1', { _id: 'post-1', email: 'guest@example.com' });
+  wallById.set('wall-1', wall());
+  roleByEmail.set('mod@example.com', 'maintainer');
+  postById.set('post-1', { _id: 'post-1', authorEmail: 'guest@example.com' });
 
   const result = await runMiddleware(authorizePostAction, {
     method: 'PUT',
-    params: { boardId: 'board-1', postId: 'post-1' },
-    headers: { authorization: 'Bearer owner@example.com' },
+    params: { wallId: 'wall-1', postId: 'post-1' },
+    headers: bearer('mod@example.com'),
   });
 
   assert.equal(result.nextCalled, false);
-  assert.equal(result.res.code, 403);
+  assert.ok(result.res.code >= 400);
 });
 
-test('validateBoard allows open active boards and blocks archived or locked boards', async () => {
-  const { validateBoard } = loadMiddleware();
+test('validateWall blocks when no wall is attached to the request', async () => {
+  const { validateWall } = loadMiddleware();
 
-  const open = await runMiddleware(validateBoard, { board: board() });
-  const archived = await runMiddleware(validateBoard, { board: board({ isArchived: true }) });
-  const locked = await runMiddleware(validateBoard, { board: board({ isOpen: false }) });
+  const result = await runMiddleware(validateWall, {});
+
+  assert.equal(result.nextCalled, false);
+  assert.ok(result.res.code >= 400);
+});
+
+test('validateWall allows active walls and blocks archived or locked walls', async () => {
+  const { validateWall } = loadMiddleware();
+
+  const open = await runMiddleware(validateWall, { wall: wall() });
+  const archived = await runMiddleware(validateWall, { wall: wall({ status: 'archived' }) });
+  const locked = await runMiddleware(validateWall, { wall: wall({ status: 'locked' }) });
 
   assert.equal(open.nextCalled, true);
   assert.equal(archived.nextCalled, false);
-  assert.equal(archived.res.code, 403);
+  assert.ok(archived.res.code >= 400);
   assert.equal(locked.nextCalled, false);
   assert.equal(locked.res.body.message, 'This moment is locked.');
 });

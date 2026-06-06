@@ -3,73 +3,105 @@ const test = require("node:test");
 
 const {
   NOTIFICATION_TYPES,
-  addedAccessEmails,
+  NOTIFICATION_STATUSES,
   buildNotification,
-  notificationRecipients,
+  normalizeEmail,
+  toRecipients,
 } = require("../src/domain/notifications/notification-rules");
 
-const board = {
+const wall = {
   _id: "wall-1",
   title: "Birthday",
   ownerEmail: "owner@example.com",
-  maintainerEmails: ["mod@example.com", "OWNER@example.com"],
-  receivers: ["receiver@example.com"],
-  viewAccess: { emails: ["viewer@example.com"], domains: [] },
-  postAccess: { emails: ["poster@example.com"], domains: [] },
 };
 
-test("postAdded notifies owner and maintainers except actor, deduped", () => {
-  const recipients = notificationRecipients(NOTIFICATION_TYPES.POST_ADDED, {
-    board,
+test("normalizeEmail trims and lowercases", () => {
+  assert.equal(normalizeEmail("  Owner@Example.COM "), "owner@example.com");
+  assert.equal(normalizeEmail(undefined), "");
+});
+
+test("toRecipients dedupes, normalizes, and excludes the actor", () => {
+  const recipients = toRecipients(
+    ["MOD@example.com", "mod@example.com", "owner@example.com", ""],
+    "owner@example.com"
+  );
+  assert.deepEqual(recipients, [
+    { userEmail: "mod@example.com", status: NOTIFICATION_STATUSES.UNREAD },
+  ]);
+});
+
+test("POST_ADDED notifies owner + members except the actor, deduped", () => {
+  const notification = buildNotification(NOTIFICATION_TYPES.POST_ADDED, {
+    wall,
+    memberEmails: ["mod@example.com", "OWNER@example.com"],
     actorEmail: "owner@example.com",
   });
 
-  assert.deepEqual(recipients, [
+  assert.equal(notification.type, NOTIFICATION_TYPES.POST_ADDED);
+  assert.equal(notification.wallId, "wall-1");
+  assert.equal(notification.actorEmail, "owner@example.com");
+  assert.deepEqual(notification.recipients, [
     { userEmail: "mod@example.com", status: "unread" },
   ]);
 });
 
-test("reactionAdded notifies post author except self reactions", () => {
-  const recipients = notificationRecipients(NOTIFICATION_TYPES.REACTION_ADDED, {
-    board,
-    post: { _id: "post-1", email: "author@example.com" },
+test("POST_PENDING notifies owner + maintainers except the actor", () => {
+  const notification = buildNotification(NOTIFICATION_TYPES.POST_PENDING, {
+    wall,
+    maintainerEmails: ["mod@example.com"],
+    actorEmail: "owner@example.com",
+  });
+  assert.deepEqual(notification.recipients, [
+    { userEmail: "mod@example.com", status: "unread" },
+  ]);
+});
+
+test("REACTION_ADDED notifies the post author except on self-reactions", () => {
+  const toAuthor = buildNotification(NOTIFICATION_TYPES.REACTION_ADDED, {
+    wall,
+    post: { _id: "post-1", authorEmail: "author@example.com" },
     actorEmail: "reactor@example.com",
   });
-  const selfRecipients = notificationRecipients(NOTIFICATION_TYPES.REACTION_ADDED, {
-    board,
-    post: { _id: "post-1", email: "reactor@example.com" },
+  const selfReaction = buildNotification(NOTIFICATION_TYPES.REACTION_ADDED, {
+    wall,
+    post: { _id: "post-1", authorEmail: "reactor@example.com" },
     actorEmail: "reactor@example.com",
   });
 
-  assert.deepEqual(recipients, [
+  assert.deepEqual(toAuthor.recipients, [
     { userEmail: "author@example.com", status: "unread" },
   ]);
-  assert.deepEqual(selfRecipients, []);
+  assert.deepEqual(selfReaction.recipients, []);
 });
 
-test("access grant notifications target only newly added emails", () => {
-  const before = {
-    ...board,
-    viewAccess: { emails: ["viewer@example.com"], domains: [] },
-  };
-  const after = {
-    ...board,
-    viewAccess: { emails: ["viewer@example.com", "new@example.com"], domains: [] },
-    postAccess: { emails: ["poster@example.com", "second@example.com"], domains: [] },
-  };
-
-  assert.deepEqual(addedAccessEmails(before, after), ["new@example.com", "second@example.com"]);
-});
-
-test("delete notification can use metadata when post was already removed", () => {
+test("POST_DELETED falls back to metadata.postEmail when the post is already gone", () => {
   const notification = buildNotification(NOTIFICATION_TYPES.POST_DELETED, {
-    board,
+    wall,
     actorEmail: "owner@example.com",
     metadata: { postEmail: "author@example.com" },
   });
 
   assert.equal(notification.type, NOTIFICATION_TYPES.POST_DELETED);
-  assert.deepEqual(notification.sendToEmails, [
+  assert.deepEqual(notification.recipients, [
     { userEmail: "author@example.com", status: "unread" },
   ]);
+});
+
+test("ACCESS_GRANTED targets only the granted emails from metadata", () => {
+  const notification = buildNotification(NOTIFICATION_TYPES.ACCESS_GRANTED, {
+    wall,
+    actorEmail: "owner@example.com",
+    metadata: { grantedEmails: ["new@example.com", "second@example.com"] },
+  });
+  assert.deepEqual(notification.recipients, [
+    { userEmail: "new@example.com", status: "unread" },
+    { userEmail: "second@example.com", status: "unread" },
+  ]);
+});
+
+test("buildNotification rejects unknown notification types", () => {
+  assert.throws(
+    () => buildNotification("notARealType", { wall }),
+    /Unsupported notification type/
+  );
 });

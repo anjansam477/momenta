@@ -2,6 +2,14 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const { verifyToken } = require('../src/middleware/auth');
+const { client: redisClient } = require('../src/utils/redis');
+
+// The auth middleware pulls in the shared Redis client (JWT blacklist). Its
+// connection keeps the event loop alive, so without this the test process hangs
+// forever in CI. Force-close it once all tests finish.
+test.after(() => {
+  try { redisClient.disconnect(); } catch (_) { /* already closed */ }
+});
 
 function makeRes() {
   return {
