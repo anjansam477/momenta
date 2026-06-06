@@ -167,6 +167,13 @@ class MailService {
       logger.warn({ err: err.message }, "Could not resume pending mail jobs");
     }
   }
+
+  // Clear all in-process scheduled delivery timers (used on graceful shutdown).
+  // Jobs stay "pending" in the DB and are resumed on next startup.
+  clearAllTimers() {
+    scheduledTimers.forEach((entry) => clearTimeout(entry.timerId));
+    scheduledTimers.clear();
+  }
 }
 
 module.exports = new MailService();

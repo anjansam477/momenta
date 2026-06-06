@@ -52,5 +52,6 @@ const disconnectProducer = async () => {
 
 module.exports = {
   connectProducer,
-  sendMessage
+  sendMessage,
+  disconnectProducer,
 };

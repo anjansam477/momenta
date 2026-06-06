@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const { sendMessage } = require("../utils/message-broker/producer");
 const {
   handleNotificationEvent,
@@ -5,7 +6,9 @@ const {
 } = require("./notification-event-handler");
 
 async function publishNotification(type, data = {}) {
-  const event = { type, data };
+  // eventId makes delivery idempotent: if Kafka both delivers AND we fall back to
+  // direct delivery (or Kafka redelivers), the handler processes it only once.
+  const event = { eventId: crypto.randomUUID(), type, data };
   const queued = await sendMessage("notifications", event);
 
   if (!queued) {
@@ -16,7 +19,7 @@ async function publishNotification(type, data = {}) {
 }
 
 async function publishNotificationRemoval(type, data = {}) {
-  const event = { type, data };
+  const event = { eventId: crypto.randomUUID(), type, data };
   const queued = await sendMessage("removeNotifications", event);
 
   if (!queued) {
