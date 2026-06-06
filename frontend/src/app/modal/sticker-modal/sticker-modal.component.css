@@ -81,11 +81,15 @@
 
 .gif-modal .pic {
     width: 100%;
-    height: auto;
+    aspect-ratio: 1 / 1;        /* definite height so the img can fill the tile */
+    overflow: hidden;
+    border-radius: 8px;
+    background: rgba(20, 34, 56, 0.05);
     cursor: pointer;
 }
 
 .gif-modal .pic img {
+    display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
