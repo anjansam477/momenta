@@ -6,13 +6,21 @@
  * no lost increments. MongoDB stays the authoritative store; Redis is the
  * fast read layer that also absorbs write bursts (eventual consistency).
  *
- * TTL strategy: counters live in Redis for 24h from last write. On cache miss
- * the code falls back to MongoDB and repopulates the cache.
+ * TTL strategy: counters live in Redis ~24h from last write, with random jitter
+ * so a burst of keys created together don't all expire in the same second and
+ * stampede MongoDB on the next read (thundering herd). Hot paths pipeline the
+ * mutate+expire into a single round-trip via MULTI.
  */
 
 const { client } = require("./redis");
 
-const TTL_SECONDS = 60 * 60 * 24; // 24 hours
+const TTL_BASE = 60 * 60 * 24;   // 24 hours
+const TTL_JITTER = 60 * 60 * 4;  // spread expiry across [24h, 28h)
+
+// Per-write randomized TTL to de-synchronize expirations.
+function ttl() {
+  return TTL_BASE + Math.floor(Math.random() * TTL_JITTER);
+}
 
 // ── key helpers ──────────────────────────────────────────────────────────────
 
@@ -40,8 +48,11 @@ function interactionMemberKey(wallId) {
  */
 async function incrReaction(postId, reactionType) {
   const key = reactionKey(postId);
-  const count = await client.hincrby(key, reactionType, 1);
-  await client.expire(key, TTL_SECONDS);
+  const [[, count]] = await client
+    .multi()
+    .hincrby(key, reactionType, 1)
+    .expire(key, ttl())
+    .exec();
   return count;
 }
 
@@ -50,9 +61,12 @@ async function incrReaction(postId, reactionType) {
  */
 async function decrReaction(postId, reactionType) {
   const key = reactionKey(postId);
-  const count = await client.hincrby(key, reactionType, -1);
+  const [[, count]] = await client
+    .multi()
+    .hincrby(key, reactionType, -1)
+    .expire(key, ttl())
+    .exec();
   if (count < 0) await client.hset(key, reactionType, 0);
-  await client.expire(key, TTL_SECONDS);
   return Math.max(count, 0);
 }
 
@@ -76,8 +90,7 @@ async function setReactions(postId, reactionsMap) {
   const key = reactionKey(postId);
   if (Object.keys(reactionsMap).length === 0) return;
   const flat = Object.entries(reactionsMap).flatMap(([k, v]) => [k, String(v)]);
-  await client.hset(key, ...flat);
-  await client.expire(key, TTL_SECONDS);
+  await client.multi().hset(key, ...flat).expire(key, ttl()).exec();
 }
 
 /**
@@ -98,10 +111,9 @@ async function addInteractionMember(wallId, email) {
   const memberKey = interactionMemberKey(wallId);
   const isNew = await client.sadd(memberKey, email);
   if (isNew) {
-    await client.incr(interactionKey(wallId));
+    await client.multi().incr(interactionKey(wallId)).expire(interactionKey(wallId), ttl()).exec();
   }
-  await client.expire(memberKey, TTL_SECONDS);
-  await client.expire(interactionKey(wallId), TTL_SECONDS);
+  await client.expire(memberKey, ttl());
   return isNew === 1;
 }
 
@@ -118,7 +130,7 @@ async function getInteractionCount(wallId) {
  * Populate interaction count from MongoDB value for a wall.
  */
 async function setInteractionCount(wallId, count) {
-  await client.set(interactionKey(wallId), String(count), "EX", TTL_SECONDS);
+  await client.set(interactionKey(wallId), String(count), "EX", ttl());
 }
 
 /**
@@ -144,15 +156,13 @@ async function invalidateWallCounters(wallId) {
 
 async function incrPostCount(wallId) {
   const key = postCountKey(wallId);
-  await client.incr(key);
-  await client.expire(key, TTL_SECONDS);
+  await client.multi().incr(key).expire(key, ttl()).exec();
 }
 
 async function decrPostCount(wallId) {
   const key = postCountKey(wallId);
-  const val = await client.decr(key);
-  if (val < 0) await client.set(key, "0", "EX", TTL_SECONDS);
-  await client.expire(key, TTL_SECONDS);
+  const [[, val]] = await client.multi().decr(key).expire(key, ttl()).exec();
+  if (val < 0) await client.set(key, "0", "EX", ttl());
 }
 
 async function getPostCount(wallId) {
@@ -161,7 +171,7 @@ async function getPostCount(wallId) {
 }
 
 async function setPostCount(wallId, count) {
-  await client.set(postCountKey(wallId), String(count), "EX", TTL_SECONDS);
+  await client.set(postCountKey(wallId), String(count), "EX", ttl());
 }
 
 module.exports = {
@@ -179,4 +189,5 @@ module.exports = {
   decrPostCount,
   getPostCount,
   setPostCount,
+  _ttl: ttl, // exported for tests
 };
