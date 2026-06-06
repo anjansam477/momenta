@@ -1,5 +1,6 @@
 const { randomUUID } = require("crypto");
 const logger = require("../utils/logger");
+const { runWithContext } = require("../utils/request-context-store");
 
 /**
  * Stamps every request with a unique ID and attaches a child logger.
@@ -25,5 +26,7 @@ module.exports = function requestContext(req, res, next) {
     );
   });
 
-  next();
+  // Run the rest of the request inside the async-local context so every shared
+  // logger call downstream inherits this requestId.
+  runWithContext({ requestId }, () => next());
 };
