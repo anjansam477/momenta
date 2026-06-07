@@ -16,8 +16,8 @@ services:
       - SERVICE_BASE_URL=${SERVICE_BASE_URL}
       - UI_BASE_URL=${UI_BASE_URL}
       - CORS_ORIGINS=${CORS_ORIGINS}
-      # replicaSet=rs0 enables multi-document transactions
-      - CONNECTION_STRING=mongodb://mongo_madness:27017/momenta?replicaSet=rs0
+      # replicaSet=rs0 enables multi-document transactions; auth via root creds
+      - CONNECTION_STRING=mongodb://${MONGODB_INITDB_ROOT_USERNAME}:${MONGODB_INITDB_ROOT_PASSWORD}@mongo_madness:27017/momenta?replicaSet=rs0&authSource=admin
       - REDIS_HOST=redis-node-1
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
@@ -74,23 +74,41 @@ services:
 
   mongo_madness:
     image: mongo:latest
-    # Single-node replica set so Mongoose transactions work. Self-initiates via
-    # the healthcheck on first boot (idempotent — rs.status() short-circuits).
-    command: >
-      bash -c "mongod --port 27017 --replSet rs0 --bind_ip_all --wiredTigerCacheSizeGB 2"
+    environment:
+      # Official image vars are MONGO_INITDB_ROOT_* (no "DB") — required for the
+      # entrypoint to create the root user on first init.
+      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_INITDB_ROOT_PASSWORD}
+    # Single-node replica set (Mongoose transactions) WITH auth. The replica set
+    # needs a keyfile for internal member auth even at size 1 — generated into a
+    # named volume at startup so it gets container-native perms. Root user created
+    # by the entrypoint from MONGODB_INITDB_ROOT_* on first init.
+    command:
+      - bash
+      - -c
+      - |
+        set -e
+        KF=/data/keyfile/mongo-keyfile
+        mkdir -p /data/keyfile
+        if [ ! -f "$$KF" ]; then head -c 756 /dev/urandom | base64 | tr -d '\n' > "$$KF"; fi
+        chmod 400 "$$KF"
+        chown 999:999 "$$KF"
+        exec docker-entrypoint.sh mongod --auth --keyFile "$$KF" --port 27017 --replSet rs0 --bind_ip_all --wiredTigerCacheSizeGB 2
     expose:
       - 27017
     volumes:
       - mongodb_data_volume:/data/db
+      - mongodb_keyfile_volume:/data/keyfile
     restart: unless-stopped
     healthcheck:
       test: >
-        mongosh --quiet --port 27017 --eval
+        mongosh --quiet --port 27017 -u "$$MONGO_INITDB_ROOT_USERNAME" -p "$$MONGO_INITDB_ROOT_PASSWORD"
+        --authenticationDatabase admin --eval
         "try { rs.status().ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo_madness:27017'}]}) }"
       interval: 15s
       timeout: 10s
       retries: 10
-      start_period: 30s
+      start_period: 40s
     networks:
       - momenta-network
     deploy:
@@ -168,6 +186,7 @@ services:
 
 volumes:
   mongodb_data_volume:
+  mongodb_keyfile_volume:
   redis_data_volume:
   prometheus_data:
   grafana_data:
