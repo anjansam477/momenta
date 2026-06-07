@@ -220,6 +220,13 @@ app.get("/metrics", async (req, res) => {
 // Thin alias kept for Docker HEALTHCHECK compatibility
 app.get("/health", (req, res) => res.status(200).json({ status: "ok" }));
 
+// Interactive API docs (Swagger UI) + raw spec. Read-only; describes the
+// public API surface, so it is fine to expose alongside the API.
+const swaggerUi = require("swagger-ui-express");
+const { openapiSpec } = require("./src/config/openapi");
+app.get("/api/docs.json", (req, res) => res.json(openapiSpec));
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openapiSpec, { customSiteTitle: "Momenta API" }));
+
 app.use("", o2router);
 app.use("/api/users", userRoutes);
 app.use("/api/walls", wallRoutes);
