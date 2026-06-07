@@ -3,11 +3,21 @@ const reactionsRepository = require("../repositories/reactions-repository");
 const Response = require("../utils/error-handler");
 const asyncHandler = require("express-async-handler");
 const { normalizePostCreatePayload, normalizePostUpdatePayload } = require("../domain/posts/post-rules");
+const { compressImageInPlace } = require("../utils/image-compressor");
+const { generateWebpVariants } = require("../utils/image-variants");
 
 exports.createPost = asyncHandler(async (req, res) => {
   const { wallId } = req.params;
   const { content, firstName, lastName, mediaType } = req.body;
   const file = req.file;
+
+  // Post images are uploaded via this route's multer middleware (not the
+  // /uploads endpoint), so compress + emit responsive WebP variants here.
+  // Best-effort; both no-op for gif/video.
+  if (file && file.path) {
+    await compressImageInPlace(file.path, file.mimetype);
+    await generateWebpVariants(file.path, file.mimetype);
+  }
 
   const normalized = normalizePostCreatePayload({
     content,
@@ -81,8 +91,20 @@ exports.removeReaction = asyncHandler(async (req, res) => {
 
 exports.getPosts = asyncHandler(async (req, res) => {
   const { wallId } = req.params;
-  const { page = 1, pageSize } = req.query;
-  const posts = await postService.getPosts(wallId, Number(page), Number(pageSize || 20));
+  const { page, pageSize, cursor, limit } = req.query;
+
+  // Cursor mode (the wall feed): triggered by `limit` or `cursor`. Returns
+  // { posts, nextCursor, hasMore }. Pinned posts ride the first page.
+  if (cursor !== undefined || limit !== undefined) {
+    const result = await postService.getPostsPage(wallId, {
+      cursor: cursor || null,
+      limit: Math.min(Number(limit || pageSize || 20) || 20, 50),
+    });
+    return Response.respondOk(res, result);
+  }
+
+  // Legacy offset mode (slideshow / "fetch all") — returns an array.
+  const posts = await postService.getPosts(wallId, Number(page || 1), Number(pageSize || 20));
   return Response.respondOk(res, posts);
 });
 

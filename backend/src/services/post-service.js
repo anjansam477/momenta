@@ -115,6 +115,10 @@ class PostService {
     return postRepository.getPostsByWallId(wallId, page, pageSize);
   }
 
+  async getPostsPage(wallId, opts) {
+    return postRepository.getPostsPage(wallId, opts);
+  }
+
   async getPost(postId) {
     return postRepository.getPostById(postId);
   }

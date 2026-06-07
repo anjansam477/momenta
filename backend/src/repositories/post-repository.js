@@ -5,6 +5,25 @@ const WallInteraction = require("../models/wall-interactions");
 const counterCache = require("../utils/counter-cache");
 const { withTransaction } = require("../utils/with-transaction");
 const Response = require("../utils/error-handler");
+const mongoose = require("mongoose");
+
+// Opaque feed cursor = base64("<createdAtISO>|<objectIdHex>"). Encodes the last
+// item of a page so the next page can resume strictly after it.
+function encodeCursor(createdAt, id) {
+  return Buffer.from(`${new Date(createdAt).toISOString()}|${id}`).toString("base64url");
+}
+
+function decodeCursor(cursor) {
+  if (!cursor) return null;
+  try {
+    const [iso, id] = Buffer.from(cursor, "base64url").toString("utf8").split("|");
+    const createdAt = new Date(iso);
+    if (isNaN(createdAt.getTime()) || !mongoose.Types.ObjectId.isValid(id)) return null;
+    return { createdAt, id: new mongoose.Types.ObjectId(id) };
+  } catch {
+    return null;
+  }
+}
 
 class PostRepository {
   async addPost(postData) {
@@ -44,13 +63,9 @@ class PostRepository {
     return { ...post.toObject(), reactions: this._groupReactions(reactions) };
   }
 
-  async getPostsByWallId(wallId, page, pageSize) {
-    const query = { wallId, status: "active" };
-    const postsQuery = Post.find(query).sort({ pinned: -1, createdAt: 1 }).lean();
-    if (page !== null) postsQuery.skip((page - 1) * pageSize).limit(pageSize);
-    const posts = await postsQuery.exec();
+  // Attach grouped reactions to a set of lean post docs (single reactions query).
+  async _attachReactions(posts) {
     if (!posts.length) return [];
-
     const postIds = posts.map((p) => p._id);
     const allReactions = await Reaction.find({ postId: { $in: postIds } }).lean();
     const reactionsByPost = allReactions.reduce((acc, r) => {
@@ -60,8 +75,57 @@ class PostRepository {
       acc[pid][r.type].push(r.userEmail);
       return acc;
     }, {});
-
     return posts.map((p) => ({ ...p, reactions: reactionsByPost[p._id.toString()] || {} }));
+  }
+
+  // Legacy offset pagination — kept for the slideshow + "fetch all" (page=null) paths.
+  async getPostsByWallId(wallId, page, pageSize) {
+    const query = { wallId, status: "active" };
+    const postsQuery = Post.find(query).sort({ pinned: -1, createdAt: 1 }).lean();
+    if (page !== null) postsQuery.skip((page - 1) * pageSize).limit(pageSize);
+    const posts = await postsQuery.exec();
+    return this._attachReactions(posts);
+  }
+
+  /**
+   * Cursor/keyset pagination for the wall feed (scales past deep `.skip`).
+   *
+   * Option (a): pinned posts are returned in full on the FIRST page (no cursor);
+   * the chronological body (non-pinned, createdAt ascending) is keyset-paginated
+   * on `(createdAt, _id)`. Returns `{ posts, nextCursor, hasMore }`.
+   */
+  async getPostsPage(wallId, { cursor = null, limit = 20 } = {}) {
+    const base = { wallId, status: "active" };
+
+    // Pinned posts ride along only on the first page.
+    let pinned = [];
+    if (!cursor) {
+      pinned = await Post.find({ ...base, pinned: true }).sort({ createdAt: 1, _id: 1 }).lean();
+    }
+
+    const bodyFilter = { ...base, pinned: false };
+    const decoded = decodeCursor(cursor);
+    if (decoded) {
+      // Strictly-after keyset predicate on (createdAt, _id).
+      bodyFilter.$or = [
+        { createdAt: { $gt: decoded.createdAt } },
+        { createdAt: decoded.createdAt, _id: { $gt: decoded.id } },
+      ];
+    }
+
+    // Fetch one extra to detect whether more pages remain.
+    const fetched = await Post.find(bodyFilter)
+      .sort({ createdAt: 1, _id: 1 })
+      .limit(limit + 1)
+      .lean();
+
+    const hasMore = fetched.length > limit;
+    const body = hasMore ? fetched.slice(0, limit) : fetched;
+    const last = body[body.length - 1];
+    const nextCursor = hasMore && last ? encodeCursor(last.createdAt, last._id) : null;
+
+    const posts = await this._attachReactions([...pinned, ...body]);
+    return { posts, nextCursor, hasMore };
   }
 
   async deletePost(postId) {
