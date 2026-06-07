@@ -1,4 +1,4 @@
-# Momenta
+
 
 Momenta is a collaborative moment wall application. Users create a moment, invite contributors to post text, images, GIFs, stickers, and video, then share or present the collected posts as a slideshow.
 
@@ -210,10 +210,33 @@ cd frontend && npm audit
 - File uploads: MIME whitelist + filename/ObjectId path-traversal guard
 - Socket `joinWall` validates wall access before emitting presence
 
+### MongoDB authentication
+
+Auth is **enabled** (compose passes the correctly-named `MONGO_INITDB_ROOT_*`
+vars, mounts an auto-generated keyfile for replica-set internal auth, and the
+`CONNECTION_STRING` carries `user:pass@…?authSource=admin`).
+
+The root user is created by the Mongo entrypoint **only on a fresh data volume**.
+If your `mongodb_data_volume` predates auth (created without a root user), you
+must re-bootstrap once:
+
+```powershell
+docker compose down -v        # wipes the DB volume — local data is lost
+docker compose up --build
+```
+
+Keep `MONGODB_INITDB_ROOT_PASSWORD` **URL-safe** (it is embedded in the Mongo
+URI). Mongo is only on the internal Docker network (never host-published).
+
+### Content-Security-Policy
+
+CSP is **enforcing** in `frontend/nginx.conf` (prod static server). `connect-src`
+assumes the API + websocket are same-origin; if the API is on a different origin
+in production, add that origin to `connect-src`. Watch the browser console for
+violations after deploy.
+
 ### Known hardening TODOs
 
-- **MongoDB auth is not yet enabled.** The compose files set `MONGODB_INITDB_ROOT_USERNAME` — but the official Mongo image variable is `MONGO_INITDB_ROOT_USERNAME` (no "DB"), so auth never actually turns on. Enabling it on a replica set also requires a shared **keyfile** for internal auth and credentials in `CONNECTION_STRING` (`mongodb://user:pass@host/db?replicaSet=rs0&authSource=admin`). Mongo is only on the internal Docker network (not host-published), so this is defense-in-depth. Do this before any networked deployment.
-- **Content-Security-Policy** not yet set on the frontend (needs an inventory of all external origins: API, websocket, Giphy media, Google OAuth, fonts).
 - **Dependency advisories**: `npm audit` shows a few moderate items. `hono` (flagged transitively) is a **dev/build-only** dep of `@angular/cli` — not in the runtime bundle.
 
 ## Operations & Tooling
