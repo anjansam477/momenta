@@ -26,8 +26,8 @@ import { UI_BASE_URL } from '../../../environment-config';
 })
 export class DownloadWallComponent implements OnInit{
   private readonly destroyRef = inject(DestroyRef);
-  wallId: string = '';
-  selectedBackground: string = '';
+  wallId = '';
+  selectedBackground = '';
   
   constructor(
     private backgroundService:BackgroundImageService,

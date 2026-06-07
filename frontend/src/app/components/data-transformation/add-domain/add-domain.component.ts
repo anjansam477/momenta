@@ -1,5 +1,5 @@
 ﻿import { animate, style, transition, trigger } from '@angular/animations';
-import { Component, DestroyRef, EventEmitter, inject, Input, Output, ChangeDetectionStrategy } from '@angular/core';
+import { Component, DestroyRef, EventEmitter, inject, Input, Output, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidatorFn } from '@angular/forms';
 import { TagInputModule } from 'ngx-chips';
@@ -27,7 +27,7 @@ type TagModel = string | Record<string, any>;
     ])
   ]
 })
-export class AddDomainComponent {
+export class AddDomainComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   @Output() domainsChanged = new EventEmitter<string[]>();
   @Input() component!: string;
@@ -36,7 +36,7 @@ export class AddDomainComponent {
   selectedDomains:string[]=[];
   searchResults:string[]=[];
   showListTitle:string[]=[];
-  @Input() isDisabled: boolean=false;
+  @Input() isDisabled=false;
   searchForm!: FormGroup;
   domainValidator = this.domainValidatorfun();
   splitPattern = new RegExp('[,\\s]+');
@@ -49,7 +49,7 @@ export class AddDomainComponent {
   ]);
   showList = true;
   @Input() excludeDomains: string[] = [];
-  info:string="";
+  info="";
 
   constructor(
     private fb: FormBuilder

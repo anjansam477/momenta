@@ -1,4 +1,4 @@
-﻿import { Component, DestroyRef, inject, ChangeDetectionStrategy } from '@angular/core';
+﻿import { Component, DestroyRef, inject, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../services/authservice/auth.service';
 import { markAllFieldsAsTouched } from '../../utils/form.util';
@@ -18,13 +18,13 @@ import { customEmailValidator } from '../../validators/email-validator';
   templateUrl: './login.component.html',
   styleUrl: './login.component.css',
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
-  authBaseUrl: String = SERVICE_BASE_URL + '/api/auth/google';
+  authBaseUrl: string = SERVICE_BASE_URL + '/api/auth/google';
   loginForm!: FormGroup;
-  passwordFieldType: string = 'password';
-  incorrect: boolean = false
-  errorMessage: String = '';
+  passwordFieldType = 'password';
+  incorrect = false
+  errorMessage = '';
 
   constructor(
     private fb: FormBuilder,

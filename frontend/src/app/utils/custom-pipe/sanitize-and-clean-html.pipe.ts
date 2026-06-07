@@ -22,7 +22,7 @@ export class SanitizeAndCleanHtmlPipe implements PipeTransform {
     }
     const doc = new DOMParser().parseFromString(content, 'text/html');
     const paragraphs = doc.querySelectorAll('p');
-    let count = this.removeExtraSpacing(paragraphs);
+    const count = this.removeExtraSpacing(paragraphs);
   
     paragraphs.forEach((paragraph, index) => {
       const nextElement = paragraphs[index + 1];
@@ -57,7 +57,7 @@ export class SanitizeAndCleanHtmlPipe implements PipeTransform {
  * @param paragraph - The paragraph element to add padding to.
  * @param extraTop - Whether to add extra padding to the top.
  */
-  private addPadding(paragraph: HTMLElement, extraTop: boolean = false): void {
+  private addPadding(paragraph: HTMLElement, extraTop = false): void {
     paragraph.style.paddingLeft = '24px';
     paragraph.style.paddingRight = '24px';
     if (extraTop) {

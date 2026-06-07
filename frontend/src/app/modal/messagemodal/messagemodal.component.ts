@@ -12,12 +12,12 @@ import { ActivatedRoute } from '@angular/router';
   templateUrl: './messagemodal.component.html',
   styleUrl: './messagemodal.component.css'
 })
-export class MessagemodalComponent{
+export class MessagemodalComponent implements OnInit{
   private readonly destroyRef = inject(DestroyRef);
   private triggerElement: HTMLElement | null = null;
-  message: string = '';
+  message = '';
   @ViewChild('messageModal') messageModal!: ElementRef;
-  currentPage : string = ''
+  currentPage  = ''
 
   constructor(
     private sharedService: SharedDataService,

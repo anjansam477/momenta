@@ -44,17 +44,17 @@ export class AddUserComponent implements OnInit {
   selectedUsers: UserDetails[] = [];
   showList = true;
   selectedEmails: string[] = [];
-  errorMessage: string = '';
-  isChecked: boolean = true;
+  errorMessage = '';
+  isChecked = true;
   @Output() emailsChanged = new EventEmitter<string[]>();
   @Input() component!: string;
-  @Input() isDisabled: boolean=false;
+  @Input() isDisabled=false;
   userEmail = this.authService.getEmail();
   @Input() sharedEmails: string[] = [];
   @Input() excludeEmails: string[] = [];
   @Input() excludeDomains: string[] = [];
   adminEmails: string[] = [];
-  ownerEmail: string = "";
+  ownerEmail = "";
   splitPattern = new RegExp('[,\\s]+');
   emailValidator = this.emailValidatorfun();
   searchResults: UserDetails[] = [];
@@ -63,7 +63,7 @@ export class AddUserComponent implements OnInit {
   userSuggestionList!: UserDetails[];
   info:string[]=[];
   showListTitle:string[]=[];
-  btnText:string="";
+  btnText="";
   constructor(
     private fb: FormBuilder,
     private router: Router,

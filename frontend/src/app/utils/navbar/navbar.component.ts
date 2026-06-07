@@ -26,9 +26,9 @@ export class NavbarComponent implements OnInit{
   userData: Partial<User> = {};
   currentPage: string | undefined;
   pictureBlob: string | undefined;
-  userName: string = '';
-  image: string = "";
-  isLoggedIn: boolean = false;
+  userName = '';
+  image = "";
+  isLoggedIn = false;
 
   wallSearchQuery = '';
   wallSearchResults: Wall[] = [];

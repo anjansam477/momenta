@@ -41,9 +41,9 @@ export class ScheduleDeliveryComponent implements OnInit {
   email = this.authService.getEmail();
   scheduledEmails: string[] = [];
   scheduledDate: Date | null = null;
-  cc: boolean = true;
-  editMails: boolean = false;
-  receivedMail: boolean = false;
+  cc = true;
+  editMails = false;
+  receivedMail = false;
   tomorrow!: Date;
   thisEvening!: Date;
   mondayMorning!: Date;
@@ -52,17 +52,17 @@ export class ScheduleDeliveryComponent implements OnInit {
   @ViewChild('picker') picker!: NgxMaterialTimepickerComponent;
   @ViewChild('scheduleCalendar') scheduleCalendar!: ElementRef<HTMLInputElement>;
   mailToBeScheduledDate:  Date | null = null;
-  wallId: string = '';
+  wallId = '';
   wall!: Wall;
   minDate: Date = new Date();
-  time: string = '';
+  time = '';
   date: Date = new Date();
   displayDateTime!: string;
-  datesEdit: boolean = false;
-  isModified: boolean = false;
+  datesEdit = false;
+  isModified = false;
   @Output() closeModal = new EventEmitter<void>();
-  minTime: string = '12:00 AM';
-  remove: string = '';
+  minTime = '12:00 AM';
+  remove = '';
 
   constructor(
     private authService: AuthService,

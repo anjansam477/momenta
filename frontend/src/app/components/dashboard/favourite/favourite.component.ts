@@ -40,17 +40,17 @@ import { UserReplacerComponent } from "../../data-transformation/user-replacer/u
 export class FavouriteComponent implements OnInit {
   walls: Wall[] = [];
   showWalls: Wall[] = [];
-  wallId: string = '';
+  wallId = '';
   name!: string | null;
-  baseUrl: String = UI_BASE_URL;
-  wallTitle:string="";
+  baseUrl: string = UI_BASE_URL;
+  wallTitle="";
   @ViewChild(MessagemodalComponent)
   messageModalComponent!: MessagemodalComponent;
   dateTimeAgo: string[] = [];
-  sharedWallUrl: string = '';
+  sharedWallUrl = '';
   openDropdownIndex: number | null = null;
-  userEmail: string ='';
-  wallFilter: string = 'all';
+  userEmail ='';
+  wallFilter = 'all';
   @ViewChildren('wallCard') wallCards!: QueryList<ElementRef>;
 
 

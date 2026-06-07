@@ -15,19 +15,19 @@ import { ToastrService } from 'ngx-toastr';
   styleUrl: './sharemodal.component.css',
 })
 export class SharemodalComponent {
-  @Input() sharedWallUrl: string = '';
-  @Input() wallTitle: string = '';
-  @Input() wallId: string = '';
-  @Input() isCreator: boolean = false;
-  isLinkCopied: boolean = false;
-  linkCopied:string='';
+  @Input() sharedWallUrl = '';
+  @Input() wallTitle = '';
+  @Input() wallId = '';
+  @Input() isCreator = false;
+  isLinkCopied = false;
+  linkCopied='';
   qrCodeDownloadLink: SafeUrl = "";
-  qrCopied:string="";
-  isqrCopied:boolean=false;
-  inviteEmail: string = '';
-  inviteLink: string = '';
-  isGenerating: boolean = false;
-  inviteCopied: boolean = false;
+  qrCopied="";
+  isqrCopied=false;
+  inviteEmail = '';
+  inviteLink = '';
+  isGenerating = false;
+  inviteCopied = false;
   @ViewChild('qrcodeElement', { static: false }) qrcodeElement!: ElementRef;
 
   constructor(
@@ -40,7 +40,7 @@ export class SharemodalComponent {
 
   share() {
     const wallUrl = this.sharedWallUrl;
-    let baseMessage = `Hey there! 👋
+    const baseMessage = `Hey there! 👋
         You’re invited to ${this.wallTitle}! 🎉 Let’s make it memorable — share your message on Momenta and show you care.
         ${wallUrl}`;
     return encodeURIComponent(baseMessage);
@@ -199,10 +199,10 @@ export class SharemodalComponent {
   saveAsImage() {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let  canvas = (this.qrcodeElement as any).context?.canvas?.toDataURL("image/png")
+    const  canvas = (this.qrcodeElement as any).context?.canvas?.toDataURL("image/png")
 
     if (canvas) {
-      let blobData = this.imagesService.convertBase64ToBlob(canvas)
+      const blobData = this.imagesService.convertBase64ToBlob(canvas)
       const blob = new Blob([blobData], { type: "image/png" })
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement("a")

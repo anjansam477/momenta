@@ -27,42 +27,42 @@ import { ToastrService } from 'ngx-toastr';
 export class BackgroundComponent implements OnInit{
   private readonly destroyRef = inject(DestroyRef);
   themes: BackgroundTheme[] = [];
-  chooseTheme: string = 'All';
-  occasion: string = '';
+  chooseTheme = 'All';
+  occasion = '';
   activeTab: 'themes' | 'effects' | 'sounds' | 'colors' = 'themes';
-  selectedImage: string = '';
-  selectedAnimation: string = '';
-  selectedAudio: string = '';
+  selectedImage = '';
+  selectedAnimation = '';
+  selectedAudio = '';
   themesList = themes;
   selectedTheme = 'All';
   selectedAudioTheme = 'All';
   showMoreBtn = true;
-  initialThemeCount: number = 5;
-  btnDisabled: boolean = false;
-  currentBackgroundImage: string = '';
-  wallDisplay: boolean = true;
-  wallId: string = '';
+  initialThemeCount = 5;
+  btnDisabled = false;
+  currentBackgroundImage = '';
+  wallDisplay = true;
+  wallId = '';
   wall!: Wall;
-  imageChanged: boolean = false;
-  showAll: boolean = false;
+  imageChanged = false;
+  showAll = false;
   animations = animations;
-  hoveredIndex: string = '';
+  hoveredIndex = '';
   audioFiles = audios;
   filteredAudioFiles = this.audioFiles;
-  hasAudio : boolean = false;
+  hasAudio  = false;
   @Output() closeModal = new EventEmitter<void>();
-  showText: boolean = false;
+  showText = false;
   hoveredGifSrc: { [key: string]: string } = {};
 
   // ── Colors & Fonts ──
   bgColors: WallBgColor[]   = WALL_BG_COLORS;
   wallFonts: WallFont[]     = WALL_FONTS;
   textColors: WallTextColor[] = WALL_TEXT_COLORS;
-  selectedBgColor: string   = '';
-  selectedFont: string      = '';
-  selectedTextColor: string = '';
-  customBgColor: string     = '#FFFFFF';
-  colorsBtnDisabled: boolean = true;
+  selectedBgColor   = '';
+  selectedFont      = '';
+  selectedTextColor = '';
+  customBgColor     = '#FFFFFF';
+  colorsBtnDisabled = true;
 
   constructor(
     private wallService: WallService,

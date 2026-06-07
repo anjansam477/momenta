@@ -10,7 +10,7 @@ import { UI_BASE_URL } from '../../environment-config';
   styleUrl: './errorpage.component.css'
 })
 export class ErrorpageComponent {
-  homeLink: string = '/';
+  homeLink = '/';
   
   constructor() {
     const urlObj = new URL(UI_BASE_URL);

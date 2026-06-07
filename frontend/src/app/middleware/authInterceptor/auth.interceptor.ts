@@ -24,7 +24,7 @@ export const authInterceptor: HttpInterceptorFn = (
 
   const includedEndpoints = INCLUDED_APIS_FOR_SPINNER
 
-  let isIncludedEndpoint = (url: string): boolean => {
+  const isIncludedEndpoint = (url: string): boolean => {
     return includedEndpoints.some((endpoint: string) => url.includes(endpoint));
   };
 

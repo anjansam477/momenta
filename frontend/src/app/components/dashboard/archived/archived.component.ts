@@ -22,12 +22,12 @@ import { WALL_STATUS } from '../../../constants/wall.constants';
 })
 export class ArchivedComponent implements OnInit {
   walls: Wall[] = [];
-  wallId: string = '';
+  wallId = '';
   name !: string|null;
   @ViewChild(MessagemodalComponent) messageModalComponent!: MessagemodalComponent;
   dateTimeAgo: string[] = [];
   openDropdownIndex: number | null = null;
-  userEmail: string ='';
+  userEmail ='';
 
   loading = false;
   allLoaded = false;

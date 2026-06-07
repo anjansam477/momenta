@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, DestroyRef, inject, Input, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectorRef, DestroyRef, inject, Input, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UserService } from '../../../services/userservice/user.service';
 import { UserCacheService } from '../../../services/userservice/user-cache.service';
@@ -20,14 +20,14 @@ import { UserDetails } from '../../../shared/models';
   templateUrl: './user-replacer.component.html',
   styleUrl: './user-replacer.component.css'
 })
-export class UserReplacerComponent {
+export class UserReplacerComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   @Input() email!: string;
   @Input() datetime: string | Date | null = null;
   @Input() component!: string;
   currentPage = '';
-  userName: string = '';
-  profilePicture: string = '';
+  userName = '';
+  profilePicture = '';
 
   constructor(
     private userService: UserService,

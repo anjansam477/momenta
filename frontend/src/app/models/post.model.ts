@@ -18,12 +18,12 @@ export class Post {
     public pinned: boolean,
     public isEdited: boolean,
     // Deprecated compat fields — typed as string so templates work without ?? guards
-    /** @deprecated use authorEmail */ public email: string = '',
-    /** @deprecated use authorName.first */ public firstName: string = '',
-    /** @deprecated use authorName.last */ public lastName: string = '',
-    /** @deprecated use media.url */ public mediaUrl: string = '',
-    /** @deprecated use media.type */ public mediaType: string = '',
-    /** @deprecated use status */ public isArchived: boolean = false,
+    /** @deprecated use authorEmail */ public email = '',
+    /** @deprecated use authorName.first */ public firstName = '',
+    /** @deprecated use authorName.last */ public lastName = '',
+    /** @deprecated use media.url */ public mediaUrl = '',
+    /** @deprecated use media.type */ public mediaType = '',
+    /** @deprecated use status */ public isArchived = false,
     /** @deprecated use openReportCount */ public reportedBy?: string[],
     // New schema fields
     public media?: { url: string | null; type: string | null; thumbnailUrl: string | null },

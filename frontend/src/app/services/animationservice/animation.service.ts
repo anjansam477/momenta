@@ -32,7 +32,7 @@ export class AnimationService {
   constructor() {
   }
 
-  selectedAnimation: string = '';
+  selectedAnimation = '';
   selectedAnimationSubject = new BehaviorSubject(this.selectedAnimation);
 
   getSelectedAnimation(): string {

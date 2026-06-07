@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
 import { APP_EMAIL } from '../../environment-config';
@@ -11,9 +11,9 @@ import { APP_EMAIL } from '../../environment-config';
   templateUrl: './verificationPage.component.html',
   styleUrl: './verificationPage.component.css',
 })
-export class VerificationPageComponent {
-  status: string='';
-  userEmail:string='';
+export class VerificationPageComponent implements OnInit {
+  status='';
+  userEmail='';
   constructor(private route: ActivatedRoute,private router: Router,private sharedService: SharedDataService) { }
   
  

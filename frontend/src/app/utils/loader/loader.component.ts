@@ -1,4 +1,4 @@
-﻿import { Component, DestroyRef, inject, ChangeDetectionStrategy } from '@angular/core';
+﻿import { Component, DestroyRef, inject, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { LoaderService } from '../../services/loaderservice/loader.service';
 
@@ -10,9 +10,9 @@ import { LoaderService } from '../../services/loaderservice/loader.service';
   templateUrl: './loader.component.html',
   styleUrl: './loader.component.css'
 })
-export class LoaderComponent {
+export class LoaderComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
-  isLoading: boolean = true
+  isLoading = true
 
   constructor (private loaderService: LoaderService){}
 

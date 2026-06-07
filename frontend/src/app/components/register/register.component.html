@@ -56,7 +56,7 @@
               [ngClass]="{ 'validation-input': userData.get('password')?.invalid && userData.get('password')?.touched}" />
             <i class="bi bi-lock login-input-icon"></i>
             <button type="button" class="passwor_show_icon" (click)="togglePasswordVisibility()" [attr.aria-label]="passwordFieldType === 'password' ? 'Show password' : 'Hide password'">
-              @if (passwordFieldType == 'password') {
+              @if (passwordFieldType === 'password') {
                 <i class="bi bi-eye-fill" aria-hidden="true"></i>
               } @else {
                 <i class="bi bi-eye-slash" aria-hidden="true"></i>

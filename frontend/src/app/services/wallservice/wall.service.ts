@@ -17,7 +17,7 @@ export class WallService {
     private sharedDataService: SharedDataService
   ) { }
 
-  private wallServiceBaseUrl: String = SERVICE_BASE_URL + '/api/walls';
+  private wallServiceBaseUrl: string = SERVICE_BASE_URL + '/api/walls';
 
   getAllWalls(userEmail: string, page: number, pageSize?: number): Observable<Wall[]> {
     let params = new HttpParams()
@@ -59,7 +59,7 @@ export class WallService {
   }
 
   getSharedWalls(userEmail: string, page: number): Observable<Wall[]> {
-    let params = new HttpParams()
+    const params = new HttpParams()
     .set('accessEmailId', userEmail)
     .set('page', page.toString());
 

@@ -7,9 +7,9 @@ import { MomentAudio } from '../../constants/audios';
 })
 export class AudioService {
 
-  private audioFile: string = '';
+  private audioFile = '';
   private audio = new Audio();
-  private isMuted: boolean = false;
+  private isMuted = false;
 
   // BehaviorSubject to track the current audio file and muteState
   private audioFileSubject = new BehaviorSubject<string>(this.audioFile);

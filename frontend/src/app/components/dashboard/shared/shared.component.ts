@@ -28,16 +28,16 @@ import { SAVE_TYPE, WALL_STATUS } from '../../../constants/wall.constants';
 })
 export class SharedComponent implements OnInit {
   walls: Wall[] = [];
-  wallId: string = '';
+  wallId = '';
   name !: string|null;
-  baseUrl: String = UI_BASE_URL;
-  wallTitle:string="";
+  baseUrl: string = UI_BASE_URL;
+  wallTitle="";
   @ViewChild(MessagemodalComponent) messageModalComponent!: MessagemodalComponent;
   dateTimeAgo: string[] = [];
-  sharedWallUrl: string = '';
+  sharedWallUrl = '';
   openDropdownIndex: number | null = null;
   @ViewChildren('wallCard') wallCards!: QueryList<ElementRef>;
-  userEmail: string ='';
+  userEmail ='';
   loading = false;
   allLoaded = false;
   page = 1;
