@@ -118,7 +118,7 @@
                         @if (post.media?.url || post.mediaUrl) {
                             <div class="media-container" (click)="$event.stopPropagation()">
                                 @if (isImage(post.media?.type || post.mediaType, post.media?.url || post.mediaUrl)) {
-                                    <img [src]="mediaUrls[post.media?.url || post.mediaUrl]" alt="Image" loading="lazy" />
+                                    <img [appResponsiveImg]="post.media?.url || post.mediaUrl" alt="Image" />
                                 }
                                 @if (isGif(post.media?.type || post.mediaType, post.media?.url || post.mediaUrl)) {
                                     <img [src]="mediaUrls[post.media?.url || post.mediaUrl]" alt="GIF" loading="lazy" />

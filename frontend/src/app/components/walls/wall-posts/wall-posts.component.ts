@@ -1,5 +1,5 @@
 ﻿import { NgClass } from '@angular/common';
-import { ChangeDetectorRef, Component, DestroyRef, ElementRef, HostListener, inject, ViewChild, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, ElementRef, HostListener, inject, ViewChild, ChangeDetectionStrategy, OnInit, AfterViewInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { LoginmodalComponent } from '../../../modal/loginmodal/loginmodal.component';
 import { MessagemodalComponent } from '../../../modal/messagemodal/messagemodal.component';
@@ -23,6 +23,7 @@ import { WallService } from '../../../services/wallservice/wall.service';
 import { SocketService } from '../../../services/socketservice/socket.service';
 import { isWallCreator } from '../../../utils/wall.util';
 import { handleHttpError } from '../../../utils/error-handler.util';
+import { ResponsiveImgDirective } from '../../../directives/responsive-img.directive';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,50 +35,53 @@ import { handleHttpError } from '../../../utils/error-handler.util';
     PostmodalComponent,
     MessagemodalComponent,
     UserReplacerComponent,
-    SanitizeAndCleanHtmlPipe
+    SanitizeAndCleanHtmlPipe,
+    ResponsiveImgDirective
   ],
   templateUrl: './wall-posts.component.html',
   styleUrl: './wall-posts.component.css'
 })
-export class WallPostsComponent {
+export class WallPostsComponent implements OnInit, AfterViewInit {
 
   @ViewChild('postContainer') postContainerRef!: ElementRef;
   postIdSubject: Subject<string> = new Subject<string>();
-  wallId: string = '';
-  wallTitle: string = '';
-  wallDescription: string = '';
+  wallId = '';
+  wallTitle = '';
+  wallDescription = '';
   posts: Post[] = [];
   openDate: string | Date | null = null;
-  isArchived: boolean = false;
+  isArchived = false;
   closeDate: string | Date | null = null;
   mediaUrls: { [key: string]: SafeUrl } = {};
   currentPage: string | undefined;
   wallCreatorMails!: string[];
-  ownerMail: string = ''
-  postId: string = '';
+  ownerMail = ''
+  postId = '';
   @ViewChild(MessagemodalComponent) messageModalComponent!: MessagemodalComponent;
   reaction!: [{ postId: string; reaction: string[] }];
   columns: Post[][] = [[], [], []];
   extraValue = '';
   loginBoolean = true;
-  sharedWallUrl: string = '';
+  sharedWallUrl = '';
   isPreview!: boolean;
   userEmail: string|null = '';
-  nonArchivedNonReportedCount:number=0;
-  nonArchivedCount:number=0;
+  nonArchivedNonReportedCount=0;
+  nonArchivedCount=0;
   private readonly destroyRef = inject(DestroyRef);
-  isOpen:boolean=true;
+  isOpen=true;
   openDropdownIndex: string | null = null;
   loading = false;
   allLoaded = false;
-  page = 1;
+  // Cursor feed state: null cursor = first page (also returns pinned posts).
+  nextCursor: string | null = null;
+  firstLoad = true;
   private postUpdatesInitialized = false;
   private pendingReactions = new Set<string>();
   pendingPosts: Post[] = [];
-  requireApproval: boolean = false;
-  showPendingQueue: boolean = false;
-  searchQuery: string = '';
-  viewerCount: number = 0;
+  requireApproval = false;
+  showPendingQueue = false;
+  searchQuery = '';
+  viewerCount = 0;
 
   // Undo delete state
   undoDeleteToast: { post: Post; columnIndex: number; postIndex: number } | null = null;
@@ -243,7 +247,7 @@ export class WallPostsComponent {
       const div = document.createElement('div');
       div.innerHTML = post.content;
       const images = Array.from(div.querySelectorAll('img'));
-      for (let element of images) {
+      for (const element of images) {
         contentImagesHeight += imageHeight;
       }
     }
@@ -273,7 +277,7 @@ export class WallPostsComponent {
   isLoggedIn(): void {
     if (this.currentPage != 'download') {
       this.userEmail = this.authService.getEmail();
-      this.loginBoolean = !!localStorage.getItem('email');
+      this.loginBoolean = !!this.authService.getEmail();
     }
   }
   
@@ -339,11 +343,12 @@ export class WallPostsComponent {
     this.loading = true;
 
     const loadPosts = () => {
-      this.postService.getPostsForWall(this.wallId, this.page).subscribe({
+      this.postService.getPostsPage(this.wallId, this.nextCursor, postPageSize).subscribe({
         next: (result) => {
           this.loading = false;
-          if (result.length > 0) {
-            const filteredResult = this.filterPosts(result).map(post => {
+          const batch = result.posts;
+          if (batch.length > 0) {
+            const filteredResult = this.filterPosts(batch).map(post => {
               const postAuthorEmail = post.authorEmail || post.email;
               if (postAuthorEmail === this.userEmail) {
                 this.sharedService.setMyPost(true);
@@ -360,13 +365,12 @@ export class WallPostsComponent {
             } else {
               this.sharedService.setPostAvailable(false);
             }
-            if(result.length < postPageSize){
-              this.allLoaded = true;
-            }
-            this.page++;
-          } else {
+          }
+          this.nextCursor = result.nextCursor;
+          if (!result.hasMore) {
             this.allLoaded = true;
           }
+          this.firstLoad = false;
         },
         error: (err) => {
           handleHttpError(err, this.toastr);
@@ -374,8 +378,8 @@ export class WallPostsComponent {
         },
       });
     };
-  
-    if (this.page === 1) {
+
+    if (this.firstLoad) {
       loadPosts();
     } else {
       this.loading = true;
@@ -485,8 +489,9 @@ export class WallPostsComponent {
     this.posts.forEach((post: Post) => {
       const mediaType = post.media?.type || post.mediaType;
       const mediaUrl = post.media?.url || post.mediaUrl;
+      // Images now load directly via ResponsiveImgDirective (srcset/WebP), so we
+      // only blob-prefetch video + gif here.
       if (mediaUrl && (
-        this.isImage(mediaType, mediaUrl) ||
         this.isVideo(mediaType) ||
         this.isGif(mediaType, mediaUrl)
       )) {

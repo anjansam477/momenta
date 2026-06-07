@@ -7,6 +7,13 @@ import { ReactionType } from '../../shared/models';
 import { Post } from '../../models/post.model';
 import { retryWithBackoff } from '../../utils/http-retry.util';
 
+/** One page of the cursor-paginated wall feed. */
+export interface PostPage {
+  posts: Post[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -37,6 +44,20 @@ export class PostService {
     }
 
     return this.http.get<Post[]>(`${this.postServiceBaseUrl}/${wallId}/posts`, { params }).pipe(retryWithBackoff());
+  }
+
+  /**
+   * Cursor-paginated wall feed. Pass `null` cursor for the first page (which also
+   * includes pinned posts); pass the previous page's `nextCursor` thereafter.
+   */
+  getPostsPage(wallId: string, cursor: string | null, limit: number): Observable<PostPage> {
+    let params = new HttpParams().set('limit', limit.toString());
+    if (cursor) {
+      params = params.set('cursor', cursor);
+    }
+    return this.http
+      .get<PostPage>(`${this.postServiceBaseUrl}/${wallId}/posts`, { params })
+      .pipe(retryWithBackoff());
   }
 
   getPostsForEmail(wallId: string, _userEmail: string): Observable<Post[]> {

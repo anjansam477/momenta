@@ -42,7 +42,7 @@
                       class="nav-search__item"
                       (click)="openWall(wall._id)">
                       @if (wall.theme?.bgImg || wall.bgImg) {
-                        <img [src]="wall.theme?.bgImg || wall.bgImg" class="nav-search__thumb" />
+                        <img [src]="wall.theme?.bgImg || wall.bgImg" class="nav-search__thumb" loading="lazy" decoding="async" />
                       } @else {
                         <i class="bi bi-postcard nav-search__thumb-fallback"></i>
                       }

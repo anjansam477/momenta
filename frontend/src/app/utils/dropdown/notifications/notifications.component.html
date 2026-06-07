@@ -42,7 +42,7 @@
                 @for (user of notification.userDetails | slice:0:2; track user) {
                   <span class="user-avatar">
                     @if (user.profilePicture) {
-                      <img [src]="user.profilePicture" referrerpolicy="no-referrer">
+                      <img [src]="user.profilePicture" referrerpolicy="no-referrer" loading="lazy" decoding="async">
                     } @else {
                       <span>{{ getInitials(user) }}</span>
                     }

@@ -46,4 +46,21 @@ export class MediaService {
       responseType: 'blob' as 'json'
     }).pipe(retryWithBackoff());
   }
+
+  /** Responsive WebP widths — must match the backend's VARIANT_WIDTHS. */
+  static readonly RESPONSIVE_WIDTHS = [480, 960, 1440];
+
+  /** Direct (non-blob) URL to a stored media file. */
+  fileUrl(mediaUrl: string): string {
+    return `${this.mediaServiceBaseUrl}/retrieve-file?mediaUrl=${encodeURIComponent(mediaUrl)}`;
+  }
+
+  /**
+   * `srcset` of WebP variants for a stored image. Each `?w=` is served the
+   * matching WebP variant if present, else the original — so candidates never 404.
+   */
+  responsiveSrcset(mediaUrl: string): string {
+    const base = this.fileUrl(mediaUrl);
+    return MediaService.RESPONSIVE_WIDTHS.map((w) => `${base}&w=${w} ${w}w`).join(', ');
+  }
 }

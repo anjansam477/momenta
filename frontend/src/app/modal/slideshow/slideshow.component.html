@@ -77,7 +77,7 @@
                     @if (getMediaType(currentPost) === 'video') {
                       <video [src]="mediaUrls[getMediaUrl(currentPost)]" controls></video>
                     } @else {
-                      <img [src]="mediaUrls[getMediaUrl(currentPost)]" alt="Post media" />
+                      <img [src]="mediaUrls[getMediaUrl(currentPost)]" alt="Post media" decoding="async" />
                     }
                   </div>
                 }
