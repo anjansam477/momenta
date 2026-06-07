@@ -1,5 +1,6 @@
 ﻿import { Component, DestroyRef, effect, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NgClass } from '@angular/common';
 import { UserService } from '../../services/userservice/user.service';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../services/authservice/auth.service';
@@ -13,7 +14,7 @@ import { markAllFieldsAsTouched } from '../../utils/form.util';
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-loginmodal',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, NgClass],
   templateUrl: './loginmodal.component.html',
   styleUrl: './loginmodal.component.css',
 })
@@ -23,12 +24,12 @@ export class LoginmodalComponent implements OnInit{
     email: '',
     password: '',
   };
-  authBaseUrl: String = SERVICE_BASE_URL + '/api/auth/google';
-  message: String = '';
+  authBaseUrl: string = SERVICE_BASE_URL + '/api/auth/google';
+  message = '';
   loginForm!: FormGroup;
-  passwordFieldType: string = 'password';
-  incorrect : boolean = false
-  errorMessage:String='';
+  passwordFieldType = 'password';
+  incorrect  = false
+  errorMessage='';
 
   constructor(
     private fb: FormBuilder,

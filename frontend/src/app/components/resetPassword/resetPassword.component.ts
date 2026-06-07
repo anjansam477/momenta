@@ -1,5 +1,6 @@
-﻿import { Component, DestroyRef, inject, ChangeDetectionStrategy } from '@angular/core';
+﻿import { Component, DestroyRef, inject, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NgClass } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { UserService } from '../../services/userservice/user.service';
 import { customEmailValidator } from '../../validators/email-validator';
@@ -12,16 +13,16 @@ import { markAllFieldsAsTouched } from '../../utils/form.util';
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-resetPassword',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, NgClass],
   templateUrl: './resetPassword.component.html',
   styleUrl: './resetPassword.component.css'
 })
-export class ResetPasswordComponent {
+export class ResetPasswordComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
-  resetStatus:boolean=false;
+  resetStatus=false;
   forgotPasswordForm!: FormGroup;
-  errorMessage:string='';
-  userEmail:string='';
+  errorMessage='';
+  userEmail='';
   constructor(
     private fb : FormBuilder,
     private userService: UserService,

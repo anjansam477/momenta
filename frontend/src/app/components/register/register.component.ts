@@ -1,5 +1,6 @@
-﻿import { Component, DestroyRef, inject, ChangeDetectionStrategy } from '@angular/core';
+﻿import { Component, DestroyRef, inject, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NgClass } from '@angular/common';
 import { UserService } from '../../services/userservice/user.service';
 import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -13,17 +14,17 @@ import { markAllFieldsAsTouched } from '../../utils/form.util';
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-register',
   standalone: true,
-  imports: [RouterLink, ReactiveFormsModule],
+  imports: [RouterLink, ReactiveFormsModule, NgClass],
   templateUrl: './register.component.html',
   styleUrl: './register.component.css',
 })
-export class RegisterComponent {
+export class RegisterComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
-  authBaseUrl: String = SERVICE_BASE_URL + '/api/auth/google';
+  authBaseUrl: string = SERVICE_BASE_URL + '/api/auth/google';
   userData!: FormGroup;
-  passwordFieldType: string = 'password';
-  confirmPasswordFieldType: string = 'password';
-  errorMessage:string='';
+  passwordFieldType = 'password';
+  confirmPasswordFieldType = 'password';
+  errorMessage='';
 
   constructor(
     private fb: FormBuilder,

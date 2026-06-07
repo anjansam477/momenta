@@ -165,7 +165,7 @@
       </h4>
       <p class="cc-section-hint">Trusted people who can manage this moment.</p>
       <app-add-user (emailsChanged)="handleEmailsChanged($event,'maintainer')" [component]="'maintainer'"
-        [sharedEmails]="wallForm.get('maintainerEmails')?.value"></app-add-user>
+        [sharedEmails]="getFormControlValue('maintainerEmails')"></app-add-user>
     </section>
 
   </div>

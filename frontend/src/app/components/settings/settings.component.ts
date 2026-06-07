@@ -21,6 +21,40 @@ import { NgxMaterialTimepickerComponent, NgxMaterialTimepickerModule, NgxMateria
 import { AddUserComponent } from '../data-transformation/add-user/add-user.component';
 import { format } from 'date-fns';
 import { AddDomainComponent } from '../data-transformation/add-domain/add-domain.component';
+
+/** Access list for a wall — emails + domains allowed to view/post. */
+interface AccessList {
+  emails: string[];
+  domains: string[];
+}
+
+/** A picked calendar date + a time string like "10:30 AM". */
+interface DateTimeValue {
+  date: Date;
+  time: string;
+}
+
+/** Strongly-typed shape of the settings reactive form. */
+interface WallSettingsForm {
+  isLocked: FormControl<boolean>;
+  duration: FormControl<boolean>;
+  anyoneCanView: FormControl<boolean>;
+  anyoneCanPost: FormControl<boolean>;
+  isMaintainer: FormControl<boolean>;
+  viewByEmail: FormControl<boolean>;
+  viewByDomain: FormControl<boolean>;
+  postByEmail: FormControl<boolean>;
+  postByDomain: FormControl<boolean>;
+  viewAccess: FormControl<AccessList>;
+  postAccess: FormControl<AccessList>;
+  requireApproval: FormControl<boolean>;
+  maintainerEmails: FormControl<string[]>;
+  openingDate: FormControl<Date | null>;
+  closingDate: FormControl<Date | null>;
+  openDate: FormControl<DateTimeValue | null>;
+  closeDate: FormControl<DateTimeValue | null>;
+}
+
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-settings',
@@ -54,7 +88,7 @@ export class SettingsComponent implements OnInit {
   wall!: Wall;
   originalWallData!: Wall;
   wallId!: string;
-  wallForm: FormGroup;
+  wallForm: FormGroup<WallSettingsForm>;
 
   activeViewTab: 'email' | 'domain' = 'email';
   activePostTab: 'email' | 'domain' = 'email';
@@ -64,9 +98,9 @@ export class SettingsComponent implements OnInit {
   minDate: Date = new Date();
   maxDate: Date | undefined;
   closeMinDate: Date | null = null;
-  minTime: string = "12:00 AM";
-  maxTime: string = "";
-  closeMinTime: string = "12:00 AM";
+  minTime = "12:00 AM";
+  maxTime = "";
+  closeMinTime = "12:00 AM";
   @ViewChild('picker1') picker1!: NgxMaterialTimepickerComponent;
   @ViewChild('picker2') picker2!: NgxMaterialTimepickerComponent;
   @ViewChild('openingCalendar') openingCalendar!: ElementRef<HTMLInputElement>;
@@ -91,30 +125,25 @@ export class SettingsComponent implements OnInit {
     private wallService: WallService,
     private cdr: ChangeDetectorRef
   ) {
-    this.wallForm = this.fb.group({
-      isLocked: false,
-      duration: false,
-      anyoneCanView: false,
-      anyoneCanPost: false,
-      isMaintainer: false,
-      viewByEmail: false,
-      viewByDomain: false,
-      postByEmail: false,
-      postByDomain: false,
-      viewAccess: {
-        emails: [],
-        domains: []
-      },
-      postAccess: {
-        emails: [],
-        domains: []
-      },
-      requireApproval: false,
-      maintainerEmails: [],
-      openingDate: new FormControl(),
-      closingDate: new FormControl(),
-      openDate: new FormControl(),
-      closeDate: new FormControl()
+    const bool = (v = false) => new FormControl(v, { nonNullable: true });
+    this.wallForm = new FormGroup<WallSettingsForm>({
+      isLocked: bool(),
+      duration: bool(),
+      anyoneCanView: bool(),
+      anyoneCanPost: bool(),
+      isMaintainer: bool(),
+      viewByEmail: bool(),
+      viewByDomain: bool(),
+      postByEmail: bool(),
+      postByDomain: bool(),
+      viewAccess: new FormControl<AccessList>({ emails: [], domains: [] }, { nonNullable: true }),
+      postAccess: new FormControl<AccessList>({ emails: [], domains: [] }, { nonNullable: true }),
+      requireApproval: bool(),
+      maintainerEmails: new FormControl<string[]>([], { nonNullable: true }),
+      openingDate: new FormControl<Date | null>(null),
+      closingDate: new FormControl<Date | null>(null),
+      openDate: new FormControl<DateTimeValue | null>(null),
+      closeDate: new FormControl<DateTimeValue | null>(null)
     });
   }
 
@@ -157,9 +186,9 @@ export class SettingsComponent implements OnInit {
             isMaintainer: (wallData.maintainerEmails?.length ?? 0) > 0,
             maintainerEmails: wallData.maintainerEmails ?? [],
             openDate: this.convertIsoToCustomFormat(wallData.openDate),
-            openingDate: this.convertIsoToCustomFormat(wallData.openDate)?.date,
+            openingDate: this.convertIsoToCustomFormat(wallData.openDate)?.date ?? null,
             closeDate: this.convertIsoToCustomFormat(wallData.closeDate),
-            closingDate: this.convertIsoToCustomFormat(wallData.closeDate)?.date
+            closingDate: this.convertIsoToCustomFormat(wallData.closeDate)?.date ?? null
           });
           this.setMinTimeToCurrent();
         },
@@ -200,10 +229,10 @@ export class SettingsComponent implements OnInit {
     }
   }
 
-  // Angular AbstractControl.value is typed as `any` by the framework — this wrapper preserves that.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getFormControlValue(controlName: string): any {
-    return this.wallForm.get(controlName)?.value;
+  getFormControlValue<K extends keyof WallSettingsForm>(
+    controlName: K
+  ): WallSettingsForm[K] extends FormControl<infer V> ? V : never {
+    return this.wallForm.controls[controlName].value as WallSettingsForm[K] extends FormControl<infer V> ? V : never;
   }
 
   updateSettings() {
@@ -297,12 +326,12 @@ export class SettingsComponent implements OnInit {
   updateCombinedDateTime(time: string, dateType: string) {
     let date;
     if (dateType === 'openDate') {
-      date = new Date(this.getFormControlValue('openingDate'));
+      date = new Date(this.getFormControlValue('openingDate') ?? 0);
       this.closeMinDate = date;
       this.closeMinTime = time;
     }
     else {
-      date = new Date(this.getFormControlValue('closingDate'));
+      date = new Date(this.getFormControlValue('closingDate') ?? 0);
       this.maxDate = date;
     }
     this.wallForm.get(dateType)?.setValue({ date, time }, { emitEvent: false });
@@ -328,10 +357,10 @@ export class SettingsComponent implements OnInit {
   }
 
   handleEmailsChanged(emails: string[], type: 'view' | 'post' | 'maintainer'): void {
-    const postDomains = this.wallForm.get('postAccess')?.value.domains;
-    const viewDomains = this.wallForm.get('viewAccess')?.value.domains;
-    let postEmails = this.wallForm.get('postAccess')?.value.emails;
-    let viewEmails =this.wallForm.get('viewAccess')?.value.emails;
+    const postDomains = this.getFormControlValue('postAccess').domains;
+    const viewDomains = this.getFormControlValue('viewAccess').domains;
+    let postEmails = this.getFormControlValue('postAccess').emails;
+    let viewEmails = this.getFormControlValue('viewAccess').emails;
     switch (type) {
       case 'view':
         this.wallForm.get('viewAccess')?.patchValue({ domains: viewDomains, emails: emails });
@@ -357,10 +386,10 @@ export class SettingsComponent implements OnInit {
 
   handleDomainsChanged(domains: string[], type: 'view' | 'post') {
 
-    const postDomains = this.wallForm.get('postAccess')?.value.domains;
-    let viewDomains = this.wallForm.get('viewAccess')?.value.domains;
-    const postEmails = this.wallForm.get('postAccess')?.value.emails;
-    const viewEmails =this.wallForm.get('viewAccess')?.value.emails;
+    const postDomains = this.getFormControlValue('postAccess').domains;
+    let viewDomains = this.getFormControlValue('viewAccess').domains;
+    const postEmails = this.getFormControlValue('postAccess').emails;
+    const viewEmails = this.getFormControlValue('viewAccess').emails;
     switch (type) {
       case 'view':
         const filteredViewEmails = viewEmails.filter((email: string) => {
@@ -433,11 +462,12 @@ export class SettingsComponent implements OnInit {
       this.closeMinDate = now;
   }
 
-  updateMinTime(selectedDate: Date) {
+  updateMinTime(selectedDate: Date | null) {
+    if (!selectedDate) { return; }
     const today = new Date();
-    const closingdate = new Date(this.getFormControlValue('closingDate'));
+    const closingdate = new Date(this.getFormControlValue('closingDate') ?? 0);
     if (!isNaN(closingdate.getTime()) && closingdate.getDate() === selectedDate.getDate()) {
-      this.maxTime = this.wallForm.get('closeDate')?.value.time;
+      this.maxTime = this.getFormControlValue('closeDate')?.time ?? '23:59';
     }
     else
       this.maxTime = '23:59';
@@ -449,13 +479,14 @@ export class SettingsComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
-  updateCloseMinTime(selectedDate: Date) {
-    const date = new Date(this.getFormControlValue('openingDate'));
+  updateCloseMinTime(selectedDate: Date | null) {
+    if (!selectedDate) { return; }
+    const date = new Date(this.getFormControlValue('openingDate') ?? 0);
     if (isNaN(date.getTime())) {
       this.closeMinTime = this.minTime;
     }
     else if (selectedDate && date.getDate() == selectedDate.getDate()) {
-      this.closeMinTime = this.wallForm.get('openDate')?.value.time;
+      this.closeMinTime = this.getFormControlValue('openDate')?.time ?? '12:00 AM';
     } else {
       this.closeMinTime = '12:00 AM';
     }

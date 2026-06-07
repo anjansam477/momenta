@@ -1,14 +1,16 @@
 ﻿import { AfterViewInit, Component, DestroyRef, ElementRef, inject, OnInit, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NgClass } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MailService } from '../../services/mailservice/mail.service';
+import { AuthService } from '../../services/authservice/auth.service';
 import { noWhitespaceValidator } from '../../validators/no-whitespace-validator';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-contact-us-modal',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, NgClass],
   templateUrl: './contact-us-modal.component.html',
   styleUrl: './contact-us-modal.component.css'
 })
@@ -16,12 +18,13 @@ export class ContactUsModalComponent implements OnInit,AfterViewInit{
   private readonly destroyRef = inject(DestroyRef);
   contactForm! : FormGroup;
   @ViewChild('contactUsModal') contactUsModal!: ElementRef;
-  isMailSend:boolean=false;
-  errorMessage:string='';
-  mailProcessing:string='';
+  isMailSend=false;
+  errorMessage='';
+  mailProcessing='';
   constructor(
     private fb:FormBuilder,
-    private mailService:MailService
+    private mailService:MailService,
+    private authService:AuthService
   ){}
 
   ngOnInit(): void {
@@ -44,8 +47,8 @@ export class ContactUsModalComponent implements OnInit,AfterViewInit{
   }
 
   prefillForm() {
-    const storedEmail = localStorage.getItem('email') || '';
-    const storedName = localStorage.getItem('name') || '';
+    const storedEmail = this.authService.getEmail() || '';
+    const storedName = this.authService.getName() || '';
     this.contactForm.patchValue({
       email: storedEmail,
       name: storedName

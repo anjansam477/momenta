@@ -1,4 +1,5 @@
 ﻿import { Component, OnInit , ChangeDetectionStrategy } from '@angular/core';
+import { NgClass } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { UserService } from '../../services/userservice/user.service';
@@ -9,16 +10,16 @@ import { noWhitespaceValidator } from '../../validators/no-whitespace-validator'
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-forgotPassword',
   standalone: true,
-  imports: [RouterLink, ReactiveFormsModule],
+  imports: [RouterLink, ReactiveFormsModule, NgClass],
   templateUrl: './forgotPassword.component.html',
   styleUrl: './forgotPassword.component.css',
 })
 export class ForgotPasswordComponent implements OnInit{
   forgotPasswordForm!: FormGroup;
   token: string | null = null;
-  passwordVisible: boolean = false;
-  confirmPasswordVisible: boolean = false;
-  errorMessage:string='';
+  passwordVisible = false;
+  confirmPasswordVisible = false;
+  errorMessage='';
   
   constructor(
     private fb: FormBuilder,
