@@ -1,5 +1,5 @@
 ﻿import { NgClass } from '@angular/common';
-import { Component, DestroyRef, Input, ViewChild, inject , ChangeDetectionStrategy } from '@angular/core';
+import { Component, DestroyRef, Input, ViewChild, inject , ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
@@ -7,6 +7,7 @@ import { WallService } from '../../services/wallservice/wall.service';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
+import { AuthService } from '../../services/authservice/auth.service';
 import { MessagemodalComponent } from '../messagemodal/messagemodal.component';
 import { markAllFieldsAsTouched } from '../../utils/form.util';
 import { handleHttpError } from '../../utils/error-handler.util';
@@ -19,12 +20,12 @@ import { handleHttpError } from '../../utils/error-handler.util';
   templateUrl: './create-wall-modal.component.html',
   styleUrl: './create-wall-modal.component.css',
 })
-export class CreateWallModalComponent {
+export class CreateWallModalComponent implements OnInit {
   @Input() occasionSubject: Subject<string> | undefined;
   @Input() titleSubject: Subject<string> | undefined;
   private readonly destroyRef = inject(DestroyRef);
-  type: string = '';
-  userEmail = localStorage.getItem('email');
+  type = '';
+  userEmail: string | null = null;
   @ViewChild(MessagemodalComponent) messageModalComponent!: MessagemodalComponent;
 
   createWallForm!: FormGroup;
@@ -34,10 +35,12 @@ export class CreateWallModalComponent {
     private router: Router,
     private wallService: WallService,
     private toastr: ToastrService,
-    private sharedService: SharedDataService
+    private sharedService: SharedDataService,
+    private authService: AuthService
   ) {}
 
   ngOnInit() {
+    this.userEmail = this.authService.getEmail();
     this.createForm();
 
     this.occasionSubject?.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(

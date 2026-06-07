@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, DestroyRef, inject, ChangeDetectionStrategy, ChangeDetectorRef, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UserService } from '../../services/userservice/user.service';
 import { WallService } from '../../services/wallservice/wall.service';
@@ -21,18 +21,18 @@ import { WALL_STATUS } from '../../constants/wall.constants';
   templateUrl: './settingsmodal.component.html',
   styleUrl: './settingsmodal.component.css',
 })
-export class SettingsmodalComponent {
+export class SettingsmodalComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   userData: Partial<User> = {};
-  editMode: boolean = false;
+  editMode = false;
   selectedFile: File | undefined;
   pictureBlob: string | undefined;
-  image: string = '';
-  fullName: string = '';
+  image = '';
+  fullName = '';
   imageChangedEvent: Event | null = null;
   croppedImage: Blob | null = null;
-  incorrect: boolean = false;
-  defaultProfile: boolean = false;
+  incorrect = false;
+  defaultProfile = false;
 
   walls: Wall[] = [];
   wallsLoaded = false;
@@ -89,8 +89,7 @@ export class SettingsmodalComponent {
             this.sharedDataService.updateUserName({ firstname, lastname });
             this.userData.firstname = firstname;
             this.userData.lastname = lastname;
-            localStorage.removeItem('name');
-            localStorage.setItem('name', firstname + ' ' + lastname);
+            this.authService.storeName(firstname + ' ' + lastname);
             this.sharedDataService.setMessage('profile');
             this.editMode = false;
             this.incorrect = false;

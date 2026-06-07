@@ -33,17 +33,17 @@ export class RecentsComponent implements OnInit, AfterViewInit {
   walls: Wall[] = [];
   showWalls: Wall[] = [];
   starredWalls: Wall[] = [];
-  wallId: string = '';
+  wallId = '';
   name!: string | null;
   baseUrl: string = UI_BASE_URL;
-  wallTitle:string="";
-  wallFilter: string = 'recents';
-  filterTitle: string = 'Recent moments';
+  wallTitle="";
+  wallFilter = 'recents';
+  filterTitle = 'Recent moments';
   @ViewChild(MessagemodalComponent) messageModalComponent!: MessagemodalComponent;
   dateTimeAgo: string[] = [];
-  sharedWallUrl: string = '';
+  sharedWallUrl = '';
   openDropdownIndex: number | null = null;
-  userEmail: string ='';
+  userEmail ='';
   @ViewChildren('wallCard') wallCards!: QueryList<ElementRef>;
   loginBoolean = true;
   loading = false;
@@ -78,7 +78,7 @@ export class RecentsComponent implements OnInit, AfterViewInit {
   ) { }
 
   ngOnInit(): void {
-    this.loginBoolean = !!localStorage.getItem('authToken');
+    this.loginBoolean = !!this.authService.getToken();
     if (!this.loginBoolean) {
       this.router.navigateByUrl('login');
     } else {

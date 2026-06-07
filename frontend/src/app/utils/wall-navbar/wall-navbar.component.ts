@@ -1,8 +1,9 @@
-﻿import { ChangeDetectorRef, Component, DestroyRef, EventEmitter, Output, inject , ChangeDetectionStrategy } from '@angular/core';
+﻿import { ChangeDetectorRef, Component, DestroyRef, EventEmitter, Output, inject , ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
+import { AuthService } from '../../services/authservice/auth.service';
 import { UI_BASE_URL } from '../../environment-config';
 import { filter } from 'rxjs';
 import { BackgroundComponent } from '../../components/background/background.component';
@@ -36,28 +37,29 @@ import { Params } from '@angular/router';
     ]),
   ]
 })
-export class WallNavbarComponent {
+export class WallNavbarComponent implements OnInit {
 
-  wallId: string = '';
-  wallTitle: string = '';
-  wallDescription: string = '';
-  loginBoolean: boolean = false;
-  wallCreator: string = '';
-  isOpen: boolean = true;
-  wallNotExpired: boolean = true;
-  currentPage: string = '';
+  wallId = '';
+  wallTitle = '';
+  wallDescription = '';
+  loginBoolean = false;
+  wallCreator = '';
+  isOpen = true;
+  wallNotExpired = true;
+  currentPage = '';
   openDate: string | Date | null = null;
   closeDate: string | Date | null = null;
-  isArchived: boolean = false;
-  isPreview: boolean= false;
+  isArchived = false;
+  isPreview= false;
   isCreatorOrMaintainer = false;
-  sharedWallUrl: string = '';
+  sharedWallUrl = '';
   baseUrl: string = UI_BASE_URL; 
   constructor(
     private router: Router,
     private route: ActivatedRoute,
     private sharedService: SharedDataService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private authService: AuthService
   ) {}
 
   searchOpen = false;
@@ -131,7 +133,7 @@ export class WallNavbarComponent {
         this.wallTitle = wallData.title;
         this.wallDescription = wallData.description;
         this.wallCreator = wallData.ownerEmail;
-        const userEmail = localStorage.getItem('email') || '';
+        const userEmail = this.authService.getEmail() || '';
         const creatorMails = [...(wallData.maintainerEmails || []), wallData.ownerEmail].filter(Boolean);
         this.isCreatorOrMaintainer = creatorMails.includes(userEmail);
         this.openDate = wallData.openDate ?? null;
@@ -147,7 +149,7 @@ export class WallNavbarComponent {
   }
 
   isLoggedIn(): void {
-      this.loginBoolean = !!localStorage.getItem('email');
+      this.loginBoolean = !!this.authService.getEmail();
   }
 
   preview(){

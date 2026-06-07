@@ -163,4 +163,6 @@
 </section>
 
 <app-sharemodal [sharedWallUrl]="sharedWallUrl" [wallTitle]="wallTitle" [wallId]="wallId" [isCreator]="checkWallCreator()"></app-sharemodal>
-<app-slideshow></app-slideshow>
+@defer (on idle; prefetch on idle) {
+  <app-slideshow></app-slideshow>
+}

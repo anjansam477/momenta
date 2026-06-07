@@ -21,10 +21,10 @@ export class HomepageBannerComponent implements OnInit {
   titleSubject: Subject<string> = new Subject<string>();
   occasions = Occasions;
   events: EventItem[] = [];
-  currentSlideIndex: number = 0;
+  currentSlideIndex = 0;
   loginBoolean = true;
-  profilePicture: string = '';
-  userName: string = '';
+  profilePicture = '';
+  userName = '';
 
   emailToUserDetailsMap: Record<string, UserDetails> = {};
 
@@ -37,7 +37,7 @@ export class HomepageBannerComponent implements OnInit {
 
   ngOnInit(): void {
     const userEmail = this.authService.getEmail();
-    this.loginBoolean = !!localStorage.getItem('authToken');
+    this.loginBoolean = !!this.authService.getToken();
     if (!this.loginBoolean) {
       this.router.navigateByUrl('login');
     }

@@ -1,10 +1,11 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { AuthService } from '../../services/authservice/auth.service';
 
 export const customInterceptor: HttpInterceptorFn = (req, next) => {
   const viewToken = sessionStorage.getItem('viewToken');
-  const authToken = localStorage.getItem('authToken');
+  const authToken = inject(AuthService).getToken();
   const router = inject(Router);
 
   if (router.url.includes('/moment/')) {

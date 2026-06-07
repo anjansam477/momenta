@@ -46,7 +46,7 @@
         [(ngModel)]="searchQuery"
         (ngModelChange)="onSearchInput()"
         placeholder="Search posts by text or author…"
-        autofocus />
+        />
       @if (searchQuery) {
         <button class="search-bar-clear" (click)="searchQuery=''; onSearchInput()" aria-label="Clear search">
           <i class="bi bi-x-lg"></i>

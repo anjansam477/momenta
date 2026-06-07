@@ -9,7 +9,7 @@ import {
   Output,
   ViewChild,
   inject,
-  ChangeDetectionStrategy } from '@angular/core';
+  ChangeDetectionStrategy, AfterViewInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PickerModule } from '@ctrl/ngx-emoji-mart';
 import { NgClass, TitleCasePipe } from '@angular/common';
@@ -64,38 +64,38 @@ declare const bootstrap: {
   templateUrl: './postmodal.component.html',
   styleUrl: './postmodal.component.css',
 })
-export class PostmodalComponent implements OnInit {
+export class PostmodalComponent implements OnInit, AfterViewInit {
   @Input() postIdSubject: Subject<string> | undefined;
   @Output() modalClosed = new EventEmitter<void>();
   email: string| null = this.authService.getEmail();
-  postId: string = '';
+  postId = '';
   selectedFile!: File | undefined;
   emojishow = false;
   postForm!: FormGroup;
   @ViewChild('editor', { static: false }) editorRef!: QuillEditorComponent;
-  isAuthenticated: boolean = false;
-  WallId: string = '';
-  mediaUrl: string = '';
-  mediaType: string = '';
+  isAuthenticated = false;
+  WallId = '';
+  mediaUrl = '';
+  mediaType = '';
   mediaPreviewUrl: string | ArrayBuffer | null = null;
   @ViewChild('imageInput') imageInput!: ElementRef<HTMLInputElement>;
   @ViewChild('gifInput') gifInput!: ElementRef<HTMLInputElement>;
   @ViewChild('videoInput') videoInput!: ElementRef<HTMLInputElement>;
-  errorMessage: string = '';
+  errorMessage = '';
   imageChangedEvent: Event | null = null;
   croppedImage: Blob | null = null;
-  isCropped: boolean = false;
+  isCropped = false;
   initialCropArea: { x1: number, y1: number, x2: number, y2: number } | null = null;
-  showGifModal: boolean = false;
-  showStickerModal: boolean = false;
-  editorContent: string = '';
+  showGifModal = false;
+  showStickerModal = false;
+  editorContent = '';
   enableGiphy = enableGiphy;
   posts: Post[] = [];
   private readonly destroyRef = inject(DestroyRef);
-  shareEmail: boolean = false;
-  currentPostIndex: number = 0;
-  nonArchivedNonReportedCount:number=0;
-  nonArchivedCount:number=0;
+  shareEmail = false;
+  currentPostIndex = 0;
+  nonArchivedNonReportedCount=0;
+  nonArchivedCount=0;
   isSubmitting = false;
   readonly postContentMaxLength = POST_CONTENT_MAX_LENGTH;
   readonly postAuthorNameMaxLength = POST_AUTHOR_NAME_MAX_LENGTH;
@@ -253,7 +253,7 @@ export class PostmodalComponent implements OnInit {
 
   fetchWallDetails() {
     this.sharedService.getWallDetails().pipe(
-      filter(wallData => !!wallData)
+      filter(wallData => !!wallData), takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: (wallData: Wall) => {
           this.nonArchivedCount = wallData.posts.nonArchivedCount,
@@ -463,7 +463,7 @@ export class PostmodalComponent implements OnInit {
 
     if (quillEditor) {
       const range = quillEditor.getSelection(true);
-      let cursorPosition = range ? range.index : 0;
+      const cursorPosition = range ? range.index : 0;
 
       quillEditor.insertText(cursorPosition, emoji, 'user');
 

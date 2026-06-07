@@ -36,25 +36,25 @@ import { CookieService } from 'ngx-cookie-service';
 
 export class ViewWallComponent implements OnInit ,OnDestroy{
 
-  wallId: string = '';
+  wallId = '';
   wallCreatorMails: string[] =[];
-  isPreview : boolean = false;
-  anyoneCanView: boolean = false;
-  anyoneCanPost: boolean = false;
+  isPreview  = false;
+  anyoneCanView = false;
+  anyoneCanPost = false;
   viewAccess: { emails?: string[], domains?: string[] } = {};
   postAccess: { emails?: string[], domains?: string[] } = {};
-  userEmail: string = '';
+  userEmail = '';
   private readonly destroyRef = inject(DestroyRef);
-  selectedBackground: string = '';
-  selectedAnimation:string ='';
-  selectedAudio:string='';
-  hasAudio: boolean = false;
-  selectedBgColor: string = '';
-  selectedFont: string = '';
-  selectedTextColor: string = '';
-  isMuted:boolean=false;
+  selectedBackground = '';
+  selectedAnimation ='';
+  selectedAudio='';
+  hasAudio = false;
+  selectedBgColor = '';
+  selectedFont = '';
+  selectedTextColor = '';
+  isMuted=false;
   currentPage: string | undefined;
-  animation: string="";
+  animation="";
   isMomentReady = false;
   private themesLoaded = false;
 
@@ -88,7 +88,7 @@ export class ViewWallComponent implements OnInit ,OnDestroy{
         sessionStorage.setItem('viewToken', token);
         this.wallService.acceptInvite(this.wallId, token).subscribe({ error: () => {} });
         this.router.navigate(['/moment', this.wallId], { replaceUrl: true });
-      }else if(localStorage.getItem('authToken') || sessionStorage.getItem('viewToken')){
+      }else if(this.authService.getToken() || sessionStorage.getItem('viewToken')){
         this.fetchWallDetails();
       } else{
         const redirectUrl = encodeURIComponent(this.router.url);
@@ -125,7 +125,7 @@ export class ViewWallComponent implements OnInit ,OnDestroy{
       this.currentPage = urlSegments[0].path;
     });
 
-    this.userEmail = localStorage.getItem('email') || '';
+    this.userEmail = this.authService.getEmail() || '';
 
     this.updateBackgroundImage();
   }

@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DownloadService } from '../../services/downloadservice/download.service';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
+import { AuthService } from '../../services/authservice/auth.service';
 import { SharemodalComponent } from '../../modal/sharemodal/sharemodal.component';
 import { UI_BASE_URL } from '../../environment-config';
 import { AudioService } from '../../services/audioservice/audio.service';
@@ -34,32 +35,32 @@ import { WALL_STATUS } from '../../constants/wall.constants';
 })
 export class TitleBarComponent implements OnInit,OnDestroy{
 
-  wallId: string = '';
-  wallTitle: string = '';
-  wallDescription: string = '';
-  loginBoolean: boolean = false;
+  wallId = '';
+  wallTitle = '';
+  wallDescription = '';
+  loginBoolean = false;
   wallCreatorMails!: string[];
-  isOpen: boolean = true;
-  wallNotExpired: boolean = false;
+  isOpen = true;
+  wallNotExpired = false;
   currentPage: string | undefined;
   openDate: string | Date | null = null;
   closeDate: string | Date | null = null;
-  isArchived: boolean = false;
+  isArchived = false;
   isPreview!: boolean;
-  anyoneCanPost: boolean = false;
-  canAddPost: boolean = true;
+  anyoneCanPost = false;
+  canAddPost = true;
   postAccess: { emails?: string[], domains?: string[] } = {};
-  sharedWallUrl: string = '';
+  sharedWallUrl = '';
   baseUrl: string = UI_BASE_URL; 
-  isMuted:boolean = false;
-  audioPlaying:boolean=true;
-  audio:string="";
-  postsAvailable: boolean = false;
-  myPost: boolean = false;
+  isMuted = false;
+  audioPlaying=true;
+  audio="";
+  postsAvailable = false;
+  myPost = false;
   timeCheckInterval!: ReturnType<typeof setInterval>;
   private readonly destroyRef = inject(DestroyRef);
-  isEditingTitle: boolean = false;
-  isEditingDescription: boolean = false;
+  isEditingTitle = false;
+  isEditingDescription = false;
   newTitle: string = this.wallTitle;
   newDescription: string = this.wallDescription;
   private clickListener!: () => void;
@@ -74,7 +75,8 @@ export class TitleBarComponent implements OnInit,OnDestroy{
     private wallService: WallService,
     private toastr: ToastrService,
     private elementRef: ElementRef,
-    private renderer: Renderer2
+    private renderer: Renderer2,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -163,12 +165,12 @@ export class TitleBarComponent implements OnInit,OnDestroy{
   }
 
   isLoggedIn(): void {
-    this.loginBoolean = !!localStorage.getItem('email');
+    this.loginBoolean = !!this.authService.getEmail();
   }
 
   fetchWallDetails() {
     this.sharedService.getWallDetails().pipe(
-      filter(wallData => !!wallData)
+      filter(wallData => !!wallData), takeUntilDestroyed(this.destroyRef)
     ).subscribe({
       next: (wallData: Wall) => {
         this.wallTitle = wallData.title;
@@ -196,7 +198,7 @@ export class TitleBarComponent implements OnInit,OnDestroy{
   }
 
   checkPostAccess() {
-    const userEmail = localStorage.getItem('email') || '';
+    const userEmail = this.authService.getEmail() || '';
     const userDomain = userEmail ? userEmail.split('@')[1] : '';
     if(!this.checkWallCreator()){
       if (this.anyoneCanPost) {
@@ -222,7 +224,7 @@ export class TitleBarComponent implements OnInit,OnDestroy{
   }
 
   checkWallCreator(): boolean {
-    return isWallCreator(localStorage.getItem('email'), this.wallCreatorMails);
+    return isWallCreator(this.authService.getEmail(), this.wallCreatorMails);
   }
   
 

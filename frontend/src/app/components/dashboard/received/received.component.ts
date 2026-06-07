@@ -28,16 +28,16 @@ import { SAVE_TYPE, WALL_STATUS } from '../../../constants/wall.constants';
 })
 export class ReceivedComponent implements OnInit {
   walls: Wall[] = [];
-  wallId: string = '';
-  name = localStorage.getItem('name');
-  baseUrl: String = UI_BASE_URL;
-  wallTitle:string="";
+  wallId = '';
+  name: string | null = null;
+  baseUrl: string = UI_BASE_URL;
+  wallTitle="";
   @ViewChild(MessagemodalComponent) messageModalComponent!: MessagemodalComponent;
   dateTimeAgo: string[] = [];
-  sharedWallUrl: string = '';
+  sharedWallUrl = '';
   openDropdownIndex: number | null = null;
   @ViewChildren('wallCard') wallCards!: QueryList<ElementRef>;
-  userEmail: string ='';
+  userEmail ='';
   loading = false;
   allLoaded = false;
   page = 1;
@@ -58,6 +58,7 @@ export class ReceivedComponent implements OnInit {
   ) { }
 
   ngOnInit() {
+    this.name = this.authService.getName();
     this.userEmail = this.authService.getEmail()|| '';
     this.loadWalls(this.userEmail);
     this.cdr.detectChanges();
