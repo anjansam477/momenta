@@ -1,10 +1,18 @@
 #!/bin/sh
-# Lint backend JS before committing. Fast (eslint), and only blocks on errors —
-# warnings are allowed through. Skips silently if eslint isn't installed yet.
+# Lint backend + frontend before committing. Only blocks on errors —
+# warnings are allowed through. Skips silently if a linter isn't installed yet.
 if [ -x backend/node_modules/.bin/eslint ]; then
   echo "Running backend ESLint..."
   ( cd backend && ./node_modules/.bin/eslint . ) || {
-    echo "ESLint reported errors — commit blocked. Run 'npm run lint:fix' in backend/."
+    echo "Backend ESLint reported errors — commit blocked. Run 'npm run lint:fix' in backend/."
+    exit 1
+  }
+fi
+
+if [ -x frontend/node_modules/.bin/ng ]; then
+  echo "Running frontend ESLint..."
+  ( cd frontend && ./node_modules/.bin/ng lint ) || {
+    echo "Frontend ESLint reported errors — commit blocked. Run 'ng lint --fix' in frontend/."
     exit 1
   }
 fi

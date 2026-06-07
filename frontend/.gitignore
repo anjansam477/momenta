@@ -46,3 +46,9 @@ Thumbs.db
 
 # Environment config
 /src/app/environment-config.ts
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
