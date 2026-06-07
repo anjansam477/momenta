@@ -25,7 +25,11 @@ exports.getEmailFromToken = (token) => {
 };
 
 exports.generateTokenForReceiver = (email, wallId) => {
-  const token = jwt.sign({ email, wallId }, config.deliveredKey, { expiresIn: "30d" });
+  // Shared-wall receiver links are intentionally PERMANENT — recipients keep
+  // access to a wall they were shared with (the whole point of the shared page).
+  // No `expiresIn` => the token never expires. Revocation, if ever needed, is via
+  // rotating `deliveredKey` (invalidates all receiver links at once).
+  const token = jwt.sign({ email, wallId }, config.deliveredKey);
   return token;
 };
 
