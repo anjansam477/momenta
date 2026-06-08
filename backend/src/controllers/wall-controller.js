@@ -107,9 +107,17 @@ exports.getWallAnalytics = asyncHandler(async (req, res) => {
 
 exports.generateInviteLink = asyncHandler(async (req, res) => {
   const { wallId } = req.params;
-  const { email } = req.body;
+  const { email, wallTitle } = req.body;
   if (!email) return Response.respondError(res, new Error('Email is required'));
   const token = authMiddleware.generateTokenForReceiver(email, wallId);
+  const inviteUrl = `${process.env.UI_BASE_URL}/moment/${wallId}?token=${token}`;
+  const inviterName = req.user?.firstname ? `${req.user.firstname} ${req.user.lastname || ''}`.trim() : 'Someone';
+  try {
+    const mailService = require('../services/mail-service');
+    const { emailTemplates } = require('../templates/email-templates');
+    const html = emailTemplates.inviteLink({ inviterName, wallTitle: wallTitle || 'a special moment', inviteUrl });
+    await mailService._sendDirect({ to: email, subject: `${inviterName} invited you to "${wallTitle || 'a Momenta moment'}"`, html });
+  } catch (_) { /* non-blocking — still return token */ }
   return Response.respondOk(res, { token });
 });
 

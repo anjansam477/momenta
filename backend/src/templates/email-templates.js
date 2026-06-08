@@ -1,331 +1,227 @@
-const { UI_BASE_URL, SERVICE_BASE_URL} = require("../../environment-config");
-const email = process.env.EMAIL_CONTACT_US;
+const { UI_BASE_URL, SERVICE_BASE_URL } = require("../../environment-config");
+const contactEmail = process.env.EMAIL_CONTACT_US;
 
-// Function-based wrappers used by mail-service and mail-controller
+// ─── Shared layout wrapper ────────────────────────────────────────────────────
+const wrap = (innerHtml) => `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; padding: 0; background: #f0f4f8; font-family: 'League Spartan', sans-serif; }
+    @media (max-width: 600px) { .main { width: 100% !important; } }
+  </style>
+</head>
+<body style="margin:0;padding:0;background:#f0f4f8;font-family:'League Spartan',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4f8;padding:32px 16px;">
+    <tr><td align="center">
+      <table class="main" width="600" cellpadding="0" cellspacing="0"
+        style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(13,31,54,0.10);">
+
+        <!-- Header -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#0a9499 0%,#10a7a4 60%,#ff5f54 100%);padding:32px 40px;text-align:center;">
+            <p style="margin:0;font-size:26px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;">Momenta</p>
+            <p style="margin:6px 0 0;font-size:13px;font-weight:300;color:rgba(255,255,255,0.82);letter-spacing:0.04em;">
+              Connect · Share · Celebrate
+            </p>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        ${innerHtml}
+
+        <!-- Footer -->
+        <tr>
+          <td style="background:#f8fafc;padding:24px 40px;border-top:1px solid #e8eef4;text-align:center;">
+            <p style="margin:0;font-size:12px;color:#9ab2c8;line-height:1.6;">
+              You received this email because an action was taken on your Momenta account.<br>
+              Questions? <a href="mailto:${contactEmail}" style="color:#0a9499;text-decoration:none;">Contact our team</a>
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+// ─── CTA button helper ────────────────────────────────────────────────────────
+const ctaBtn = (href, label) =>
+  `<a href="${href}" style="display:inline-block;padding:14px 36px;background:linear-gradient(135deg,#0a9499,#10a7a4);color:#ffffff;text-decoration:none;border-radius:100px;font-size:15px;font-weight:700;letter-spacing:0.02em;box-shadow:0 4px 16px rgba(10,148,153,0.30);">${label}</a>`;
+
+// ─── Templates ───────────────────────────────────────────────────────────────
+
+const verifyEmailTemplate = ({ name, verifyUrl }) => wrap(`
+  <tr>
+    <td style="padding:48px 40px 16px;text-align:center;">
+      <div style="display:inline-block;width:64px;height:64px;border-radius:50%;background:rgba(10,148,153,0.10);line-height:64px;font-size:28px;margin-bottom:24px;">✉️</div>
+      <h1 style="margin:0 0 8px;font-size:28px;font-weight:900;color:#0d1f35;letter-spacing:-0.5px;">Verify your email</h1>
+      <p style="margin:0;font-size:14px;font-weight:300;color:#5a7490;">You're one step away from your first moment</p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:16px 40px 32px;text-align:center;">
+      <p style="margin:0 0 28px;font-size:16px;font-weight:300;color:#405670;line-height:1.7;">
+        Hi <strong style="font-weight:700;color:#0d1f35;">${name}</strong> 👋 — welcome to Momenta!<br>
+        To start creating and sharing beautiful moments, please verify your email address.
+      </p>
+      ${ctaBtn(verifyUrl, 'Verify My Email')}
+      <p style="margin:24px 0 0;font-size:13px;color:#9ab2c8;">
+        Button not working? <a href="${verifyUrl}" style="color:#0a9499;word-break:break-all;">${verifyUrl}</a>
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:0 40px 40px;text-align:center;">
+      <div style="background:#f8fafc;border-radius:12px;padding:20px 24px;border:1px solid #e8eef4;">
+        <p style="margin:0;font-size:14px;color:#5a7490;line-height:1.6;">
+          Once verified, you'll be able to create moments for birthdays, weddings, farewells,
+          and every celebration that deserves to be remembered. 🎉
+        </p>
+      </div>
+    </td>
+  </tr>`);
+
+const resetPasswordTemplate = ({ name, resetUrl }) => wrap(`
+  <tr>
+    <td style="padding:48px 40px 16px;text-align:center;">
+      <div style="display:inline-block;width:64px;height:64px;border-radius:50%;background:rgba(255,95,84,0.10);line-height:64px;font-size:28px;margin-bottom:24px;">🔐</div>
+      <h1 style="margin:0 0 8px;font-size:28px;font-weight:900;color:#0d1f35;letter-spacing:-0.5px;">Reset your password</h1>
+      <p style="margin:0;font-size:14px;font-weight:300;color:#5a7490;">We got your reset request — no worries, we've got you covered</p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:16px 40px 32px;text-align:center;">
+      <p style="margin:0 0 28px;font-size:16px;font-weight:300;color:#405670;line-height:1.7;">
+        Hi <strong style="font-weight:700;color:#0d1f35;">${name}</strong>,<br>
+        Click the button below to set a new password for your Momenta account.
+        This link expires in <strong>3 hours</strong>.
+      </p>
+      ${ctaBtn(resetUrl, 'Reset My Password')}
+      <p style="margin:24px 0 0;font-size:13px;color:#9ab2c8;">
+        Didn't request this? You can safely ignore this email — your account is secure.
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:0 40px 40px;">
+      <div style="background:#fff5f5;border-radius:12px;padding:16px 20px;border:1px solid #ffd5d2;">
+        <p style="margin:0;font-size:13px;color:#c0392b;line-height:1.6;">
+          ⚠️ If you didn't request a password reset, please
+          <a href="mailto:${contactEmail}" style="color:#c0392b;font-weight:700;">contact us immediately</a>.
+        </p>
+      </div>
+    </td>
+  </tr>`);
+
+const inviteLinkTemplate = ({ inviterName, wallTitle, inviteUrl }) => wrap(`
+  <tr>
+    <td style="padding:48px 40px 16px;text-align:center;">
+      <div style="display:inline-block;width:64px;height:64px;border-radius:50%;background:rgba(10,148,153,0.10);line-height:64px;font-size:28px;margin-bottom:24px;">🎉</div>
+      <h1 style="margin:0 0 8px;font-size:28px;font-weight:900;color:#0d1f35;letter-spacing:-0.5px;">You're invited!</h1>
+      <p style="margin:0;font-size:14px;font-weight:300;color:#5a7490;">Someone special wants you to be part of a moment</p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:16px 40px 32px;text-align:center;">
+      <p style="margin:0 0 20px;font-size:16px;font-weight:300;color:#405670;line-height:1.7;">
+        <strong style="font-weight:700;color:#0d1f35;">${inviterName}</strong> has personally invited you
+        to join <strong style="font-weight:700;color:#0a9499;">"${wallTitle}"</strong> on Momenta.<br><br>
+        This is a shared space for heartfelt messages, memories, and celebrations.
+        Your words will make it unforgettable. 💛
+      </p>
+      ${ctaBtn(inviteUrl, 'Join the Moment')}
+      <p style="margin:24px 0 0;font-size:13px;color:#9ab2c8;">
+        Link not working? <a href="${inviteUrl}" style="color:#0a9499;word-break:break-all;">${inviteUrl}</a>
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:0 40px 40px;text-align:center;">
+      <div style="background:#f0fffe;border-radius:12px;padding:20px 24px;border:1px solid #c8f0ef;">
+        <p style="margin:0;font-size:14px;color:#0a9499;line-height:1.6;">
+          ✨ Momenta lets you collect messages, photos, and reactions from people who care —
+          all in one beautiful, shareable moment.
+        </p>
+      </div>
+    </td>
+  </tr>`);
+
+const scheduledDeliveryTemplate = ({ creatorName, wallName, token }) => wrap(`
+  <tr>
+    <td style="padding:48px 40px 16px;text-align:center;">
+      <div style="display:inline-block;width:64px;height:64px;border-radius:50%;background:rgba(10,148,153,0.10);line-height:64px;font-size:28px;margin-bottom:24px;">🎁</div>
+      <h1 style="margin:0 0 8px;font-size:28px;font-weight:900;color:#0d1f35;letter-spacing:-0.5px;">A moment arrived for you</h1>
+      <p style="margin:0;font-size:14px;font-weight:300;color:#5a7490;">Someone made something special just for you</p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:16px 40px 32px;text-align:center;">
+      <p style="margin:0 0 28px;font-size:16px;font-weight:300;color:#405670;line-height:1.7;">
+        <strong style="font-weight:700;color:#0d1f35;">${creatorName}</strong> has sent you
+        <strong style="font-weight:700;color:#0a9499;">"${wallName}"</strong> — a collection of
+        heartfelt messages, stories, and memories from people who care about you.<br><br>
+        Open it whenever you're ready. Take your time. 💛
+      </p>
+      ${ctaBtn(`${SERVICE_BASE_URL}/api/walls/view-receiver-wall/${token}`, 'Open My Moment')}
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:0 40px 40px;text-align:center;">
+      <div style="background:#f0fffe;border-radius:12px;padding:20px 24px;border:1px solid #c8f0ef;">
+        <p style="margin:0;font-size:14px;color:#5a7490;line-height:1.6;">
+          Inside you'll find words, images, and reactions carefully chosen by the people who wanted to make you smile. 🌟
+        </p>
+      </div>
+    </td>
+  </tr>`);
+
+const accessControlTemplate = ({ wallId, creatorName, wallName }) => wrap(`
+  <tr>
+    <td style="padding:48px 40px 16px;text-align:center;">
+      <div style="display:inline-block;width:64px;height:64px;border-radius:50%;background:rgba(10,148,153,0.10);line-height:64px;font-size:28px;margin-bottom:24px;">🔓</div>
+      <h1 style="margin:0 0 8px;font-size:28px;font-weight:900;color:#0d1f35;letter-spacing:-0.5px;">You've been granted access</h1>
+      <p style="margin:0;font-size:14px;font-weight:300;color:#5a7490;">You're now part of something meaningful</p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:16px 40px 32px;text-align:center;">
+      <p style="margin:0 0 28px;font-size:16px;font-weight:300;color:#405670;line-height:1.7;">
+        <strong style="font-weight:700;color:#0d1f35;">${creatorName}</strong> has given you access to
+        <strong style="font-weight:700;color:#0a9499;">"${wallName}"</strong> on Momenta.<br><br>
+        Jump in, explore the messages shared by others, and add your own — your voice makes this moment complete.
+      </p>
+      ${ctaBtn(`${UI_BASE_URL}/moment/${wallId}`, 'View the Moment')}
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:0 40px 40px;text-align:center;">
+      <div style="background:#f0fffe;border-radius:12px;padding:20px 24px;border:1px solid #c8f0ef;">
+        <p style="margin:0;font-size:14px;color:#5a7490;line-height:1.6;">
+          If you have any questions, feel free to reach out to ${creatorName} or
+          <a href="mailto:${contactEmail}" style="color:#0a9499;text-decoration:none;">our support team</a>. 💬
+        </p>
+      </div>
+    </td>
+  </tr>`);
+
+// ─── Unified export object (used by mail-service) ─────────────────────────────
 const emailTemplates = {
-  verifyEmail: ({ name, verifyUrl }) =>
-    `<p>Hi ${name},</p><p>Click below to verify your Momenta account:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`,
-
-  resetPassword: ({ name, resetUrl }) =>
-    `<p>Hi ${name},</p><p>Click below to reset your Momenta password:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>This link expires in 24 hours.</p>`,
-
-  scheduledDelivery: ({ creatorName, wallName, token, serviceBaseUrl }) =>
-    exports.scheduledDeliveryTemplate
-      .replace("$creatorName", creatorName)
-      .replace("$wallName", wallName)
-      .replace("$token", token),
-
-  accessControl: ({ wallId, creatorName, wallName, serviceBaseUrl }) =>
-    exports.accessControlEmail
-      .replace("$wallId", wallId)
-      .replace("$creatorName", creatorName)
-      .replace("$wallName", wallName),
+  verifyEmail:         (params) => verifyEmailTemplate(params),
+  resetPassword:       (params) => resetPasswordTemplate(params),
+  inviteLink:          (params) => inviteLinkTemplate(params),
+  scheduledDelivery:   (params) => scheduledDeliveryTemplate(params),
+  accessControl:       (params) => accessControlTemplate(params),
 };
+
 exports.emailTemplates = emailTemplates;
 
-exports.scheduledDeliveryTemplate = `
-<html>
-    <head>
-        <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@100..900&display=swap" rel="stylesheet">
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <style>
-            @media(max-width:600px){
-                .main-table{
-                    width:100% !important;
-                }
-            }
-        </style>
-    </head>
-    <body style="font-family:League Spartan, sans-serif; padding: 0px; margin: 0px; background: #f2f5fb;">
-
-        <table style="background: #f2f5fb; width: 100%; border-collapse: collapse;">
-            <tr>
-                <td style=" padding:20px;">
-                    <table class="main-table" style="font-family:League Spartan, sans-serif; width: 600px; margin: 0 auto; border-collapse: collapse; background: #fff; box-shadow: 2px 2px 15px #DFE8F1;">
-
-                        <tr>
-                            <td style=" padding:8px; text-align: center"> <img src="https://drive.google.com/uc?export=view&id=1y386LEvT_KBZne7d1_Q2qilGXquGZvH8" style="width: 175px;"></td> 
-                        </tr>
-                        <tr>
-                            <td style="padding: 0px;"><img src="https://drive.google.com/uc?export=view&id=1Cv9NL6Ml5BDfDf9b-p64a_QrzB68oWdP" style="display: block; width: 100%;"></td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 10px 50px; text-align: center;">
-                                <h2 style="color: #405670; text-align: center; line-height: 24px; font-size: 20px; margin-top: 30px;"> 
-                                    Schedule Delivery
-                                </h2>
-                                <p style="color: #405670; font-weight: 300; font-size: 16px; line-height: 24px; text-align: center; margin-top: 15px;">
-                                    You’ve been sent a special moment<b> $wallName </b>, created by <b>$creatorName</b>. 
-
-                                The moment contains heartfelt messages, stories, and memories from those who care about you.
-                                To view the moment, click the Button below:
-
-                                </p>
-
-                                <a href="${SERVICE_BASE_URL}/api/walls/view-receiver-wall/$token" style="display: inline-block; width: 200px; height: 44px; line-height: 47px; white-space: nowrap; text-align: center; font-size: 15px; font-weight: 500;
-                                   color: #fff; text-decoration: none; border-radius: 4px; background: rgb(92,204,179); margin-top: 10px;
-                                   background: linear-gradient(183deg, rgba(92,204,179,1) 0%, rgba(42,175,145,1) 100%);"> MOMENTA
-                                </a>
-                                
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td style="padding: 10px 42px;"> 
-                                <p style="color: #405670; font-weight: 300; font-size: 16px; line-height: 24px; text-align: center; margin-top: 15px;">
-                                    Take your time exploring the messages and thoughts that have been shared with you. We hope this brings a smile to your face and adds joy to your day. If you have any questions or would like assistance, feel free to reach out.
-
-                                </p>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 20px 42px; color: #405670; font-weight: normal; font-size: 16px; line-height: 24px;"> 
-                                <p style="margin-bottom: 0px; font-weight: 300;">Thanks,</p> 
-                                Momenta Team
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="color: #B3CBE0; font-size: 12px; text-align: center; padding: 0px 42px; padding-top:40px; padding-bottom: 5px;">
-                                <div style="border-top: 1px solid #F0F8FC; padding: 14px 0px;">
-                                    <b> Disclaimer:</b> This email  and any files transmitted with it are confidential and intended solely for the use of the individual or entity to whom they are addressed.
-
-                                </div>
-                            </td>
-                        </tr>
-                    </table>
-                </td>
-            </tr>
-        </table>
-    </body>
-</html>
-`;
-
-exports.emailVerificationTemplate = `
-<html>
-    <head>
-        <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@100..900&display=swap" rel="stylesheet">
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <style>
-            @media(max-width:600px){
-                .main-table{
-                    width:100% !important;
-                }
-            }
-        </style>
-    </head>
-    <body style="font-family:League Spartan, sans-serif; padding: 0px; margin: 0px; background: #f2f5fb;">
-        <table style="background: #f2f5fb; width: 100%; border-collapse: collapse;">
-            <tr>
-                <td style=" padding:20px;">
-                    <table class="main-table" style="font-family:League Spartan, sans-serif; width: 600px; margin: 0 auto; border-collapse: collapse; background: #fff; box-shadow: 2px 2px 15px #DFE8F1;">
-
-                        <tr>
-                            <td style=" padding:8px; text-align: center"> <img src="https://drive.google.com/uc?export=view&id=1y386LEvT_KBZne7d1_Q2qilGXquGZvH8" style="width: 175px;"></td> 
-                        </tr>
-                        <tr>
-                            <td style="padding: 0px;"><img src="https://drive.google.com/uc?export=view&id=1wSNp7MYNHM_qY_VldeyGLJAIcYJ70RiV" style="display: block; width: 100%;"></td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 10px 50px; text-align: center;">
-                                <h2 style="color: #405670; text-align: center; line-height: 24px; margin-bottom: 0px; font-size: 20px;"><span style="font-weight: 300; font-size: 16px; display: block">You’re one step away</span> 
-                                    Verify your email address 
-                                </h2>
-                                <p style="color: #405670; font-weight: 300; font-size: 16px; line-height: 24px; text-align: center; margin-top: 15px;">
-                                    Thank you for registering with Momenta. We're excited to have you with us!
-                                    To complete your registration, please verify your email address by clicking the button below:
-                                </p>
-                                <a href="verificationLink" style="display: inline-block; width: 200px; height: 44px; line-height: 47px; white-space: nowrap; text-align: center; font-size: 15px; font-weight: 600; color: #fff; text-decoration: none; border-radius: 4px;
-                                   background: rgb(92,204,179); margin-top: 10px; margin-bottom: 15px;
-                                   background: linear-gradient(183deg, rgba(92,204,179,1) 0%, rgba(42,175,145,1) 100%);">VERIFY EMAIL!
-                                </a>
-                                <p style="color: #405670; font-weight: 300; font-size: 16px; line-height: 24px; text-align: center; margin-top: 15px;">
-                                    Once verified, you'll be able to start exploring and creating your own moments for any occasion. 
-                                </p>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 10px 50px;">
-                                <div style="background:#FBFBFB; margin-top: 18px; width: 226px; padding: 6px 0px; border-radius: 6px; line-height: 16px; margin: 0 auto; text-align: center; margin-top: 26px;">
-                                    <img src="https://drive.google.com/uc?export=view&id=1ymyLNvyrdVzkt8dRLEUweY2VQ8-ayvwE">
-                                    <p style="font-size: 14px; font-weight: 600; color: #405670; display: inline-block; text-align: left; padding-left: 2px;">Have a Question?
-                                        <a href="mailto:${email}" style="font-size: 12px; color: #2196f3; display: block; font-weight: normal; text-align: left;">Reach out to our team</a>
-                                    </p>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="color: #B3CBE0; font-size: 12px; text-align: center; padding: 0px 50px; padding-top:40px; padding-bottom: 5px;">
-                                <div style="border-top: 1px solid #F0F8FC; padding: 14px 0px;">
-                                    <b>Disclaimer:</b> This email  and any files transmitted with it are confidential and intended solely for the use of the individual or entity to whom they are addressed.
-                                </div>
-                            </td>
-                        </tr>
-                    </table>
-                </td>
-            </tr>
-        </table>
-    </body>
-</html>
-`;
-
-exports.resetPasswordEmail = `
-<!DOCTYPE html>
-<html>
-    <head>
-        <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@100..900&display=swap" rel="stylesheet">
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <style>
-            @media(max-width:600px){
-                .main-table{
-                    width:100% !important;
-                }
-            }
-        </style>
-    </head>
-    <body style="font-family:League Spartan, sans-serif; padding: 0px; margin: 0px; background: #f2f5fb;">
-
-        <table style="background: #f2f5fb; width: 100%; border-collapse: collapse;">
-            <tr>
-                <td style=" padding:20px;">
-                    <table class="main-table" style="font-family:League Spartan, sans-serif; width: 600px; margin: 0 auto; border-collapse: collapse; background: #fff; box-shadow: 2px 2px 15px #DFE8F1;">
-
-                        <tr>
-                            <td style=" padding:8px; text-align: center"> <img src="https://drive.google.com/uc?export=view&id=1y386LEvT_KBZne7d1_Q2qilGXquGZvH8" style="width: 175px;"></td> 
-                        </tr>
-                        <tr>
-                            <td style="padding: 0px;"><img src="https://drive.google.com/uc?export=view&id=1ipejDEpDITdcrvrBMqPoeW0xz7rD5yvc" style="display: block; width: 100%;"></td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 10px 50px; text-align: center;">
-                                <h2 style="color: #405670; text-align: center; line-height: 24px; font-size: 20px; margin-top: 30px;"> 
-                                    Forgot your password?
-                                </h2>
-                                <p style="color: #405670; font-weight: 300; font-size: 16px; line-height: 24px; text-align: center; margin-bottom: 30px;">
-                                    Don’t worry we’ve got your back. You can use the following button to <a href="verificationLink" style="text-decoration: none; font-weight: 600; color: #405670;"> <b>reset your password!</b></a>
-                                </p>
-
-                                <a href="verificationLink" style="display: inline-block; width: 205px; height: 44px; line-height: 48px; white-space: nowrap; text-align: center; font-size: 15px; font-weight: 500;
-                                   color: #fff; text-decoration: none; border-radius: 4px; background: rgb(92,204,179);
-                                   background: linear-gradient(183deg, rgba(92,204,179,1) 0%, rgba(42,175,145,1) 100%);">RESET YOUR PASSWORD
-                                </a>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td style="padding: 5px 42px;"> 
-                                <p style="color: #405670; font-weight: 300; font-size: 16px; line-height: 24px;">
-                                    This link will remain active for the next 3 hours. If you need a new password reset link, please click <a href="${UI_BASE_URL}/reset-password" style="color:#2196f3;">here</a>.
-                                </p> 
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td style="padding: 20px 42px; color: #405670; font-weight: normal; font-size: 16px; line-height: 24px;"> 
-                                <p style="margin-bottom: 0px; font-weight: 300;">Thanks,</p> 
-                                Momenta Team
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td style="padding: 20px 42px; color: #405670; font-weight:300; font-size: 14px; line-height: 20px;"> 
-                                You’re receiving this email because a password reset was requested for your account.
-                                If you have not initiated the request, then please report it back to <a style="color:#2196f3;">${email}</a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="color: #B3CBE0; font-size: 12px; text-align: center; padding: 0px 42px; padding-top:40px; padding-bottom: 5px;">
-                                <div style="border-top: 1px solid #F0F8FC; padding: 14px 0px;">
-                                    <b> Disclaimer:</b> This email  and any files transmitted with it are confidential and intended solely for the use of the individual or entity to whom they are addressed.
-
-                                </div>
-                            </td>
-                        </tr>
-                    </table>
-                </td>
-            </tr>
-        </table>
-    </body>
-</html>
-`;
-
-exports.accessControlEmail = `
-<html>
-    <head>
-        <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@100..900&display=swap" rel="stylesheet">
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <style>
-            @media(max-width:600px){
-                .main-table{
-                    width:100% !important;
-                }
-            }
-        </style>
-    </head>
-    <body style="font-family:League Spartan, sans-serif; padding: 0px; margin: 0px; background: #f2f5fb;">
-
-        <table style="background: #f2f5fb; width: 100%; border-collapse: collapse;">
-            <tr>
-                <td style=" padding:20px;">
-                    <table class="main-table" style="font-family:League Spartan, sans-serif; width: 600px; margin: 0 auto; border-collapse: collapse; background: #fff; box-shadow: 2px 2px 15px #DFE8F1;">
-                        <tr>
-                            <td style=" padding:8px; text-align: center"> <img src="https://drive.google.com/uc?export=view&id=1y386LEvT_KBZne7d1_Q2qilGXquGZvH8" style="width: 175px;"></td> 
-                        </tr>
-
-                        <tr>
-                            <td style="padding: 0px;"><img src="https://drive.google.com/uc?export=view&id=1v7ShgglnP3OGmqwh4wQGpmBjt2XRDQfc" style="display: block; width: 100%;"></td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 10px 50px;">
-                                <h2 style="color: #405670; text-align: center; line-height: 30px; margin-bottom: 0px; font-size: 20px;">
-                                <span style="font-weight: 300; display: block">You have been granted access to the moment</span> 
-                                    $wallName <span style="font-weight: 300;">. This moment was created by $creatorName <br> and now you can start exploring.</span>
-                                </h2>
-                                
-
-                                <p style="color: #405670; font-weight: 300; font-size: 16px; line-height: 24px; text-align: center; margin-top: 15px;">
-                                    To access the moment, please click the button below:
-                                </p>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 10px 50px; text-align: center">
-                                <a href="${UI_BASE_URL}/moment/$wallId" style="display: inline-block; width: 200px; height: 44px; line-height: 47px; white-space: nowrap; text-align: center; font-size: 15px; font-weight: 600; color: #fff; text-decoration: none; border-radius: 4px;
-                                   background: rgb(92,204,179);
-                                   background: linear-gradient(183deg, rgba(92,204,179,1) 0%, rgba(42,175,145,1) 100%);">JOIN NOW!
-                                </a>
-
-                                <table style="width: 200px ; margin: 0 auto; padding: 20px 0px;">
-                                    <tr>
-                                        <td style="vertical-align: middle; line-height: 0px;"> <span style="border-top: 1px solid #F0F8FC; width:90px; display: inline-block; margin-right: 2px;"></span></td>
-                                        <td style="color:#C4CFE0; font-size:15px; font-weight:600;">OR</td>
-                                        <td style="vertical-align: middle; line-height: 0px;"> <span style="border-top: 1px solid #F0F8FC; width:90px; display: inline-block; margin-left: 2px;"></span></td>
-                                    </tr>
-                                </table>
-                                <a href="${UI_BASE_URL}/moment/$wallId" style="display: inline-block; height: 44px; line-height: 47px; white-space: nowrap; width: 200px; text-align: center; font-size: 15px; font-weight: 600;
-                                   color: #4A5D5F; text-decoration: none; border-radius: 4px; background:#F1F3FF;"><img style="padding-right: 4px" src="img/gmail.png"> JOIN WITH GOOGLE</a>
-                                <p style="font-size: 16px; font-weight: 300; color: #5D839F; line-height: 24px; margin-top: 20px;">
-                                    This moment represents a meaningful exchange. We encourage you to take the time to explore and engage with the content shared by others, and if you have any questions or need support, feel free to reach out to [Moment Owner’s Name].
-
-                                    Thank you for being a part of this community. We’re looking forward to your involvement in this meaningful journey.
-
-                                </p>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="color: #B3CBE0; font-size: 12px; text-align: center; padding: 0px 50px; padding-top:40px; padding-bottom: 5px;">
-                                <div style="border-top: 1px solid #F0F8FC; padding: 16px 0px;">
-                                    <a href="#" style="color: #2196f3;">Unsubscribe</a> from any communication about this invitarion
-                                </div>
-                            </td>
-                        </tr>
-                    </table>
-                </td>
-            </tr>
-        </table>
-    </body>
-</html>
-`
+// Legacy exports kept for backward compatibility
+exports.scheduledDeliveryTemplate   = (p) => scheduledDeliveryTemplate(p);
+exports.emailVerificationTemplate   = (p) => verifyEmailTemplate(p);
+exports.resetPasswordEmail          = (p) => resetPasswordTemplate(p);
+exports.accessControlEmail          = (p) => accessControlTemplate(p);

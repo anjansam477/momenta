@@ -135,6 +135,10 @@ class MailService {
     return true;
   }
 
+  async _sendDirect({ to, subject, html }) {
+    return sendMail({ to, subject, html });
+  }
+
   async sendContactMail(sender, name, message) {
     if (!sender?.trim() || !name?.trim() || !message?.trim()) {
       throw new Error(Response.generateMessage(Response.errorMessage.PARAMS_REQUIRED, "Sender, name, and message are"));
