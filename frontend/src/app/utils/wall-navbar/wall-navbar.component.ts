@@ -12,6 +12,7 @@ import { SettingsComponent } from '../../components/settings/settings.component'
 import { animate, state, style, transition, trigger } from '@angular/animations';
 import { Wall } from '../../shared/models';
 import { Params } from '@angular/router';
+import { WALL_STATUS } from '../../constants/wall.constants';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -123,6 +124,7 @@ export class WallNavbarComponent implements OnInit {
       this.wallId = params['momentId'] ?? params['wallId'];
       this.fetchWallDetails();
       this.sharedWallUrl = `${this.baseUrl}/moment/${this.wallId}`;
+      this.cdr.markForCheck();
     });
   }
 
@@ -138,8 +140,8 @@ export class WallNavbarComponent implements OnInit {
         this.isCreatorOrMaintainer = creatorMails.includes(userEmail);
         this.openDate = wallData.openDate ?? null;
         this.closeDate = wallData.closeDate ?? null;
-        this.isArchived = wallData.isArchived;
-        this.isOpen = wallData.isOpen;
+        this.isArchived = wallData.status === WALL_STATUS.ARCHIVED;
+        this.isOpen = wallData.status === WALL_STATUS.ACTIVE;
         this.cdr.detectChanges();
       },
       error: (err)=>{

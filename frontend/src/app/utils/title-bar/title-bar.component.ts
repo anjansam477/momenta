@@ -85,17 +85,20 @@ export class TitleBarComponent implements OnInit,OnDestroy{
     this.audioService.getMuteStateSubject().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(
       (muteState: boolean) => {
         this.isMuted = muteState;
+        this.cdr.markForCheck();
       }
     );
 
     this.route.url.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((urlSegments) => {
       this.currentPage = urlSegments[0].path;
+      this.cdr.markForCheck();
     });
 
     this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params: Params) => {
       this.wallId = params['momentId'] ?? params['wallId'];
       this.fetchWallDetails();
       this.sharedWallUrl = `${this.baseUrl}/moment/${this.wallId}`;
+      this.cdr.markForCheck();
     });
 
     this.sharedService.getIsPreview().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data)=>{
@@ -104,6 +107,7 @@ export class TitleBarComponent implements OnInit,OnDestroy{
         this.audioService.muteAudio();
         this.isMuted=this.audioService.isAudioMuted();
       }
+      this.cdr.markForCheck();
     });
 
     this.audioService.getAudioFileSubject().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((audioFile: string) => {
@@ -117,6 +121,7 @@ export class TitleBarComponent implements OnInit,OnDestroy{
     this.sharedService.getPostAvailable().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data)=>{
         this.postsAvailable = data;
+        this.cdr.markForCheck();
       },
       error: (err)=>{ handleHttpError(err, this.toastr); }
     });
@@ -124,6 +129,7 @@ export class TitleBarComponent implements OnInit,OnDestroy{
     this.sharedService.getMyPost().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data)=>{
         this.myPost = data;
+        this.cdr.markForCheck();
       },
       error: (err)=>{ handleHttpError(err, this.toastr); }
     });
@@ -348,6 +354,10 @@ export class TitleBarComponent implements OnInit,OnDestroy{
     target.style.width = newWidth + 'px';
   }
   
+  openAnalytics(): void {
+    this.router.navigate(['/moment', this.wallId, 'analytics']);
+  }
+
   editPost(){
     this.sharedService.setSendEmail(true);
   }

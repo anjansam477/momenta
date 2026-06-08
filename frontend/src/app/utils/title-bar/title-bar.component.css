@@ -20,7 +20,7 @@
 /* ── Shell ──────────────────────────────────────────────── */
 .tb {
   position: relative;
-  padding: 68px 5vw 0;
+  padding: 80px 5vw 0;
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: end;
@@ -31,7 +31,7 @@
 .tb::before {
   content: "";
   position: absolute;
-  inset: 52px 3vw 10px;
+  inset: 64px 3vw 10px;
   border-radius: 26px;
   background:
     linear-gradient(145deg, rgba(255,255,255,0.96) 0%, rgba(245,250,252,0.90) 100%),
