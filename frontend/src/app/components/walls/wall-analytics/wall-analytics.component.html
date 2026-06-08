@@ -102,6 +102,18 @@
             <path [attr.d]="linePath('reactionCount')" fill="none" stroke="#f97b6b" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
             <path [attr.d]="linePath('postCount')"     fill="none" stroke="#6366f1" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
             <path [attr.d]="linePath('views')"         fill="none" stroke="#10a7a4" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+            <!-- Dots (always render so single-point data is visible) -->
+            @for (d of daily; track d.date; let i = $index) {
+              @if (d.views > 0) {
+                <circle [attr.cx]="xPos(i)" [attr.cy]="yPos(d.views)" r="3.5" fill="#10a7a4"/>
+              }
+              @if (d.postCount > 0) {
+                <circle [attr.cx]="xPos(i)" [attr.cy]="yPos(d.postCount)" r="3" fill="#6366f1"/>
+              }
+              @if (d.reactionCount > 0) {
+                <circle [attr.cx]="xPos(i)" [attr.cy]="yPos(d.reactionCount)" r="3" fill="#f97b6b"/>
+              }
+            }
             <!-- X labels -->
             @for (lbl of xLabels(); track lbl.label) {
               <text [attr.x]="lbl.x" [attr.y]="CHART_H - 4" text-anchor="middle" class="svg-label">{{ lbl.label }}</text>

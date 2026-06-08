@@ -38,14 +38,38 @@ class AnalyticsRepository {
     let startDate;
     if (from) {
       startDate = new Date(from);
+      startDate.setUTCHours(0, 0, 0, 0);
     } else {
       startDate = new Date();
       startDate.setUTCDate(startDate.getUTCDate() - (days || 30));
       startDate.setUTCHours(0, 0, 0, 0);
     }
-    const query = { wallId, date: { $gte: startDate } };
-    if (to) query.date.$lte = new Date(to);
-    return WallAnalytics.find(query).sort({ date: 1 });
+    const endDate = to ? new Date(to) : new Date();
+    endDate.setUTCHours(0, 0, 0, 0);
+
+    const query = { wallId, date: { $gte: startDate, $lte: endDate } };
+    const records = await WallAnalytics.find(query).sort({ date: 1 });
+
+    // Build a map keyed by YYYY-MM-DD for fast lookup
+    const recordMap = new Map(
+      records.map(r => [r.date.toISOString().slice(0, 10), r])
+    );
+
+    // Fill every day in the range so the chart always has a continuous series
+    const filled = [];
+    const cursor = new Date(startDate);
+    while (cursor <= endDate) {
+      const key = cursor.toISOString().slice(0, 10);
+      const rec = recordMap.get(key);
+      filled.push({
+        date: key,
+        views: rec ? rec.views : 0,
+        postCount: rec ? rec.postCount : 0,
+        reactionCount: rec ? rec.reactionCount : 0,
+      });
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    return filled;
   }
 
   async getTotals(wallId) {
