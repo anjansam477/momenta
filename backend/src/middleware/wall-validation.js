@@ -51,6 +51,12 @@ exports.validateWallUpdate = asyncHandler(async (req, res, next) => {
       throw new Error(Response.errorMessage.USER_UNAUTHORIZED);
     }
 
+    if (updateData.status !== undefined) {
+      if (!["active", "locked"].includes(updateData.status)) {
+        throw new Error("Invalid status. Use 'active' or 'locked'.");
+      }
+    }
+
     if (updateData.title !== undefined) {
       if (typeof updateData.title !== "string" || updateData.title.trim() === "" || updateData.title.length > 80) {
         throw new Error(Response.generateLengthError(Response.errorMessage.LENGTH_NOT_ALLOWED, "1-80", "wall title"));

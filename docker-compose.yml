@@ -17,7 +17,7 @@ services:
       - PORT=8071
       - SERVICE_BASE_URL=http://localhost:8071
       - UI_BASE_URL=http://localhost:4200
-      - CONNECTION_STRING=mongodb://${MONGODB_INITDB_ROOT_USERNAME}:${MONGODB_INITDB_ROOT_PASSWORD}@mongo_madness:27017/momenta?replicaSet=rs0&authSource=admin
+      - CONNECTION_STRING=mongodb://mongo_madness:27017/momenta?replicaSet=rs0
       - REDIS_HOST=redis-node-1
       - REDIS_PORT=6379
 
@@ -75,47 +75,26 @@ services:
 
   mongo_madness:
     image: mongo:latest
-    environment:
-      # Official image vars are MONGO_INITDB_ROOT_* (no "DB") — the entrypoint
-      # only creates the root user when these exact names are present.
-      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_INITDB_ROOT_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_INITDB_ROOT_PASSWORD}
-    # Single-node replica set so Mongoose transactions work in dev too, now with
-    # auth enabled. A replica set requires a keyfile for internal member auth even
-    # at size 1 — we generate it into a named volume at startup (container-native
-    # ext4 perms, so this works on Windows hosts where a bind-mounted keyfile would
-    # be rejected for "permissions too open"). The root user is created by the
-    # official entrypoint from MONGODB_INITDB_ROOT_* on first init.
-    command:
-      - bash
-      - -c
-      - |
-        set -e
-        KF=/data/keyfile/mongo-keyfile
-        mkdir -p /data/keyfile
-        if [ ! -f "$$KF" ]; then head -c 756 /dev/urandom | base64 | tr -d '\n' > "$$KF"; fi
-        chmod 400 "$$KF"
-        chown 999:999 "$$KF"
-        exec docker-entrypoint.sh mongod --auth --keyFile "$$KF" --port 27017 --replSet rs0 --bind_ip_all --wiredTigerCacheSizeGB 2
+    # Single-node replica set so Mongoose transactions work in dev too. The
+    # healthcheck self-initiates the set on first boot (idempotent thereafter).
+    # NOTE: dev runs WITHOUT auth on purpose — auth (keyfile + creds) is enabled
+    # only in docker-compose.prod.yml. Keeps local setup friction-free.
+    command: mongod --port 27017 --replSet rs0 --bind_ip_all --wiredTigerCacheSizeGB 2
     expose:
       - 27017
     volumes:
       - type: volume
         source: mongodb_data_volume
         target: /data/db
-      - type: volume
-        source: mongodb_keyfile_volume
-        target: /data/keyfile
     restart: unless-stopped
     healthcheck:
       test: >
-        mongosh --quiet --port 27017 -u "$$MONGO_INITDB_ROOT_USERNAME" -p "$$MONGO_INITDB_ROOT_PASSWORD"
-        --authenticationDatabase admin --eval
+        mongosh --quiet --port 27017 --eval
         "try { rs.status().ok } catch (e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'mongo_madness:27017'}]}) }"
       interval: 15s
       timeout: 10s
       retries: 10
-      start_period: 40s
+      start_period: 30s
     networks:
       - momenta-network
     deploy:
@@ -130,7 +109,7 @@ services:
     image: mongo-express:latest
     container_name: mongo-express
     environment:
-      - ME_CONFIG_MONGODB_URL=mongodb://${MONGODB_INITDB_ROOT_USERNAME}:${MONGODB_INITDB_ROOT_PASSWORD}@mongo_madness:27017/${DB_SCHEMA}?authSource=admin
+      - ME_CONFIG_MONGODB_URL=mongodb://mongo_madness:27017/${DB_SCHEMA}
       - ME_CONFIG_MONGODB_ADMINUSERNAME=${MONGODB_INITDB_ROOT_USERNAME}
       - ME_CONFIG_MONGODB_ADMINPASSWORD=${MONGODB_INITDB_ROOT_PASSWORD}
       - ME_CONFIG_BASICAUTH_USERNAME=${DB_USERNAME}
@@ -221,7 +200,6 @@ services:
 
 volumes:
   mongodb_data_volume:
-  mongodb_keyfile_volume:
   prometheus_data:
   grafana_data:
   uptime_kuma_data:
