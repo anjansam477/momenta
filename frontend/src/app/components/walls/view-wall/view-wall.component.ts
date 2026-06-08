@@ -119,6 +119,7 @@ export class ViewWallComponent implements OnInit ,OnDestroy{
       if (this.selectedAudio) {
         this.audioService.playAudio(this.selectedAudio);
       }
+      this.cdr.markForCheck();
     })
 
     this.route.url.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((urlSegments) => {

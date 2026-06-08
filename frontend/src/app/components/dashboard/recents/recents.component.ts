@@ -328,6 +328,7 @@ export class RecentsComponent implements OnInit, AfterViewInit {
         this.showWalls = this.showWalls.filter(b => b._id !== wall._id);
         this.openDropdownIndex = null;
         this.displayWalls(this.walls, 0);
+        this.cdr.markForCheck();
       }, error: (err)=>{ handleHttpError(err, this.toastr); }});
     }
   }

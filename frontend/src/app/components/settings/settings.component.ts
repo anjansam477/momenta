@@ -21,6 +21,7 @@ import { NgxMaterialTimepickerComponent, NgxMaterialTimepickerModule, NgxMateria
 import { AddUserComponent } from '../data-transformation/add-user/add-user.component';
 import { format } from 'date-fns';
 import { AddDomainComponent } from '../data-transformation/add-domain/add-domain.component';
+import { WALL_STATUS } from '../../constants/wall.constants';
 
 /** Access list for a wall — emails + domains allowed to view/post. */
 interface AccessList {
@@ -172,7 +173,7 @@ export class SettingsComponent implements OnInit {
           this.wall = wallData;
           this.wallId = wallData._id;
           this.wallForm.patchValue({
-            isLocked: !wallData.isOpen,
+            isLocked: wallData.status === WALL_STATUS.LOCKED,
             duration: !!(wallData.openDate || wallData.closeDate),
             anyoneCanView: wallData.anyoneCanView ?? false,
             anyoneCanPost: wallData.anyoneCanPost ?? false,
@@ -248,7 +249,7 @@ export class SettingsComponent implements OnInit {
     }
    
     const updateWallSettings: Partial<Wall> = {
-      isOpen: !this.getFormControlValue('isLocked'),
+      status: this.getFormControlValue('isLocked') ? WALL_STATUS.LOCKED : WALL_STATUS.ACTIVE,
       anyoneCanView: this.getFormControlValue('anyoneCanView'),
       anyoneCanPost: this.getFormControlValue('anyoneCanPost'),
       postConfig: { requireApproval: this.getFormControlValue('requireApproval') },

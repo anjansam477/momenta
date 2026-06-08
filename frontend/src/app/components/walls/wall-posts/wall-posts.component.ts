@@ -138,6 +138,7 @@ export class WallPostsComponent implements OnInit, AfterViewInit {
 
       this.sharedService.getIsPreview().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data)=>{
         this.isPreview = data;
+        this.cdr.markForCheck();
       });
 
       this.updatePosts();
@@ -314,8 +315,7 @@ export class WallPostsComponent implements OnInit, AfterViewInit {
         this.ownerMail = wallDetails.ownerEmail;
         this.wallCreatorMails = [...(wallDetails.maintainerEmails || [])];
         this.wallCreatorMails.push(wallDetails.ownerEmail);
-        // Support both old isOpen and new status field
-        this.isOpen = wallDetails.status === WALL_STATUS.ACTIVE || wallDetails.isOpen;
+        this.isOpen = wallDetails.status === WALL_STATUS.ACTIVE;
         this.requireApproval = wallDetails.postConfig?.requireApproval ?? false;
         if (this.requireApproval && this.checkWallCreator()) {
           this.fetchPendingPosts();
@@ -324,8 +324,7 @@ export class WallPostsComponent implements OnInit, AfterViewInit {
         this.nonArchivedNonReportedCount = wallDetails.posts?.nonArchivedNonReportedCount ?? 0;
         this.openDate = wallDetails.openDate ?? null;
         this.closeDate = wallDetails.closeDate ?? null;
-        // Support both old isArchived and new status field
-        this.isArchived = !!(wallDetails.status === WALL_STATUS.ARCHIVED || wallDetails.isArchived);
+        this.isArchived = wallDetails.status === WALL_STATUS.ARCHIVED;
         this.wallDescription = wallDetails.description;
         this.cdr.detectChanges();
       },

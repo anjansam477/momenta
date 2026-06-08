@@ -1,5 +1,5 @@
 ﻿import { NgStyle } from '@angular/common';
-import { Component, DestroyRef, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { WallPostsComponent } from '../wall-posts/wall-posts.component';
 import { TitleBarComponent } from '../../../utils/title-bar/title-bar.component';
@@ -34,7 +34,8 @@ export class DownloadWallComponent implements OnInit{
     private route: ActivatedRoute,
     private sharedService: SharedDataService,
     private router: Router,
-    private wallService: WallService
+    private wallService: WallService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -58,15 +59,18 @@ export class DownloadWallComponent implements OnInit{
       next: (wallData: Wall | null) => {
         if (wallData) {
           this.selectedBackground = this.getAbsolutePath(wallData.bgImg);
+          this.cdr.markForCheck();
         } else {
           this.backgroundService.getSelectedBgSubject().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((bg) => {
             this.selectedBackground = this.getAbsolutePath(bg);
+            this.cdr.markForCheck();
           });
         }
       },
       error: (err) => {
         this.backgroundService.getSelectedBgSubject().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((bg) => {
           this.selectedBackground = this.getAbsolutePath(bg);
+          this.cdr.markForCheck();
         });
       },
     });

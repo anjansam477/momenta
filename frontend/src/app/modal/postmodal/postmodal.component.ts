@@ -1,4 +1,5 @@
 import {
+  ChangeDetectorRef,
   Component,
   DestroyRef,
   ElementRef,
@@ -107,7 +108,8 @@ export class PostmodalComponent implements OnInit, AfterViewInit {
     private mediaService: MediaService,
     private route: ActivatedRoute,
     private authService: AuthService,
-    private sharedService: SharedDataService
+    private sharedService: SharedDataService,
+    private cdr: ChangeDetectorRef
   ) { }
 
   ngOnInit(): void {
@@ -141,6 +143,7 @@ export class PostmodalComponent implements OnInit, AfterViewInit {
               if (this.mediaUrl) {
                 this.viewMedia(this.mediaUrl);
               }
+              this.cdr.markForCheck();
             },
           error: (err) => handleHttpError(err, this.toastr)
           });
@@ -168,6 +171,7 @@ export class PostmodalComponent implements OnInit, AfterViewInit {
           if(this.shareEmail){
             this.fetchPostsForUser();
           }
+          this.cdr.markForCheck();
         });
     }
   }
@@ -257,7 +261,8 @@ export class PostmodalComponent implements OnInit, AfterViewInit {
     ).subscribe({
       next: (wallData: Wall) => {
           this.nonArchivedCount = wallData.posts.nonArchivedCount,
-          this.nonArchivedNonReportedCount =  wallData.posts.nonArchivedNonReportedCount
+          this.nonArchivedNonReportedCount =  wallData.posts.nonArchivedNonReportedCount;
+          this.cdr.markForCheck();
       },
       error: (err) => {
         console.error('Error fetching wall details', err);
@@ -285,6 +290,7 @@ export class PostmodalComponent implements OnInit, AfterViewInit {
             this.mediaUrl = ''
             this.mediaPreviewUrl = '';
            }
+          this.cdr.markForCheck();
         },
         error: (err) => handleHttpError(err, this.toastr)
       })

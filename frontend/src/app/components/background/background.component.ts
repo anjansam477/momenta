@@ -1,4 +1,4 @@
-﻿import { Component, DestroyRef, effect, EventEmitter, inject, OnInit, Output, ChangeDetectionStrategy } from '@angular/core';
+﻿import { ChangeDetectorRef, Component, DestroyRef, effect, EventEmitter, inject, OnInit, Output, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { WallService } from '../../services/wallservice/wall.service';
 import { BackgroundImageService } from '../../services/backgroundimageservice/background-image.service';
@@ -71,7 +71,8 @@ export class BackgroundComponent implements OnInit{
     private animationService: AnimationService,
     private audioService: AudioService,
     private router: Router,
-    private toastr: ToastrService
+    private toastr: ToastrService,
+    private cdr: ChangeDetectorRef
   ) { }
 
 
@@ -80,6 +81,7 @@ export class BackgroundComponent implements OnInit{
     this.fetchWallDetails();
     this.audioService.getAudioFileSubject().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(audioFile => {
       this.hasAudio = !!audioFile;
+      this.cdr.markForCheck();
     });
 
   }
@@ -109,6 +111,7 @@ export class BackgroundComponent implements OnInit{
           if (this.selectedBgColor && !isPreset) {
             this.customBgColor = this.selectedBgColor;
           }
+          this.cdr.markForCheck();
       },
       error: (err)=>{
         this.router.navigateByUrl('error');

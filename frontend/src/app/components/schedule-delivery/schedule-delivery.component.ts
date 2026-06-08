@@ -99,6 +99,7 @@ export class ScheduleDeliveryComponent implements OnInit {
           this.cc = true;
         }
         this.delivered();
+        this.cdr.markForCheck();
       }
     })
   }
@@ -238,6 +239,7 @@ export class ScheduleDeliveryComponent implements OnInit {
           }
           this.wallId = wallData._id;
           this.getScheduledMails();
+          this.cdr.markForCheck();
         },
         error: (err) => {
           this.router.navigateByUrl('error');
