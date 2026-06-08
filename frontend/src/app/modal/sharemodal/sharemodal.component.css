@@ -1,108 +1,277 @@
 .share-modal .modal-dialog {
-    max-width: min(560px, calc(100vw - 28px));
+    max-width: min(500px, calc(100vw - 28px));
 }
 
-.circle{
+/* ── Header ── */
+.share-modal .modal-header {
+    background-image: linear-gradient(to right, rgba(255, 104, 92, 0.9), rgba(16, 167, 164, 0.9));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13px 18px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    border-bottom: none;
+    border-radius: 0;
+}
+
+.sm-close {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: #fff;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
     cursor: pointer;
+    transition: background 0.15s;
+    flex-shrink: 0;
+}
+.sm-close:hover { background: rgba(255,255,255,0.35); }
+
+/* ── Body ── */
+.share-modal .modal-body {
+    padding: 18px 20px 20px;
+}
+
+.share-modal .modal-content {
+    height: fit-content;
+    min-height: auto;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+/* ── Two-column grid ── */
+.sm-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 18px;
+    align-items: start;
+}
+
+/* ── QR ── */
+.sm-qr {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.sm-qr__code {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 14px rgba(0,0,0,0.10);
+    line-height: 0;
+    border: 1px solid rgba(16,167,164,0.15);
+}
+
+.sm-qr__actions {
+    display: flex;
+    gap: 8px;
+}
+
+.sm-icon-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid rgba(16,167,164,0.25);
+    background: rgba(16,167,164,0.08);
+    color: #087c83;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.sm-icon-btn:hover { background: #10a7a4; color: #fff; border-color: #10a7a4; }
+.sm-icon-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.sm-feedback {
+    font-size: 10px;
+    text-align: center;
+    margin: 0;
+    color: #ef4444;
+}
+.sm-feedback--ok { color: #22c55e; }
+
+/* ── Share panel ── */
+.sm-share {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 2px;
+}
+
+.sm-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #9ab;
+    margin: 0;
+}
+
+.sm-socials {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+}
+
+.circle {
     width: 46px;
     height: 46px;
-    flex: 0 0 46px;
     border-radius: 50%;
+    border: none;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     color: #087c83;
     background: rgba(16, 167, 164, 0.12);
-    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
-}
-
-.circle .bi {
-    font-size: 22px;
-}
-
-.circle:hover {
-    color: #fff;
-    background: #10a7a4;
-    transform: translateY(-1px);
-}
-
-button{
+    font-size: 20px;
     cursor: pointer;
+    transition: background 0.15s, color 0.15s, transform 0.15s;
+    flex-shrink: 0;
 }
+.circle:hover { background: #10a7a4; color: #fff; transform: translateY(-2px); }
 
-.social-media-logo{
+.sm-copy-btn {
     display: flex;
+    align-items: center;
     justify-content: center;
-    gap: 14px;
-    margin: 0 !important;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 999px;
+    border: none;
+    background: linear-gradient(135deg, #10a7a4, #0d8f8c);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.15s;
+    width: 100%;
+}
+.sm-copy-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+.sm-copy-btn i { font-size: 16px; }
+
+/* ── Divider ── */
+.sm-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 14px 0 10px;
+    color: #9ab;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+.sm-divider::before,
+.sm-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(16,167,164,0.15);
 }
 
-.modal-para{
-    margin-bottom: 0px; 
-    font-size: small;
-    text-align: center;
+/* ── Invite ── */
+.sm-invite__row {
+    display: flex;
+    gap: 8px;
 }
 
-@media (max-width: 576px) {
-    .modal-para {
-      font-size: 14px;
-    }
+.sm-invite__input {
+    flex: 1;
+    height: 36px;
+    padding: 0 11px;
+    border: 1px solid rgba(16,167,164,0.25);
+    border-radius: 8px;
+    font-size: 13px;
+    outline: none;
+    background: #f8fffe;
+    color: #142536;
+    transition: border-color 0.15s;
+    min-width: 0;
 }
-  
-.qrcode{
-    text-align: center;
-    display: block;
-    margin: 0 auto;
-}
+.sm-invite__input:focus { border-color: #10a7a4; box-shadow: 0 0 0 3px rgba(16,167,164,0.1); }
+.sm-invite__input--link { color: #087c83; font-size: 12px; }
 
-.qrcode-btns{
-    text-align: center;
+.sm-invite__btn {
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 8px;
+    border: none;
+    background: linear-gradient(135deg, #10a7a4, #0d8f8c);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+}
+.sm-invite__btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.sm-invite__btn:hover:not(:disabled) { opacity: 0.88; }
+
+.sm-invite__result {
+    display: flex;
+    gap: 8px;
     margin-top: 8px;
 }
 
-.qrcode-btns button{
-    border-radius: 50%;
-    width: 44px;
-    height: 44px;
-    padding: 0;
-    display: inline-flex;
+.sm-invite__copy {
+    height: 36px;
+    padding: 0 13px;
+    border-radius: 8px;
+    border: 1px solid rgba(16,167,164,0.3);
+    background: transparent;
+    color: #087c83;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 5px;
+    transition: all 0.15s;
+    flex-shrink: 0;
 }
+.sm-invite__copy:hover { background: rgba(16,167,164,0.1); border-color: #10a7a4; }
 
-.qrcode-btns button i{
-    font-size: 20px;
-}
+/* ── Dark mode ── */
+[data-theme="dark"] .share-modal .modal-content { background: #1A2635; }
+[data-theme="dark"] .sm-qr__code { border-color: #243447; }
+[data-theme="dark"] .sm-icon-btn { border-color: #243447; background: rgba(16,167,164,0.1); color: #10a7a4; }
+[data-theme="dark"] .sm-icon-btn:hover { background: #10a7a4; color: #fff; }
+[data-theme="dark"] .sm-label,
+[data-theme="dark"] .sm-divider { color: #4a6070; }
+[data-theme="dark"] .sm-divider::before,
+[data-theme="dark"] .sm-divider::after { background: #243447; }
+[data-theme="dark"] .circle { background: rgba(16,167,164,0.15); color: #10a7a4; }
+[data-theme="dark"] .circle:hover { background: #10a7a4; color: #fff; }
+[data-theme="dark"] .sm-invite__input { background: #1E2D3D; border-color: #243447; color: #E2EAF2; }
+[data-theme="dark"] .sm-invite__input:focus { border-color: #10a7a4; }
+[data-theme="dark"] .sm-invite__input--link { color: #10a7a4; }
+[data-theme="dark"] .sm-invite__copy { border-color: #243447; color: #10a7a4; }
+[data-theme="dark"] .sm-invite__copy:hover { background: rgba(16,167,164,0.12); border-color: #10a7a4; }
 
-.qrcode-btns a{
-    text-decoration: none;
-    color: inherit;
-}
-
-.share-modal .modal-header{
-    background-image: linear-gradient(to right, rgba(255, 104, 92, 0.9), rgba(16, 167, 164, 0.9));
-}
-.share-modal .modal-header h1{
-    color: white;
-    margin-bottom: 0px;
-}
-
-.share-modal .modal-body {
-    padding: 20px 34px 30px;
-    position: relative;
-} 
-@media (max-width: 767px) {
-    .cst-modal .modal-body {
-        padding: 15px;
+/* ── Mobile: stack vertically ── */
+@media (max-width: 440px) {
+    .sm-grid {
+        grid-template-columns: 1fr;
     }
-}
-
-.share-modal .modal-content{
-    height: fit-content;
-    min-height: auto;
-} 
-
-.share-modal .button-xl {
-    min-height: 46px;
-    border-radius: 999px;
+    .sm-qr {
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    .sm-qr__code { flex-shrink: 0; }
+    .sm-socials { gap: 6px; }
+    .circle { width: 36px; height: 36px; font-size: 16px; }
 }

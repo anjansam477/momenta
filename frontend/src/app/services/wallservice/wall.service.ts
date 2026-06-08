@@ -35,8 +35,8 @@ export class WallService {
    return this.http.get<Wall[]>(`${this.wallServiceBaseUrl}/recents/${userEmail}`);
   }
 
-  generateInviteLink(wallId: string, email: string): Observable<{ token: string }> {
-    return this.http.post<{ token: string }>(`${this.wallServiceBaseUrl}/${wallId}/invite-link`, { email });
+  generateInviteLink(wallId: string, email: string, wallTitle?: string): Observable<{ token: string }> {
+    return this.http.post<{ token: string }>(`${this.wallServiceBaseUrl}/${wallId}/invite-link`, { email, wallTitle });
   }
 
   getStarredWalls(userEmail: string): Observable<Wall[]> {

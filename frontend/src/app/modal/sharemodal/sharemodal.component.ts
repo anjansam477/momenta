@@ -38,59 +38,35 @@ export class SharemodalComponent {
     private toastr: ToastrService
   ) { }
 
-  share() {
-    const wallUrl = this.sharedWallUrl;
-    const baseMessage = `Hey there! 👋
-        You’re invited to ${this.wallTitle}! 🎉 Let’s make it memorable — share your message on Momenta and show you care.
-        ${wallUrl}`;
-    return encodeURIComponent(baseMessage);
-  }
-
   shareWhatsApp() {
-    const message = this.share();
-
-    const whatsappUrl = `https://wa.me/?text=${message}`;
-
+    const nl = String.fromCharCode(10);
+    const msg = "Hey! You're invited to *" + this.wallTitle + "* on Momenta!" + nl + "Share your heartfelt message and be part of something special:" + nl + this.sharedWallUrl;
+    const text = encodeURIComponent(msg);
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     if (isMobile && window.innerWidth < 600) {
-      window.location.href = whatsappUrl;
+      window.location.href = "https://wa.me/?text=" + text;
     } else {
-      const webWhatsAppUrl = `https://web.whatsapp.com/send?text=${message}`;
-      window.open(webWhatsAppUrl, '_blank');
+      window.open("https://web.whatsapp.com/send?text=" + text, "_blank");
     }
   }
 
   shareTwitter() {
-    const message = this.share();
-
-    const twitterUrl = `https://twitter.com/intent/tweet?url=${message}`;
-    window.open(twitterUrl, '_blank');
+    const tweetText = encodeURIComponent('"' + this.wallTitle + '" - a moment worth sharing on Momenta');
+    const url = encodeURIComponent(this.sharedWallUrl);
+    window.open("https://twitter.com/intent/tweet?text=" + tweetText + "&url=" + url, "_blank");
   }
 
   shareLinkedIn() {
-    const message = this.share();
-
-    navigator.clipboard.writeText(message);
-    const linkedInUrl = `https://www.linkedin.com/sharing/share-offsite`;
-    window.open(linkedInUrl, '_blank');
+    const url = encodeURIComponent(this.sharedWallUrl);
+    window.open("https://www.linkedin.com/sharing/share-offsite/?url=" + url, "_blank");
   }
 
   shareFacebook() {
-    const message = this.share();
-
-    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${message}`;
-    window.open(facebookUrl, '_blank');
+    const url = encodeURIComponent(this.sharedWallUrl);
+    window.open("https://www.facebook.com/sharer/sharer.php?u=" + url, "_blank");
   }
 
-  shareGmail() {
-    const subject = encodeURIComponent('Check out a new Momenta moment!');
-    const message = this.share();
-
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&su=${subject}&body=${message}`;
-    window.open(gmailUrl, '_blank');
-  }
-
-  copyLink() {    
+    copyLink() {    
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(this.sharedWallUrl)
         .then(() => {
@@ -222,7 +198,7 @@ export class SharemodalComponent {
   generateInviteLink(): void {
     if (!this.inviteEmail || !this.wallId) return;
     this.isGenerating = true;
-    this.wallService.generateInviteLink(this.wallId, this.inviteEmail).subscribe({
+    this.wallService.generateInviteLink(this.wallId, this.inviteEmail, this.wallTitle).subscribe({
       next: ({ token }) => {
         this.inviteLink = `${window.location.origin}/moment/${this.wallId}?token=${token}`;
         this.isGenerating = false;
