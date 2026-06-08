@@ -1875,7 +1875,8 @@ html body {
     color: white;
     text-decoration: none;
     width: inherit;
-    background-color: transparent;
+    background-color: rgba(255, 255, 255, 0.18);
+    border-radius: 6px;
 }
 
 .sidebar-wrapper ul li.active i {
@@ -4465,8 +4466,8 @@ html body {
 }
 [data-theme="dark"] .sidebar ul li a,
 [data-theme="dark"] .sidebar .nav-item { color: #C4D8E8 !important; }
-[data-theme="dark"] .sidebar ul li.active,
-[data-theme="dark"] .sidebar ul li:hover { background-color: #243447 !important; }
+[data-theme="dark"] .sidebar ul li.active a,
+[data-theme="dark"] .sidebar ul li:hover a { background-color: #243447 !important; border-radius: 6px !important; }
 
 /* ══════════════════════════════════════
    CARDS (dashboard wall cards)
@@ -4802,3 +4803,118 @@ html body {
 [data-theme="dark"] tag-input-dropdown .ng2-menu-item { color: #E2EAF2 !important; }
 [data-theme="dark"] tag-input-dropdown .ng2-menu-item:hover,
 [data-theme="dark"] tag-input-dropdown .ng2-menu-item--selected { background: #1E2D3D !important; }
+
+/* ══ QoL: cursor pointer on all interactive elements ══ */
+button:not(:disabled),
+.btn:not(:disabled),
+[role="button"],
+label[for],
+.cursor-pointer,
+.sidebar-wrapper ul li,
+.sidebar-wrapper ul li a,
+.nav-item,
+.dropdown-item,
+.close,
+.modal-close,
+[data-bs-dismiss],
+[data-dismiss],
+.post-card .action,
+.card-actions button,
+.reaction-btn,
+.icon-btn,
+select {
+  cursor: pointer !important;
+}
+
+/* ══ QoL: disabled buttons look disabled ══ */
+button:disabled,
+.btn:disabled,
+button[disabled],
+.btn[disabled] {
+  cursor: not-allowed !important;
+  opacity: 0.55 !important;
+}
+
+/* ══ QoL: smooth transitions on interactive elements ══ */
+button,
+.btn,
+a,
+[role="button"],
+.nav-item,
+.dropdown-item,
+.reaction-btn,
+.icon-btn {
+  transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+/* ══ QoL: focus rings for keyboard accessibility ══ */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+button:focus-visible,
+.form-control:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #10a7a4 !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 3px rgba(16, 167, 164, 0.15) !important;
+}
+
+/* ══ QoL: text overflow ellipsis for titles ══ */
+.wall-title,
+.moment-title,
+.card-title,
+.wall-card-title,
+.dashboard-card-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* ══ QoL: submitting state ══ */
+.btn-submitting,
+button.submitting {
+  cursor: not-allowed !important;
+  opacity: 0.7 !important;
+  pointer-events: none;
+}
+
+/* ══ QoL: empty states ══ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 12px;
+  width: 100%;
+  color: #9ab;
+}
+.empty-state__icon {
+  font-size: 48px;
+  opacity: 0.4;
+}
+.empty-state__text {
+  font-size: 15px;
+  font-weight: 500;
+  opacity: 0.6;
+  margin: 0;
+}
+[data-theme="dark"] .empty-state {
+  color: #4a6070;
+}
+
+/* ══ QoL: dark mode gaps — modal header/footer and list-group ══ */
+[data-theme="dark"] .modal-header {
+  background: inherit !important;
+  border-color: #243447 !important;
+}
+[data-theme="dark"] .modal-footer {
+  background: inherit !important;
+  border-color: #243447 !important;
+}
+[data-theme="dark"] .list-group-item {
+  background-color: #1A2635 !important;
+  color: #E2EAF2 !important;
+  border-color: #243447 !important;
+}
