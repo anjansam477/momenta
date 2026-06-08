@@ -101,6 +101,7 @@ export interface User {
   profilePictureUrl: string | null;
   bio: string;
   lastLoginAt?: string;
+  theme?: 'light' | 'dark';
   // Legacy / computed fields
   active?: boolean;
   createdAt?: string;

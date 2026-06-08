@@ -31,8 +31,7 @@ export class ThemeService {
   private getStoredTheme(): Theme {
     const stored = localStorage.getItem(this.STORAGE_KEY) as Theme | null;
     if (stored === 'dark' || stored === 'light') return stored;
-    // Respect OS preference on first load
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    return 'light';
   }
 
   private apply(theme: Theme): void {

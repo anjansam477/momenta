@@ -1,5 +1,6 @@
 ﻿import { Component, OnInit, HostListener, ChangeDetectorRef, DestroyRef, inject , ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { skip } from 'rxjs';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
 import { UserService } from '../../services/userservice/user.service';
 import { AuthService } from '../../services/authservice/auth.service';
@@ -53,10 +54,25 @@ export class NavbarComponent implements OnInit{
       this.isLoggedIn = this.checkLogin();
     }, 0);
 
+    // Save theme to backend whenever user changes it (skip initial BehaviorSubject replay)
+    this.themeService.theme$.pipe(
+      skip(1),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(theme => {
+      if (this.userData?._id) {
+        this.userService.updateUser(this.userData._id, { theme }).subscribe();
+      }
+    });
+
     this.sharedService.getUserData().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data)=>{
       if(data){
-        this.userData = data
+        this.userData = data;
+        // Apply server-stored theme preference
+        if (data.theme) {
+          this.themeService.setTheme(data.theme);
+        }
         this.setUserName();
+        this.cdr.markForCheck();
       }else{
         this.getUserData();
       }
@@ -87,6 +103,9 @@ export class NavbarComponent implements OnInit{
         next: (response: User) => {
           this.userData = response;
           this.sharedService.setUserData(response);
+          if (response.theme) {
+            this.themeService.setTheme(response.theme);
+          }
           if (this.userData && this.userData._id) {
             this.setUserName();
           }
@@ -150,6 +169,7 @@ export class NavbarComponent implements OnInit{
       next: (res: Wall[]) => {
         this.allUserWalls = res || [];
         this.searchLoaded = true;
+        this.cdr.markForCheck();
       }
     });
   }

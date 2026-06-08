@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema(
     profilePictureUrl: { type: String, default: null },
     bio:       { type: String, maxlength: 300, default: "" },
     lastLoginAt: { type: Date, default: null },
+    theme:     { type: String, enum: ["light", "dark"], default: "light" },
   },
   { timestamps: true }
 );
