@@ -228,6 +228,14 @@
     display: none;
 }
 
+/* ══ QoL: text overflow for card titles ══ */
+.card .card-body h2 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
 button.bookmark {
     background: none;
     border: none;

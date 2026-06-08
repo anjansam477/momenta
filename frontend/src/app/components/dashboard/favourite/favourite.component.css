@@ -2,6 +2,14 @@
     min-height: calc(100vh - 60px);
 }
 
+/* ══ QoL: text overflow for card titles ══ */
+.card .card-body h2 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
 .card-img-top .dropdown-item:active {
     background-color: #10A7A4
 }

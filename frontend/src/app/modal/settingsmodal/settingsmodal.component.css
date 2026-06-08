@@ -140,6 +140,8 @@ label {
 
 .settings-modal .modal-dialog {
     max-height: 92vh;
+    max-width: 520px;
+    width: 100%;
 }
 
 .settings-modal .modal-content {
