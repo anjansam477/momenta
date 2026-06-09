@@ -167,56 +167,58 @@
   transform: translateX(16px);
 }
 
-/* ── Date grid ── */
-.cc-date-grid {
+/* ── Datetime grid ── */
+.cc-datetime-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-top: 8px;
 }
 
-.cc-date-btn {
+.cc-datetime-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cc-datetime-label {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 11px;
-  border: 1px solid rgba(8,124,131,0.1);
-  border-radius: 10px;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #7a8fa3;
+}
+
+.cc-datetime-label i { font-size: 11px; color: #087c83; }
+
+.cc-datetime-input {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid rgba(8,124,131,0.15);
+  border-radius: 8px;
   background: #f6f8fb;
-  text-align: left;
+  font-size: 11.5px;
+  font-family: inherit;
+  color: #1a2535;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
-  width: 100%;
+  box-sizing: border-box;
 }
 
-.cc-date-btn:hover { border-color: #10a7a4; background: #fff; }
-
-.cc-date-btn i { font-size: 14px; color: #087c83; flex-shrink: 0; }
-
-.cc-date-btn small {
-  display: block;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #7a8fa3;
-  margin-bottom: 1px;
+.cc-datetime-input:focus {
+  outline: none;
+  border-color: #087c83;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(8,124,131,0.08);
 }
 
-.cc-date-btn strong {
-  display: block;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #1a2535;
-  line-height: 1.2;
-}
-
-.calendar-input-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
+.cc-datetime-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.55;
+  filter: invert(33%) sepia(50%) saturate(400%) hue-rotate(150deg);
 }
 
 /* ── Access panel ── */
@@ -340,10 +342,10 @@
 :host-context([data-theme="dark"]) .cc-mini-tabs { background: #111b27 !important; border-color: #243447 !important; }
 :host-context([data-theme="dark"]) .cc-mini-tab-btn { color: #9BB0C4 !important; border-color: #243447 !important; }
 :host-context([data-theme="dark"]) .cc-mini-tab-btn--active { background: #087c83 !important; color: #fff !important; }
-:host-context([data-theme="dark"]) .cc-date-btn { background: #1E2D3D !important; border-color: #243447 !important; }
-:host-context([data-theme="dark"]) .cc-date-btn strong { color: #E2EAF2 !important; }
-:host-context([data-theme="dark"]) .cc-date-btn small { color: #9BB0C4 !important; }
-:host-context([data-theme="dark"]) .cc-date-btn:hover { background: #243447 !important; border-color: #10A7A4 !important; }
+:host-context([data-theme="dark"]) .cc-datetime-input { background: #1E2D3D !important; border-color: #243447 !important; color: #E2EAF2 !important; }
+:host-context([data-theme="dark"]) .cc-datetime-input:focus { border-color: #10A7A4 !important; background: #243447 !important; }
+:host-context([data-theme="dark"]) .cc-datetime-label { color: #9BB0C4 !important; }
+:host-context([data-theme="dark"]) .cc-datetime-input::-webkit-calendar-picker-indicator { filter: invert(1) !important; opacity: 0.6 !important; }
 :host-context([data-theme="dark"]) .cc-footer { background: #111b27 !important; border-color: #243447 !important; }
 :host-context([data-theme="dark"]) .cc-btn--ghost { color: #9BB0C4 !important; border-color: #243447 !important; }
 :host-context([data-theme="dark"]) .cc-btn--ghost:hover { background: #1E2D3D !important; }

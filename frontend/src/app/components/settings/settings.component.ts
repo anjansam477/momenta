@@ -1,25 +1,20 @@
 ﻿import {
-  ChangeDetectorRef,
   Component,
   DestroyRef,
   EventEmitter,
   Input,
   OnInit,
   Output,
-  ViewChild,
-  ElementRef,
   inject,
   ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
-import { filter, Subscription } from 'rxjs';
+import { filter } from 'rxjs';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { animate, style, transition, trigger } from '@angular/animations';
 import { WallService } from '../../services/wallservice/wall.service';
 import { Wall } from '../../shared/models';
-import { NgxMaterialTimepickerComponent, NgxMaterialTimepickerModule, NgxMaterialTimepickerTheme } from 'ngx-material-timepicker';
 import { AddUserComponent } from '../data-transformation/add-user/add-user.component';
-import { format } from 'date-fns';
 import { AddDomainComponent } from '../data-transformation/add-domain/add-domain.component';
 import { WALL_STATUS } from '../../constants/wall.constants';
 
@@ -50,10 +45,8 @@ interface WallSettingsForm {
   postAccess: FormControl<AccessList>;
   requireApproval: FormControl<boolean>;
   maintainerEmails: FormControl<string[]>;
-  openingDate: FormControl<Date | null>;
-  closingDate: FormControl<Date | null>;
-  openDate: FormControl<DateTimeValue | null>;
-  closeDate: FormControl<DateTimeValue | null>;
+  openDateStr: FormControl<string>;
+  closeDateStr: FormControl<string>;
 }
 
 @Component({
@@ -62,7 +55,6 @@ interface WallSettingsForm {
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    NgxMaterialTimepickerModule,
     AddUserComponent,
     AddDomainComponent
   ],
@@ -84,8 +76,6 @@ interface WallSettingsForm {
 export class SettingsComponent implements OnInit {
 
   private readonly destroyRef = inject(DestroyRef);
-  openingDateSub!: Subscription;
-  closingDateSub!: Subscription;
   wall!: Wall;
   originalWallData!: Wall;
   wallId!: string;
@@ -96,35 +86,21 @@ export class SettingsComponent implements OnInit {
   @Output() closeModal = new EventEmitter<void>();
   @Output() openAnalytics = new EventEmitter<void>();
   @Input() isCreatorOrMaintainer = false;
-  minDate: Date = new Date();
-  maxDate: Date | undefined;
-  closeMinDate: Date | null = null;
-  minTime = "12:00 AM";
-  maxTime = "";
-  closeMinTime = "12:00 AM";
-  @ViewChild('picker1') picker1!: NgxMaterialTimepickerComponent;
-  @ViewChild('picker2') picker2!: NgxMaterialTimepickerComponent;
-  @ViewChild('openingCalendar') openingCalendar!: ElementRef<HTMLInputElement>;
-  @ViewChild('closingCalendar') closingCalendar!: ElementRef<HTMLInputElement>;
-  customTheme: NgxMaterialTimepickerTheme = {
-    container: {
-      bodyBackgroundColor: 'white',
-      buttonColor: 'rgb(42, 175, 145)'
-    },
-    dial: {
-      dialBackgroundColor: "rgba(92, 121, 204, 0.8)"
-    },
-    clockFace: {
-      clockHandColor: 'rgb(149, 118, 233)',
-      clockFaceTimeInactiveColor: '#373558',
-      clockFaceTimeActiveColor: '#f44336'
-    }
-  };
+
+  get nowStr(): string {
+    return this.isoToLocal(new Date());
+  }
+
+  private isoToLocal(iso: string | Date | null | undefined): string {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
   constructor(
     private fb: FormBuilder,
     private sharedDataService: SharedDataService,
-    private wallService: WallService,
-    private cdr: ChangeDetectorRef
+    private wallService: WallService
   ) {
     const bool = (v = false) => new FormControl(v, { nonNullable: true });
     this.wallForm = new FormGroup<WallSettingsForm>({
@@ -141,25 +117,16 @@ export class SettingsComponent implements OnInit {
       postAccess: new FormControl<AccessList>({ emails: [], domains: [] }, { nonNullable: true }),
       requireApproval: bool(),
       maintainerEmails: new FormControl<string[]>([], { nonNullable: true }),
-      openingDate: new FormControl<Date | null>(null),
-      closingDate: new FormControl<Date | null>(null),
-      openDate: new FormControl<DateTimeValue | null>(null),
-      closeDate: new FormControl<DateTimeValue | null>(null)
+      openDateStr: new FormControl<string>('', { nonNullable: true }),
+      closeDateStr: new FormControl<string>('', { nonNullable: true })
     });
   }
 
   ngOnInit(): void {
     this.fetchWallDetails();
-    this.watchDateChanges();
   }
 
   closeSidebar(): void {
-    if (this.openingDateSub) {
-      this.openingDateSub.unsubscribe();
-    }
-    if (this.closingDateSub) {
-      this.closingDateSub.unsubscribe();
-    }
     this.sharedDataService.setWallDetails(this.originalWallData);
     this.closeModal.emit();
   }
@@ -186,12 +153,9 @@ export class SettingsComponent implements OnInit {
             requireApproval: wallData.postConfig?.requireApproval ?? false,
             isMaintainer: (wallData.maintainerEmails?.length ?? 0) > 0,
             maintainerEmails: wallData.maintainerEmails ?? [],
-            openDate: this.convertIsoToCustomFormat(wallData.openDate),
-            openingDate: this.convertIsoToCustomFormat(wallData.openDate)?.date ?? null,
-            closeDate: this.convertIsoToCustomFormat(wallData.closeDate),
-            closingDate: this.convertIsoToCustomFormat(wallData.closeDate)?.date ?? null
+            openDateStr: this.isoToLocal(wallData.openDate),
+            closeDateStr: this.isoToLocal(wallData.closeDate)
           });
-          this.setMinTimeToCurrent();
         },
         error: (err) => {
           return;
@@ -213,10 +177,8 @@ export class SettingsComponent implements OnInit {
     this.wallForm.get(property)?.setValue(input.checked);
     if (property === 'duration' && !input.checked) {
       this.wallForm.patchValue({
-        openDate: null,
-        closeDate: null,
-        openingDate: null,
-        closingDate: null
+        openDateStr: '',
+        closeDateStr: ''
       }, { emitEvent: false });
     }
 
@@ -241,13 +203,6 @@ export class SettingsComponent implements OnInit {
       return;
     }
 
-    if (this.openingDateSub) {
-      this.openingDateSub.unsubscribe();
-    }
-    if (this.closingDateSub) {
-      this.closingDateSub.unsubscribe();
-    }
-   
     const updateWallSettings: Partial<Wall> = {
       status: this.getFormControlValue('isLocked') ? WALL_STATUS.LOCKED : WALL_STATUS.ACTIVE,
       anyoneCanView: this.getFormControlValue('anyoneCanView'),
@@ -258,20 +213,15 @@ export class SettingsComponent implements OnInit {
       maintainerEmails: this.getFormControlValue('maintainerEmails'),
     };
   
-    const openDate = this.wallForm.get('openDate')?.value;
-    const closeDate = this.wallForm.get('closeDate')?.value;
+    const openDateStr = this.getFormControlValue('openDateStr');
+    const closeDateStr = this.getFormControlValue('closeDateStr');
 
     if (!this.getFormControlValue('duration')) {
       updateWallSettings.openDate = null;
       updateWallSettings.closeDate = null;
     } else {
-      if (openDate && openDate.date && openDate.time) {
-        updateWallSettings.openDate = this.convertCustomToIsoFormat(openDate.date, openDate.time);
-      }
-
-      if (closeDate && closeDate.date && closeDate.time) {
-        updateWallSettings.closeDate = this.convertCustomToIsoFormat(closeDate.date, closeDate.time);
-      }
+      updateWallSettings.openDate = openDateStr ? new Date(openDateStr).toISOString() : null;
+      updateWallSettings.closeDate = closeDateStr ? new Date(closeDateStr).toISOString() : null;
     }
 
     this.wallService.updateWall(this.wallId, updateWallSettings).subscribe({
@@ -287,75 +237,6 @@ export class SettingsComponent implements OnInit {
   }
 
 
-  selectTime(event: string, type: string) {
-    this.updateCombinedDateTime(event, type);
-  }
-
-  selectDate(dateType: string) {
-    if (dateType === 'openDate') {
-      this.picker1?.open();
-    }
-    else {
-      this.picker2?.open();
-    }
-  }
-
-  openCalendar(dateType: string) {
-    const input = dateType === 'openDate'
-      ? this.openingCalendar?.nativeElement
-      : this.closingCalendar?.nativeElement;
-    input?.showPicker?.();
-    input?.focus();
-    input?.click();
-  }
-
-  toDateInputValue(date: Date | null | undefined): string | null {
-    if (!date) {
-      return null;
-    }
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
-  onDateInputChange(event: Event, controlName: 'openingDate' | 'closingDate'): void {
-    const input = event.target as HTMLInputElement;
-    this.wallForm.get(controlName)?.setValue(input.value ? new Date(`${input.value}T00:00:00`) : null);
-  }
-
-  updateCombinedDateTime(time: string, dateType: string) {
-    let date;
-    if (dateType === 'openDate') {
-      date = new Date(this.getFormControlValue('openingDate') ?? 0);
-      this.closeMinDate = date;
-      this.closeMinTime = time;
-    }
-    else {
-      date = new Date(this.getFormControlValue('closingDate') ?? 0);
-      this.maxDate = date;
-    }
-    this.wallForm.get(dateType)?.setValue({ date, time }, { emitEvent: false });
-  }
-
-  formatDate(dateType: string): string {
-    let dateValue;
-    if (dateType === 'openDate') {
-      dateValue = this.wallForm.get('openDate')?.value;
-    }
-    else {
-      dateValue = this.wallForm.get('closeDate')?.value;
-    }
-
-    if (dateValue) {
-      const { date, time } = dateValue;
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = date.getFullYear();
-      return `${day}/${month}/${year} , ${time}`;
-    }
-    return "";
-  }
 
   handleEmailsChanged(emails: string[], type: 'view' | 'post' | 'maintainer'): void {
     const postDomains = this.getFormControlValue('postAccess').domains;
@@ -436,121 +317,9 @@ export class SettingsComponent implements OnInit {
     }
   }
 
-  watchDateChanges() {
-    this.openingDateSub = this.wallForm.get('openingDate')?.valueChanges
-      ?.pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(selectedDate => {
-        this.updateMinTime(selectedDate);
-        this.selectDate('openDate');
-      }) ?? new Subscription();
-
-    this.closingDateSub = this.wallForm.get('closingDate')?.valueChanges
-      ?.pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(selectedDate => {
-        this.updateCloseMinTime(selectedDate);
-        this.selectDate('closeDate');
-      }) ?? new Subscription();
-  }
-
-  setMinTimeToCurrent() {
-    const now = new Date();
-    this.minTime = format(now, 'hh:mm aa');
-    if (this.convertIsoToCustomFormat(this.wall.closeDate)?.date)
-      this.maxDate = this.convertIsoToCustomFormat(this.wall.closeDate)?.date
-    if (this.convertIsoToCustomFormat(this.wall.closeDate)?.date)
-      this.closeMinDate = this.convertIsoToCustomFormat(this.wall.openDate)?.date ?? null
-    else
-      this.closeMinDate = now;
-  }
-
-  updateMinTime(selectedDate: Date | null) {
-    if (!selectedDate) { return; }
-    const today = new Date();
-    const closingdate = new Date(this.getFormControlValue('closingDate') ?? 0);
-    if (!isNaN(closingdate.getTime()) && closingdate.getDate() === selectedDate.getDate()) {
-      this.maxTime = this.getFormControlValue('closeDate')?.time ?? '23:59';
-    }
-    else
-      this.maxTime = '23:59';
-    if (selectedDate && today.getDate() == selectedDate.getDate()) {
-      this.setMinTimeToCurrent();
-    } else {
-      this.minTime = '12:00 AM';
-    }
-    this.cdr.detectChanges();
-  }
-
-  updateCloseMinTime(selectedDate: Date | null) {
-    if (!selectedDate) { return; }
-    const date = new Date(this.getFormControlValue('openingDate') ?? 0);
-    if (isNaN(date.getTime())) {
-      this.closeMinTime = this.minTime;
-    }
-    else if (selectedDate && date.getDate() == selectedDate.getDate()) {
-      this.closeMinTime = this.getFormControlValue('openDate')?.time ?? '12:00 AM';
-    } else {
-      this.closeMinTime = '12:00 AM';
-    }
-    this.cdr.detectChanges();
-  }
-
-
-  convertIsoToCustomFormat(isoDateString: string | Date | null | undefined): { date: Date, time: string } | null {
-    if (!isoDateString) {
-      return null;
-    }
-    try {
-      const dateObj = new Date(isoDateString);
-      const hours = dateObj.getHours();
-      const minutes = dateObj.getMinutes();
-      const time = `${(hours % 12) || 12}:${minutes < 10 ? '0' + minutes : minutes} ${hours >= 12 ? 'PM' : 'AM'}`;
-      return {
-        date: dateObj,
-        time
-      };
-    } catch (error) {
-      return null;
-    }
-  }
-
-
-  convertCustomToIsoFormat(date: Date | string | null | undefined, time: string): string | null {
-    if (!date || !time) {
-      return null;
-    }
-
-    try {
-      const [timePart, modifier] = time.split(' ');
-      let [hours, minutes] = timePart.split(':').map(Number);
-      if (modifier === 'PM' && hours !== 12) {
-        hours += 12;
-      }
-      if (modifier === 'AM' && hours === 12) {
-        hours = 0;
-      }
-      const dateObj = new Date(date);
-      dateObj.setHours(hours);
-      dateObj.setMinutes(minutes);
-      return dateObj.toISOString();
-    } catch (error) {
-      return null;
-    }
-  }
-
   isFormValueChanged(): boolean {
-    const keysToCompare = ['anyoneCanPost', 'anyoneCanView', 'isOpen', 'maintainerEmails', 'postAccess', 'viewAccess', 'openDate', 'closeDate', 'requireApproval'];
-  
-    type DateTimeValue = { date?: Date; time?: string } | null | undefined;
-    const areDatesEqual = (originalDate: DateTimeValue, formDate: DateTimeValue): boolean => {
-      if (!originalDate && !formDate) return true;
-      if (!originalDate || !formDate) return false;
+    const keysToCompare = ['anyoneCanPost', 'anyoneCanView', 'isOpen', 'maintainerEmails', 'postAccess', 'viewAccess', 'openDateStr', 'closeDateStr', 'requireApproval'];
 
-      return (
-        originalDate.date?.toISOString() === formDate.date?.toISOString() &&
-        originalDate.time === formDate.time
-      );
-    };
-  
     const areObjectsEqual = (obj1: unknown, obj2: unknown): boolean => {
       if (obj1 === obj2) return true;
       if (typeof obj1 !== 'object' || typeof obj2 !== 'object' || obj1 === null || obj2 === null) {
@@ -588,16 +357,12 @@ export class SettingsComponent implements OnInit {
         if (originalValue !== formValue) {
           return true;
         }
-      } else if (key === 'openDate' || key === 'closeDate') {
-        originalValue = this.convertIsoToCustomFormat(originalValue as string | Date | null);
-        formValue = this.wallForm.get(key)?.value;
-  
-        if (!originalValue && !formValue) { continue; }
-        if (!originalValue || !formValue) { return true; }
-  
-        if (!areDatesEqual(originalValue, formValue)) {
-          return true;
-        }
+      } else if (key === 'openDateStr' || key === 'closeDateStr') {
+        const wallKey = key === 'openDateStr' ? 'openDate' : 'closeDate';
+        const iso = (this.originalWallData as unknown as Record<string, unknown>)[wallKey];
+        const originalStr = this.isoToLocal(iso as string | null);
+        formValue = this.wallForm.get(key)?.value ?? '';
+        if (originalStr !== formValue) return true;
       } else {
         formValue = this.wallForm.get(key)?.value;
   
