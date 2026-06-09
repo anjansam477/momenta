@@ -244,13 +244,24 @@ app.get("/api/themes", async (req, res) => {
       const themes = await fs.promises.readdir(themesFolderPath);
       const lists = await Promise.all(
         themes.map(async (theme) => {
-          const images = await fs.promises.readdir(path.join(themesFolderPath, theme));
-          return {
-            name: theme.replace(/\.[^/.]+$/, ""),
-            images: images.map((image) =>
-              path.join("assets", "images", "background_images", theme, image)
-            ),
-          };
+          const rawImages = await fs.promises.readdir(path.join(themesFolderPath, theme));
+          // Deduplicate: track canonical names (lowercase, no extension, no non-alpha)
+          // so near-identical filenames like deafult/default only appear once.
+          const seen = new Set();
+          const images = rawImages
+            .filter((img) => {
+              const canonical = img.toLowerCase().replace(/\.[^/.]+$/, "").replace(/[^a-z0-9]/g, "");
+              // Keep first occurrence; skip if same canonical name already seen
+              if (seen.has(canonical)) return false;
+              // Also explicitly skip the correctly-named duplicate of the typo original
+              if (img === "default_background.png") return false;
+              seen.add(canonical);
+              return true;
+            })
+            .map((image) =>
+              ["assets", "images", "background_images", theme, image].join("/")
+            );
+          return { name: theme.replace(/\.[^/.]+$/, ""), images };
         })
       );
       themesCache = lists;
