@@ -4770,8 +4770,8 @@ html body {
 /* ══════════════════════════════════════
    SCROLLBARS
    ══════════════════════════════════════ */
-[data-theme="dark"] ::-webkit-scrollbar { background: #0F1923 !important; width: 6px; height: 6px; }
-[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #243447 !important; border-radius: 4px; }
+[data-theme="dark"] ::-webkit-scrollbar { background: #1A2635 !important; width: 6px; height: 6px; }
+[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #4A6580 !important; border-radius: 4px; }
 [data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #10A7A4 !important; }
 
 /* ── ngx-chips tag-input dark mode ── */

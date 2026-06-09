@@ -77,7 +77,8 @@ export class BackgroundComponent implements OnInit{
 
 
   ngOnInit(): void {
-    this.themes = this.sharedService.themes();
+    // Deep copy so shiftBg mutations don't corrupt the shared signal's array
+    this.themes = this.sharedService.themes().map(t => ({ ...t, images: [...t.images] }));
     this.fetchWallDetails();
     this.audioService.getAudioFileSubject().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(audioFile => {
       this.hasAudio = !!audioFile;
@@ -93,10 +94,10 @@ export class BackgroundComponent implements OnInit{
           this.wall=wallData;
           this.wallId=wallData._id;
           this.occasion = wallData.type;
-          this.currentBackgroundImage = wallData.bgImg;
-          this.selectedImage = wallData.bgImg;
+          this.currentBackgroundImage = wallData.bgImg || this.backgroundService.defaultBackground;
+          this.selectedImage = wallData.bgImg || this.backgroundService.defaultBackground;
           this.shiftBg(this.selectedImage);
-          this.selectedAudio = wallData.audio;
+          this.selectedAudio = wallData.audio ?? '';
           this.shiftAudio(this.selectedAudio);
           this.selectedAnimation = wallData.animationId;
           this.shiftAnimation(this.selectedAnimation);
