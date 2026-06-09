@@ -47,6 +47,50 @@ exports.validateWall = asyncHandler(async (req, res, next) => {
     if (!wall) throw new Error(Response.generateMessage(Response.errorMessage.INVALID_REQUEST, "wall"));
     if (wall.status === "archived") throw new Error(Response.generateMessage(Response.errorMessage.DATA_ARCHIVED, "wall"));
     if (wall.status === "locked")   throw new Error("This moment is locked.");
+
+    // Open/close date window — owners and maintainers can always post
+    const isPrivileged = ["owner", "maintainer"].includes(req.role);
+    if (!isPrivileged) {
+      const now = new Date();
+      if (wall.openDate && now < new Date(wall.openDate)) {
+        throw new Error("This moment hasn't opened yet.");
+      }
+      if (wall.closeDate && now > new Date(wall.closeDate)) {
+        throw new Error("This moment is no longer accepting posts.");
+      }
+    }
+
+    next();
+  } catch (err) {
+    return Response.respondError(res, err);
+  }
+});
+
+exports.validatePostContent = asyncHandler(async (req, res, next) => {
+  const wall = req.wall;
+  const { content, mediaType } = req.body;
+  const file = req.file;
+  const config = wall?.postConfig || {};
+
+  try {
+    const hasText = content && content.trim().length > 0;
+    if (hasText && config.allowText === false) {
+      throw new Error("Text posts are not allowed on this moment.");
+    }
+
+    if (file || mediaType) {
+      const type = (mediaType || "image").toLowerCase();
+      const allowed = {
+        image:   config.allowImage   !== false,
+        gif:     config.allowGif     !== false,
+        video:   config.allowVideo   !== false,
+        sticker: config.allowSticker !== false,
+      };
+      if (allowed[type] === false) {
+        throw new Error(`${type.charAt(0).toUpperCase() + type.slice(1)} posts are not allowed on this moment.`);
+      }
+    }
+
     next();
   } catch (err) {
     return Response.respondError(res, err);

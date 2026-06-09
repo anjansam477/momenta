@@ -1,4 +1,5 @@
 const rateLimit = require("express-rate-limit");
+const { ipKeyGenerator } = require("express-rate-limit");
 const { RedisStore } = require("rate-limit-redis");
 const { client: redisClient } = require("../utils/redis");
 const Response = require("../utils/error-handler");
@@ -60,7 +61,7 @@ const signupLimiter = rateLimit({
 
 // Authenticated write limiters — keyed by user email (falls back to IP).
 // These run after verifyToken, so req.email is populated.
-const byUser = (req) => req.email || req.ip;
+const byUser = (req) => req.email || ipKeyGenerator(req);
 
 // Post creation spam guard
 const postWriteLimiter = rateLimit({
