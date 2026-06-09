@@ -74,7 +74,7 @@ services:
       - momenta-network
 
   mongo_madness:
-    image: mongo:latest
+    image: mongo:7.0
     # Single-node replica set so Mongoose transactions work in dev too. The
     # healthcheck self-initiates the set on first boot (idempotent thereafter).
     # NOTE: dev runs WITHOUT auth on purpose — auth (keyfile + creds) is enabled
@@ -142,6 +142,7 @@ services:
     hostname: redis-node-1
     volumes:
       - ./redis/redis.config:/redis/redis.conf
+      - redis_data_volume:/data
     command: redis-server /redis/redis.conf --appendonly yes
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -200,6 +201,7 @@ services:
 
 volumes:
   mongodb_data_volume:
+  redis_data_volume:
   prometheus_data:
   grafana_data:
   uptime_kuma_data:
