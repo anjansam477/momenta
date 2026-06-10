@@ -14,8 +14,7 @@ import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angul
 import { animate, style, transition, trigger } from '@angular/animations';
 import { WallService } from '../../services/wallservice/wall.service';
 import { Wall } from '../../shared/models';
-import { AddUserComponent } from '../data-transformation/add-user/add-user.component';
-import { AddDomainComponent } from '../data-transformation/add-domain/add-domain.component';
+import { AccessEditorComponent } from '../data-transformation/access-editor/access-editor.component';
 import { WALL_STATUS } from '../../constants/wall.constants';
 
 /** Access list for a wall — emails + domains allowed to view/post. */
@@ -55,8 +54,7 @@ interface WallSettingsForm {
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    AddUserComponent,
-    AddDomainComponent
+    AccessEditorComponent
   ],
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.css',
@@ -81,8 +79,6 @@ export class SettingsComponent implements OnInit {
   wallId!: string;
   wallForm: FormGroup<WallSettingsForm>;
 
-  activeViewTab: 'email' | 'domain' = 'email';
-  activePostTab: 'email' | 'domain' = 'email';
   @Output() closeModal = new EventEmitter<void>();
   @Output() openAnalytics = new EventEmitter<void>();
   @Input() isCreatorOrMaintainer = false;

@@ -18,7 +18,7 @@ import { filter, take } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { MailService, ScheduledMailData } from '../../services/mailservice/mail.service';
 import { UserReplacerComponent } from '../data-transformation/user-replacer/user-replacer.component';
-import { AddUserComponent } from '../data-transformation/add-user/add-user.component';
+import { AccessEditorComponent } from '../data-transformation/access-editor/access-editor.component';
 import { format } from 'date-fns';
 import { WallService } from '../../services/wallservice/wall.service';
 import { handleHttpError } from '../../utils/error-handler.util';
@@ -32,7 +32,7 @@ import { handleHttpError } from '../../utils/error-handler.util';
   imports: [
     DatePipe,
     FormsModule,
-    AddUserComponent,
+    AccessEditorComponent,
     NgxMaterialTimepickerModule,
     UserReplacerComponent
   ]

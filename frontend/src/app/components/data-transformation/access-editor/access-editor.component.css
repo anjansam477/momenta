@@ -1,0 +1,265 @@
+:host {
+  --ae-teal: #087c83;
+  --ae-teal-soft: rgba(8, 124, 131, 0.10);
+  --ae-teal-line: rgba(8, 124, 131, 0.18);
+  --ae-surface: #f6f8fb;
+  --ae-ink: #16323a;
+  --ae-muted: #6b8591;
+  --ae-danger: #d9534f;
+  --ae-radius: 12px;
+  display: block;
+}
+
+.ae { display: flex; flex-direction: column; gap: 10px; }
+.ae--disabled { opacity: 0.5; pointer-events: none; filter: grayscale(0.3); }
+
+/* ── Tabs ───────────────────────────────────────────── */
+.ae-tabs {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  padding: 3px;
+  background: var(--ae-surface);
+  border: 1px solid var(--ae-teal-line);
+  border-radius: 10px;
+}
+.ae-tab {
+  position: relative;
+  z-index: 1;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 7px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 7px;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.2px;
+  color: var(--ae-muted);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.ae-tab i { font-size: 12px; }
+.ae-tab--active { color: #fff; }
+.ae-tab:disabled { cursor: not-allowed; }
+.ae-tab-badge {
+  min-width: 16px; height: 16px; padding: 0 4px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; line-height: 1;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.22);
+  color: inherit;
+}
+.ae-tab:not(.ae-tab--active) .ae-tab-badge { background: var(--ae-teal-soft); color: var(--ae-teal); }
+/* sliding pill behind the active tab */
+.ae-tab-glow {
+  position: absolute; top: 3px; left: 3px; z-index: 0;
+  width: calc(50% - 3px); height: calc(100% - 6px);
+  background: var(--ae-teal);
+  border-radius: 7px;
+  box-shadow: 0 2px 8px rgba(8, 124, 131, 0.35);
+  transition: transform 0.28s cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+.ae-tab-glow--right { transform: translateX(100%); }
+
+/* ── Count ──────────────────────────────────────────── */
+.ae-count { display: flex; align-items: baseline; gap: 6px; padding: 0 2px; }
+.ae-count-num {
+  font-size: 16px; font-weight: 800; color: var(--ae-teal);
+  font-variant-numeric: tabular-nums;
+}
+.ae-count-noun { font-size: 12px; font-weight: 600; color: var(--ae-muted); letter-spacing: 0.2px; }
+
+/* ── Input field ────────────────────────────────────── */
+.ae-field-wrap { position: relative; }
+.ae-field {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 6px 0 11px;
+  background: #fff;
+  border: 1.5px solid var(--ae-teal-line);
+  border-radius: var(--ae-radius);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.ae-field:focus-within {
+  border-color: var(--ae-teal);
+  box-shadow: 0 0 0 4px var(--ae-teal-soft);
+}
+.ae-field--error { border-color: var(--ae-danger); }
+.ae-field--error:focus-within { box-shadow: 0 0 0 4px rgba(217, 83, 79, 0.12); }
+.ae-field-icon { font-size: 14px; color: var(--ae-teal); flex-shrink: 0; }
+.ae-input {
+  flex: 1; min-width: 0;
+  border: none; outline: none; background: transparent;
+  padding: 10px 0;
+  font-size: 13px; color: var(--ae-ink);
+}
+.ae-input::placeholder { color: #9fb0b8; }
+/* Kill the app-wide focus-visible outline (styles.css) — the field already
+   shows its own subtle focus ring via :focus-within. */
+.ae-input:focus,
+.ae-input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+/* Neutralize Chrome autofill: it forces a light background + text colour that
+   blows out the dark field. Paint the inset to match the field instead. */
+.ae-input:-webkit-autofill,
+.ae-input:-webkit-autofill:hover,
+.ae-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--ae-ink);
+  -webkit-box-shadow: 0 0 0 60px #fff inset;
+  caret-color: var(--ae-ink);
+  transition: background-color 9999s ease-in-out 0s;
+}
+.ae-add {
+  flex-shrink: 0;
+  width: 30px; height: 30px;
+  display: grid; place-items: center;
+  border: none; border-radius: 8px;
+  background: var(--ae-teal-soft); color: var(--ae-teal);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.ae-add:hover:not(:disabled) { background: var(--ae-teal); color: #fff; }
+.ae-add:active:not(:disabled) { transform: scale(0.92); }
+.ae-add:disabled { opacity: 0.4; cursor: not-allowed; }
+.ae-add i { font-size: 13px; }
+
+/* ── Autocomplete dropdown ──────────────────────────── */
+.ae-drop {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30;
+  margin: 0; padding: 5px;
+  list-style: none;
+  background: #fff;
+  border: 1px solid var(--ae-teal-line);
+  border-radius: var(--ae-radius);
+  box-shadow: 0 12px 32px rgba(16, 50, 58, 0.16);
+  max-height: 240px; overflow-y: auto;
+}
+.ae-drop-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 8px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.ae-drop-item--active { background: var(--ae-teal-soft); }
+.ae-drop-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.ae-drop-name { font-size: 12.5px; font-weight: 600; color: var(--ae-ink); line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ae-drop-email { font-size: 11px; color: var(--ae-muted); line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ae-drop-email--solo { font-size: 12.5px; color: var(--ae-ink); font-weight: 500; }
+.ae-drop-add { font-size: 12px; color: var(--ae-teal); opacity: 0; transition: opacity 0.12s ease; }
+.ae-drop-item--active .ae-drop-add { opacity: 1; }
+
+/* ── Avatars ────────────────────────────────────────── */
+.ae-ava {
+  flex-shrink: 0;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, #0a9aa3, #087c83);
+}
+.ae-ava img { width: 100%; height: 100%; object-fit: cover; }
+.ae-ava-fallback { font-size: 11px; font-weight: 700; color: #fff; letter-spacing: 0.3px; }
+.ae-ava--org { background: linear-gradient(135deg, #5b7c8a, #3a5563); border-radius: 9px; }
+.ae-ava--org i { font-size: 14px; color: #fff; }
+
+/* ── Error ──────────────────────────────────────────── */
+.ae-error {
+  display: flex; align-items: center; gap: 6px;
+  margin: -2px 2px 0;
+  font-size: 11.5px; font-weight: 500; color: var(--ae-danger);
+}
+.ae-error i { font-size: 12px; }
+
+/* ── Chips ──────────────────────────────────────────── */
+.ae-chips { display: flex; flex-direction: column; gap: 6px; }
+.ae-chip {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 8px 7px 7px;
+  background: var(--ae-surface);
+  border: 1px solid transparent;
+  border-radius: var(--ae-radius);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.ae-chip:hover { border-color: var(--ae-teal-line); background: #fff; }
+.ae-chip-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.ae-chip-name { font-size: 12.5px; font-weight: 600; color: var(--ae-ink); line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ae-chip-sub { font-size: 11px; color: var(--ae-muted); line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ae-chip-sub--solo { font-size: 12.5px; color: var(--ae-ink); font-weight: 500; }
+.ae-chip-x {
+  flex-shrink: 0;
+  width: 26px; height: 26px;
+  display: grid; place-items: center;
+  border: none; border-radius: 7px;
+  background: transparent; color: var(--ae-muted);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+.ae-chip:hover .ae-chip-x { opacity: 1; }
+.ae-chip-x:hover { background: rgba(217, 83, 79, 0.12); color: var(--ae-danger); }
+.ae-chip-x i { font-size: 11px; }
+
+.ae-clear {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 4px 10px;
+  border: none; background: transparent;
+  font-size: 11.5px; font-weight: 600; color: var(--ae-muted);
+  border-radius: 6px; cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.ae-clear:hover { color: var(--ae-danger); background: rgba(217, 83, 79, 0.08); }
+
+/* ── Empty state ────────────────────────────────────── */
+.ae-empty {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 14px;
+  border: 1.5px dashed var(--ae-teal-line);
+  border-radius: var(--ae-radius);
+  color: var(--ae-muted);
+  font-size: 12px; line-height: 1.5;
+  background: rgba(8, 124, 131, 0.025);
+}
+.ae-empty i { font-size: 18px; color: var(--ae-teal); opacity: 0.7; flex-shrink: 0; }
+
+/* ════════════════════════════════════════════════════
+   DARK MODE
+   ════════════════════════════════════════════════════ */
+:host-context([data-theme="dark"]) {
+  --ae-teal: #10a7a4;
+  --ae-teal-soft: rgba(16, 167, 164, 0.14);
+  --ae-teal-line: #243447;
+  --ae-surface: #1e2d3d;
+  --ae-ink: #e2eaf2;
+  --ae-muted: #9bb0c4;
+  --ae-danger: #ff7a73;
+}
+:host-context([data-theme="dark"]) .ae-tabs { background: #111b27; }
+:host-context([data-theme="dark"]) .ae-tab-glow { box-shadow: 0 2px 10px rgba(16, 167, 164, 0.4); }
+:host-context([data-theme="dark"]) .ae-field { background: #16222e; }
+:host-context([data-theme="dark"]) .ae-input { color: var(--ae-ink); }
+:host-context([data-theme="dark"]) .ae-input:-webkit-autofill,
+:host-context([data-theme="dark"]) .ae-input:-webkit-autofill:hover,
+:host-context([data-theme="dark"]) .ae-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 60px #16222e inset;
+  -webkit-text-fill-color: var(--ae-ink);
+}
+:host-context([data-theme="dark"]) .ae-input::placeholder { color: #5f7689; }
+:host-context([data-theme="dark"]) .ae-drop {
+  background: #1a2635; border-color: #243447;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
+}
+:host-context([data-theme="dark"]) .ae-chip { background: #16222e; }
+:host-context([data-theme="dark"]) .ae-chip:hover { background: #243447; border-color: #2f4458; }
+:host-context([data-theme="dark"]) .ae-empty { background: rgba(16, 167, 164, 0.04); }
+:host-context([data-theme="dark"]) .ae-ava--org { background: linear-gradient(135deg, #3a5563, #243447); }
+
+/* ── Scrollbar inside dropdown ──────────────────────── */
+.ae-drop::-webkit-scrollbar { width: 6px; }
+.ae-drop::-webkit-scrollbar-thumb { background: var(--ae-teal-line); border-radius: 4px; }
+:host-context([data-theme="dark"]) .ae-drop::-webkit-scrollbar-thumb { background: #2f4458; }

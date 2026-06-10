@@ -1,0 +1,137 @@
+<div class="ae" [class.ae--disabled]="disabled">
+
+  <!-- People / Orgs switch — only when this role supports organizations -->
+  @if (config.showOrgs) {
+    <div class="ae-tabs" role="tablist">
+      <button type="button" class="ae-tab" role="tab" [class.ae-tab--active]="activeTab === 'people'"
+        [disabled]="disabled" (click)="setTab('people')">
+        <i class="bi bi-people-fill"></i> People
+        @if (people.length) { <span class="ae-tab-badge">{{ people.length }}</span> }
+      </button>
+      <button type="button" class="ae-tab" role="tab" [class.ae-tab--active]="activeTab === 'orgs'"
+        [disabled]="disabled" (click)="setTab('orgs')">
+        <i class="bi bi-buildings-fill"></i> Orgs
+        @if (orgs.length) { <span class="ae-tab-badge">{{ orgs.length }}</span> }
+      </button>
+      <span class="ae-tab-glow" [class.ae-tab-glow--right]="activeTab === 'orgs'"></span>
+    </div>
+  }
+
+  <!-- Count line -->
+  <div class="ae-count">
+    <span class="ae-count-num">{{ count }}</span>
+    <span class="ae-count-noun">{{ currentNoun }}</span>
+  </div>
+
+  <!-- Input + (people) autocomplete -->
+  <div class="ae-field-wrap">
+    <div class="ae-field" [class.ae-field--error]="error">
+      <i class="ae-field-icon bi" [ngClass]="activeTab === 'people' ? 'bi-person-plus' : 'bi-building-add'"></i>
+      <input
+        class="ae-input"
+        type="text"
+        [(ngModel)]="input"
+        [disabled]="disabled"
+        [placeholder]="activeTab === 'people' ? config.placeholder : 'e.g. acme.com or @acme.com'"
+        autocomplete="off"
+        spellcheck="false"
+        (input)="onInput()"
+        (keydown)="onKeydown($event)"
+        (blur)="onBlur()"
+        [attr.aria-label]="'Add ' + currentNoun" />
+      <button type="button" class="ae-add" [disabled]="disabled || !input.trim()" (click)="commit()" aria-label="Add">
+        <i class="bi bi-arrow-return-left"></i>
+      </button>
+    </div>
+
+    @if (showDrop && activeTab === 'people') {
+      <ul class="ae-drop" @drop>
+        @for (s of suggestions; track trackSug($index, s); let i = $index) {
+          <li class="ae-drop-item" [class.ae-drop-item--active]="i === activeIdx"
+            (mousedown)="pick(s)" (mouseenter)="activeIdx = i">
+            <span class="ae-ava">
+              @if (s.picture) {
+                <img [src]="s.picture" alt="" referrerpolicy="no-referrer" />
+              } @else {
+                <span class="ae-ava-fallback">{{ initials({ email: s.email || '', name: s.fullName || s.name || '', picture: '' }) }}</span>
+              }
+            </span>
+            <span class="ae-drop-text">
+              @if (s.fullName || s.name) { <span class="ae-drop-name">{{ s.fullName || s.name }}</span> }
+              <span class="ae-drop-email" [class.ae-drop-email--solo]="!(s.fullName || s.name)">{{ s.email }}</span>
+            </span>
+            <i class="bi bi-plus-lg ae-drop-add"></i>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+  @if (error) {
+    <p class="ae-error" @drop><i class="bi bi-exclamation-circle-fill"></i> {{ error }}</p>
+  }
+
+  <!-- Chips / empty state -->
+  @if (activeTab === 'people') {
+    @if (people.length) {
+      <div class="ae-chips" @list>
+        @for (c of people; track trackEmail($index, c)) {
+          <div class="ae-chip" @pop>
+            <span class="ae-ava">
+              @if (c.picture) {
+                <img [src]="c.picture" alt="" referrerpolicy="no-referrer" />
+              } @else {
+                <span class="ae-ava-fallback">{{ initials(c) }}</span>
+              }
+            </span>
+            <span class="ae-chip-text">
+              @if (c.name) { <span class="ae-chip-name">{{ c.name }}</span> }
+              <span class="ae-chip-sub" [class.ae-chip-sub--solo]="!c.name">{{ c.email }}</span>
+            </span>
+            @if (!disabled) {
+              <button type="button" class="ae-chip-x" (click)="removePerson(c)" [attr.aria-label]="'Remove ' + c.email">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            }
+          </div>
+        }
+      </div>
+      @if (people.length > 2 && !disabled) {
+        <button type="button" class="ae-clear" (click)="clearAll()">Clear all</button>
+      }
+    } @else {
+      <div class="ae-empty">
+        <i class="bi bi-person-lines-fill"></i>
+        <span>{{ config.emptyHint }}</span>
+      </div>
+    }
+  } @else {
+    @if (orgs.length) {
+      <div class="ae-chips" @list>
+        @for (d of orgs; track trackDomain($index, d)) {
+          <div class="ae-chip ae-chip--org" @pop>
+            <span class="ae-ava ae-ava--org"><i class="bi bi-building"></i></span>
+            <span class="ae-chip-text">
+              <span class="ae-chip-name">{{ d }}</span>
+              <span class="ae-chip-sub ae-chip-sub--solo">Anyone &#64;{{ d }}</span>
+            </span>
+            @if (!disabled) {
+              <button type="button" class="ae-chip-x" (click)="removeOrg(d)" [attr.aria-label]="'Remove ' + d">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            }
+          </div>
+        }
+      </div>
+      @if (orgs.length > 2 && !disabled) {
+        <button type="button" class="ae-clear" (click)="clearAll()">Clear all</button>
+      }
+    } @else {
+      <div class="ae-empty">
+        <i class="bi bi-buildings"></i>
+        <span>Add an organization domain to grant access to everyone with that email.</span>
+      </div>
+    }
+  }
+
+</div>

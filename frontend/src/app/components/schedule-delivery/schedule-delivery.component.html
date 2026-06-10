@@ -50,9 +50,11 @@
     @if(scheduledEmails.length === 0 || editMails) {
       <section class="cc-section">
         <h4 class="cc-section-label"><i class="bi bi-people"></i> Recipients</h4>
-        <app-add-user [component]="'schedule-delivery'"
-          [sharedEmails]="emailId"
-          (emailsChanged)="emailId = $event"></app-add-user>
+        <app-access-editor
+          [role]="'recipient'"
+          [emails]="emailId"
+          (emailsChange)="emailId = $event">
+        </app-access-editor>
       </section>
 
       <section class="cc-section">

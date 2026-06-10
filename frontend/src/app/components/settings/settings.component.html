@@ -70,28 +70,16 @@
       </div>
 
       <div class="cc-access" [class.cc-access--muted]="getFormControlValue('anyoneCanView') || getFormControlValue('anyoneCanPost')">
-        <div class="cc-mini-tabs">
-          <button class="cc-mini-tab-btn" [class.cc-mini-tab-btn--active]="activeViewTab === 'email'"
-            type="button" (click)="activeViewTab = 'email'"
-            [disabled]="getFormControlValue('anyoneCanView') || getFormControlValue('anyoneCanPost')">
-            <i class="bi bi-person-plus"></i> People
-          </button>
-          <button class="cc-mini-tab-btn" [class.cc-mini-tab-btn--active]="activeViewTab === 'domain'"
-            type="button" (click)="activeViewTab = 'domain'"
-            [disabled]="getFormControlValue('anyoneCanView') || getFormControlValue('anyoneCanPost')">
-            <i class="bi bi-building"></i> Orgs
-          </button>
-        </div>
-        <div [hidden]="activeViewTab !== 'email'">
-          <app-add-user (emailsChanged)="handleEmailsChanged($event,'view')" [component]="'viewByEmail'"
-            [sharedEmails]="getFormControlValue('viewAccess').emails"
-            [excludeEmails]="getEmailsToBeExcluded('view')"></app-add-user>
-        </div>
-        <div [hidden]="activeViewTab !== 'domain'">
-          <app-add-domain (domainsChanged)="handleDomainsChanged($event,'view')" [component]="'viewByDomain'"
-            [sharedDomains]="getFormControlValue('viewAccess').domains"
-            [excludeDomains]="getDomainsToBeExcluded('post')"></app-add-domain>
-        </div>
+        <app-access-editor
+          [role]="'viewer'"
+          [emails]="getFormControlValue('viewAccess').emails"
+          [domains]="getFormControlValue('viewAccess').domains"
+          [excludeEmails]="getEmailsToBeExcluded('view')"
+          [excludeDomains]="getDomainsToBeExcluded('post')"
+          [disabled]="getFormControlValue('anyoneCanView') || getFormControlValue('anyoneCanPost')"
+          (emailsChange)="handleEmailsChanged($event,'view')"
+          (domainsChange)="handleDomainsChanged($event,'view')">
+        </app-access-editor>
       </div>
     </section>
 
@@ -124,27 +112,15 @@
       </div>
 
       <div class="cc-access" [class.cc-access--muted]="getFormControlValue('anyoneCanPost')">
-        <div class="cc-mini-tabs">
-          <button class="cc-mini-tab-btn" [class.cc-mini-tab-btn--active]="activePostTab === 'email'"
-            type="button" (click)="activePostTab = 'email'"
-            [disabled]="getFormControlValue('anyoneCanPost')">
-            <i class="bi bi-person-check"></i> People
-          </button>
-          <button class="cc-mini-tab-btn" [class.cc-mini-tab-btn--active]="activePostTab === 'domain'"
-            type="button" (click)="activePostTab = 'domain'"
-            [disabled]="getFormControlValue('anyoneCanPost')">
-            <i class="bi bi-buildings"></i> Orgs
-          </button>
-        </div>
-        <div [hidden]="activePostTab !== 'email'">
-          <app-add-user (emailsChanged)="handleEmailsChanged($event,'post')" [component]="'postByEmail'"
-            [sharedEmails]="getFormControlValue('postAccess').emails"
-            [excludeEmails]="getEmailsToBeExcluded('post')"></app-add-user>
-        </div>
-        <div [hidden]="activePostTab !== 'domain'">
-          <app-add-domain (domainsChanged)="handleDomainsChanged($event,'post')" [component]="'postByDomain'"
-            [sharedDomains]="getFormControlValue('postAccess').domains"></app-add-domain>
-        </div>
+        <app-access-editor
+          [role]="'poster'"
+          [emails]="getFormControlValue('postAccess').emails"
+          [domains]="getFormControlValue('postAccess').domains"
+          [excludeEmails]="getEmailsToBeExcluded('post')"
+          [disabled]="getFormControlValue('anyoneCanPost')"
+          (emailsChange)="handleEmailsChanged($event,'post')"
+          (domainsChange)="handleDomainsChanged($event,'post')">
+        </app-access-editor>
       </div>
     </section>
 
@@ -154,8 +130,11 @@
         <i class="bi bi-stars"></i> Maintainers
       </h4>
       <p class="cc-section-hint">Trusted people who can manage this moment.</p>
-      <app-add-user (emailsChanged)="handleEmailsChanged($event,'maintainer')" [component]="'maintainer'"
-        [sharedEmails]="getFormControlValue('maintainerEmails')"></app-add-user>
+      <app-access-editor
+        [role]="'maintainer'"
+        [emails]="getFormControlValue('maintainerEmails')"
+        (emailsChange)="handleEmailsChanged($event,'maintainer')">
+      </app-access-editor>
     </section>
 
   </div>
