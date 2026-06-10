@@ -22,6 +22,10 @@ export class ThemeService {
   }
 
   setTheme(theme: Theme): void {
+    // Idempotent: if the theme isn't actually changing, do nothing. This stops a
+    // stale cached user value from re-applying the old theme on component remount,
+    // and prevents redundant DB writes / emit loops.
+    if (theme === this._theme) return;
     this._theme = theme;
     localStorage.setItem(this.STORAGE_KEY, theme);
     this.apply(theme);

@@ -59,8 +59,13 @@ export class NavbarComponent implements OnInit{
       skip(1),
       takeUntilDestroyed(this.destroyRef)
     ).subscribe(theme => {
-      if (this.userData?._id) {
-        this.userService.updateUser(this.userData._id, { theme }).subscribe();
+      const userId = this.userData?._id;
+      if (userId) {
+        // Persist to DB AND keep the in-memory cache in sync. Without updating the
+        // cached user, a navbar remount would replay the stale theme and revert it.
+        this.userData = { ...this.userData, theme };
+        this.sharedService.setUserData(this.userData as User);
+        this.userService.updateUser(userId, { theme }).subscribe();
       }
     });
 
