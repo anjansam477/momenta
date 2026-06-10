@@ -11,7 +11,7 @@ export class BackgroundImageService {
   constructor(private http: HttpClient) { }
 
   // Default background image
-  readonly defaultBackground: string = 'assets/images/background_images/Default/deafult_background.png';
+  readonly defaultBackground: string = 'assets/images/background_images/Default/default_background.png';
   
   // This BehaviorSubject object is initialized with the selected background image
   private selectedBgSubject = new BehaviorSubject<string>(this.defaultBackground);

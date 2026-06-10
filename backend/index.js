@@ -245,16 +245,13 @@ app.get("/api/themes", async (req, res) => {
       const lists = await Promise.all(
         themes.map(async (theme) => {
           const rawImages = await fs.promises.readdir(path.join(themesFolderPath, theme));
-          // Deduplicate: track canonical names (lowercase, no extension, no non-alpha)
-          // so near-identical filenames like deafult/default only appear once.
+          // Deduplicate by canonical name (lowercase, no extension, no non-alpha)
+          // so any accidental near-duplicate files only appear once in the picker.
           const seen = new Set();
           const images = rawImages
             .filter((img) => {
               const canonical = img.toLowerCase().replace(/\.[^/.]+$/, "").replace(/[^a-z0-9]/g, "");
-              // Keep first occurrence; skip if same canonical name already seen
               if (seen.has(canonical)) return false;
-              // Also explicitly skip the correctly-named duplicate of the typo original
-              if (img === "default_background.png") return false;
               seen.add(canonical);
               return true;
             })
