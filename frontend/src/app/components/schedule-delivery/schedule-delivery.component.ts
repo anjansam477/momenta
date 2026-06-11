@@ -2,24 +2,20 @@
 import {
   Component,
   OnInit,
-  ViewChild,
   Output,
   EventEmitter,
   ChangeDetectorRef,
-  ElementRef,
   ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/authservice/auth.service';
 import { Wall } from '../../shared/models';
 import { FormsModule } from '@angular/forms';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
-import { NgxMaterialTimepickerComponent, NgxMaterialTimepickerModule } from 'ngx-material-timepicker';
 import { filter, take } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 import { MailService, ScheduledMailData } from '../../services/mailservice/mail.service';
 import { UserReplacerComponent } from '../data-transformation/user-replacer/user-replacer.component';
 import { AccessEditorComponent } from '../data-transformation/access-editor/access-editor.component';
-import { format } from 'date-fns';
 import { WallService } from '../../services/wallservice/wall.service';
 import { handleHttpError } from '../../utils/error-handler.util';
 
@@ -33,7 +29,6 @@ import { handleHttpError } from '../../utils/error-handler.util';
     DatePipe,
     FormsModule,
     AccessEditorComponent,
-    NgxMaterialTimepickerModule,
     UserReplacerComponent
   ]
 })
@@ -49,20 +44,29 @@ export class ScheduleDeliveryComponent implements OnInit {
   mondayMorning!: Date;
   emailId: string[] = [];
   emailInCC: string[] = []
-  @ViewChild('picker') picker!: NgxMaterialTimepickerComponent;
-  @ViewChild('scheduleCalendar') scheduleCalendar!: ElementRef<HTMLInputElement>;
   mailToBeScheduledDate:  Date | null = null;
   wallId = '';
   wall!: Wall;
   minDate: Date = new Date();
-  time = '';
   date: Date = new Date();
-  displayDateTime!: string;
-  datesEdit = false;
+  /** Value bound to the native datetime-local input (local time, "YYYY-MM-DDTHH:mm"). */
+  customDateStr = '';
   isModified = false;
   @Output() closeModal = new EventEmitter<void>();
-  minTime = '12:00 AM';
   remove = '';
+
+  /** Lower bound for the custom picker — now, in local time. */
+  get nowStr(): string {
+    return this.isoToLocal(new Date());
+  }
+
+  /** Format a date as the local-time string a datetime-local input expects. */
+  private isoToLocal(value: Date | string | null | undefined): string {
+    if (!value) return '';
+    const d = new Date(value);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
 
   constructor(
     private authService: AuthService,
@@ -88,11 +92,6 @@ export class ScheduleDeliveryComponent implements OnInit {
         this.scheduledDate = rawDate ? new Date(rawDate) : null;
         if(this.scheduledDate){
           this.date = new Date(this.scheduledDate);
-          this.time = this.scheduledDate.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-          });
         }
         const ccList = data.recipients?.cc ?? data.emailId?.cc ?? [];
         if(ccList.length > 0){
@@ -110,22 +109,11 @@ export class ScheduleDeliveryComponent implements OnInit {
     this.emailId = this.scheduledEmails;
     if(this.scheduledDate){
       const schDate = new Date(this.scheduledDate);
-
-      if(schDate!==this.tomorrow && schDate!==this.mondayMorning && schDate!==this.thisEvening){
-        const formattedDate = schDate.toLocaleDateString('en-GB', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric'
-        });
-        
-        const formattedTime = schDate.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        });
-        this.mailToBeScheduledDate = this.scheduledDate;
-        this.displayDateTime = `${formattedDate}, ${formattedTime}`
-      }
+      this.mailToBeScheduledDate = schDate;
+      // If it isn't one of the quick presets, surface it in the custom picker.
+      const isPreset = [this.tomorrow, this.thisEvening, this.mondayMorning]
+        .some(d => d.getTime() === schDate.getTime());
+      this.customDateStr = isPreset ? '' : this.isoToLocal(schDate);
     }
   }
 
@@ -161,9 +149,16 @@ export class ScheduleDeliveryComponent implements OnInit {
     }else{
       this.mailToBeScheduledDate = data;
     }
-    if(this.displayDateTime){
-      this.displayDateTime = '';
-    }
+    // Picking a preset clears any custom value so only one is active.
+    this.customDateStr = '';
+  }
+
+  /** Native datetime-local picker — sets the exact local date & time chosen. */
+  onCustomDateChange(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.customDateStr = value;
+    this.mailToBeScheduledDate = value ? new Date(value) : null;
+    this.isModified = true;
   }
 
   isDateActive(date: Date): boolean {
@@ -256,102 +251,12 @@ export class ScheduleDeliveryComponent implements OnInit {
     }
   }
 
-  scheduleDateSelect() {
-    this.updateMinTime(this.date)
-    if (this.picker) {
-      this.picker.open();
-    }
-  }
-
-  updateMinTime(selectedDate: Date) {
-    const today = new Date();
-    if (selectedDate && today.getDate() == selectedDate.getDate()) {
-      this.minTime = format(today, 'hh:mm aa');
-    } else {
-      this.minTime = '12:00 AM';
-    }
-    this.cdr.detectChanges();
-  }
-
-  openCalendar() {
-    const input = this.scheduleCalendar?.nativeElement;
-    input?.showPicker?.();
-    input?.focus();
-    input?.click();
-  }
-
-  get dateInputValue(): string {
-    return this.toDateInputValue(this.date) ?? '';
-  }
-
-  toDateInputValue(date: Date | null | undefined): string | null {
-    if (!date) {
-      return null;
-    }
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
-  onScheduleDateInputChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.date = input.value ? new Date(`${input.value}T00:00:00`) : new Date();
-    this.scheduleDateSelect();
-  }
-
   checkWallCreator(): boolean {
     return !!this.wall && this.wall.ownerEmail === this.email;
   }
 
-  parseTime(time: string): Date {
-    const [timePart, ampm] = time.split(' ');
-    let [hours, minutes] = timePart.split(':').map(Number);
-    if (ampm === 'PM' && hours < 12) hours += 12;
-    if (ampm === 'AM' && hours === 12) hours = 0;
-    const date = new Date();
-    date.setHours(hours, minutes, 0, 0);
-    return date;
-  }
-
   closeSidebar(): void {
     this.closeModal.emit();
-  }
-
-  scheduleTimeSelect(event: string) {
-    this.time = event;
-    this.updateCombinedDateTime();
-  }
-
-  updateCombinedDateTime() {
-    if (this.date && this.time) {
-      const date = new Date(this.date);
-      const time = this.time;
-      this.mailToBeScheduledDate = this.combineDateTime(date, time);
-      this.datesEdit = false;
-      this.isModified = true;
-      this.displayDateTime = this.formatDate(date,time);
-      if(!this.scheduledDate){
-        this.scheduledDate = this.mailToBeScheduledDate;
-      }
-    }
-  }
-
-  toggleEditDates(){
-    this.datesEdit = !this.datesEdit
-  }
-
-  formatDate(date: Date, time: string): string {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year} , ${time}`;
-  }
-
-  combineDateTime(date: Date, time: string): Date {
-    const parsedTime = this.parseTime(time);
-    const combinedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), parsedTime.getHours(), parsedTime.getMinutes());
-    return combinedDate;
   }
 
   handleEmailsChanged(emails: string[]): void {
@@ -405,7 +310,7 @@ export class ScheduleDeliveryComponent implements OnInit {
         }
         if(this.scheduledEmails.length===0){
           this.scheduledDate = null;
-          this.displayDateTime = '';
+          this.customDateStr = '';
           this.mailToBeScheduledDate = this.tomorrow;
         }
         this.updateWallDetails()
@@ -422,7 +327,7 @@ export class ScheduleDeliveryComponent implements OnInit {
         this.scheduledEmails = [];
         this.mailToBeScheduledDate = null;
         this.scheduledDate = null;
-        this.displayDateTime = '';
+        this.customDateStr = '';
       }
     })
   }

@@ -1,7 +1,6 @@
 ﻿const mailService = require("../services/mail-service");
 const wallRepository = require("../repositories/wall-repository");
 const userRepository = require("../repositories/user-repository");
-const auth = require("../middleware/auth");
 const { mailLimiter } = require("../middleware/rate-limiter");
 const Response = require("../utils/error-handler");
 const { emailTemplates } = require("../templates/email-templates");
@@ -28,21 +27,16 @@ exports.scheduleEmail = async (req, res) => {
         const ownerName = user ? `${user.firstname} ${user.lastname}`.trim() : "Someone";
 
         if (type === "SCHEDULE") {
-          subject = wall.title;
-          // Generate per-recipient job so each gets their own unique view token
-          const jobs = await Promise.all(primary.map(async (recipientEmail) => {
-            const viewToken = auth.generateTokenForReceiver(recipientEmail, resolvedWallId);
-            const recipientHtml = emailTemplates.scheduledDelivery({
-              creatorName: ownerName, wallName: wall.title,
-              token: viewToken, serviceBaseUrl: SERVICE_BASE_URL
-            });
-            return mailService.scheduleEmail({
-              primary: [recipientEmail], cc: [], subject,
-              htmlContent: recipientHtml, wallId: resolvedWallId,
-              scheduledDate, userEmail, type,
-            });
-          }));
-          return Response.respondOk(res, jobs);
+          // One job holds every recipient. Each recipient's email (with its own
+          // unique view token) is rendered at delivery time from the template +
+          // data persisted on the job, so it survives restarts and re-schedules.
+          const job = await mailService.scheduleEmail({
+            primary, cc: cc || [], subject: wall.title,
+            wallId: resolvedWallId, scheduledDate, userEmail, type,
+            template: "scheduledDelivery",
+            templateData: { creatorName: ownerName, wallName: wall.title },
+          });
+          return Response.respondOk(res, job);
         } else {
           subject = `Access for ${wall.title}`;
           htmlContent = emailTemplates.accessControl({ wallId: resolvedWallId, creatorName: ownerName, wallName: wall.title, serviceBaseUrl: SERVICE_BASE_URL });

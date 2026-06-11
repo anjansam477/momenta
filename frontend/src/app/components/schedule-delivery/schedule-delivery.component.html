@@ -53,61 +53,43 @@
         <app-access-editor
           [role]="'recipient'"
           [emails]="emailId"
-          (emailsChange)="emailId = $event">
+          (emailsChange)="handleEmailsChanged($event)">
         </app-access-editor>
       </section>
 
       <section class="cc-section">
         <h4 class="cc-section-label"><i class="bi bi-calendar-heart"></i> Delivery time</h4>
 
-        @if(displayDateTime && !datesEdit) {
-          <div class="cc-delivery-time cc-delivery-time--selected">
-            <i class="bi bi-alarm"></i>
-            <span>{{ mailToBeScheduledDate | date: 'MMM d, h:mm a' }}</span>
-            <button class="cc-text-btn" (click)="toggleEditDates()">Change</button>
-          </div>
-        }
+        <div class="cc-time-options">
+          <button type="button" class="cc-time-btn" (click)="select(tomorrow)" [class.cc-time-btn--active]="isDateActive(tomorrow)">
+            <i class="bi bi-sunrise"></i>
+            <div>
+              <strong>Tomorrow morning</strong>
+              <span>{{ tomorrow | date: 'MMM d, h:mm a' }}</span>
+            </div>
+          </button>
+          <button type="button" class="cc-time-btn" (click)="select(thisEvening)" [class.cc-time-btn--active]="isDateActive(thisEvening)">
+            <i class="bi bi-moon-stars"></i>
+            <div>
+              <strong>This evening</strong>
+              <span>{{ thisEvening | date: 'MMM d, h:mm a' }}</span>
+            </div>
+          </button>
+          <button type="button" class="cc-time-btn" (click)="select(mondayMorning)" [class.cc-time-btn--active]="isDateActive(mondayMorning)">
+            <i class="bi bi-calendar-week"></i>
+            <div>
+              <strong>Monday morning</strong>
+              <span>{{ mondayMorning | date: 'MMM d, h:mm a' }}</span>
+            </div>
+          </button>
+        </div>
 
-        @if(!displayDateTime || datesEdit) {
-          <div class="cc-time-options">
-            <button type="button" class="cc-time-btn" (click)="select(tomorrow)" [class.cc-time-btn--active]="isDateActive(tomorrow)">
-              <i class="bi bi-sunrise"></i>
-              <div>
-                <strong>Tomorrow morning</strong>
-                <span>{{ tomorrow | date: 'MMM d, h:mm a' }}</span>
-              </div>
-            </button>
-            <button type="button" class="cc-time-btn" (click)="select(thisEvening)" [class.cc-time-btn--active]="isDateActive(thisEvening)">
-              <i class="bi bi-moon-stars"></i>
-              <div>
-                <strong>This evening</strong>
-                <span>{{ thisEvening | date: 'MMM d, h:mm a' }}</span>
-              </div>
-            </button>
-            <button type="button" class="cc-time-btn" (click)="select(mondayMorning)" [class.cc-time-btn--active]="isDateActive(mondayMorning)">
-              <i class="bi bi-calendar-week"></i>
-              <div>
-                <strong>Monday morning</strong>
-                <span>{{ mondayMorning | date: 'MMM d, h:mm a' }}</span>
-              </div>
-            </button>
-            <button type="button" class="cc-time-btn cc-time-btn--custom" (click)="openCalendar()">
-              <i class="bi bi-calendar4-week"></i>
-              <div>
-                <strong>Custom date & time</strong>
-                <span>Pick any date</span>
-              </div>
-            </button>
-          </div>
-        }
-
-        <!-- Hidden inputs -->
-        <input type="hidden" [min]="minTime" [ngxTimepicker]="picker" id="scheduleTime">
-        <ngx-material-timepicker #picker (timeSet)="scheduleTimeSelect($event)"></ngx-material-timepicker>
-        <input #scheduleCalendar type="date" class="cc-hidden-input"
-          [value]="dateInputValue"
-          [min]="toDateInputValue(minDate)"
-          (change)="onScheduleDateInputChange($event)">
+        <!-- Custom date & time — single native picker, no external deps -->
+        <div class="cc-custom-datetime">
+          <label class="cc-datetime-label" for="scheduleAt"><i class="bi bi-calendar4-week"></i> Or pick a custom date &amp; time</label>
+          <input id="scheduleAt" type="datetime-local" class="cc-datetime-input"
+            [min]="nowStr" [value]="customDateStr" (change)="onCustomDateChange($event)" />
+        </div>
 
         @if(mailToBeScheduledDate && emailId.length > 0) {
           <div class="cc-summary">

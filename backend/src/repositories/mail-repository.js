@@ -13,6 +13,10 @@ class MailRepository {
     return MailJob.findOne({ wallId, type, status: "pending" }).lean();
   }
 
+  async getJobById(jobId) {
+    return MailJob.findById(jobId).lean();
+  }
+
   async updateJobStatus(jobId, status, extra = {}) {
     return MailJob.findByIdAndUpdate(jobId, { status, ...extra }, { new: true });
   }
