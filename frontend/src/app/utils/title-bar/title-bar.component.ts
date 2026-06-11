@@ -1,7 +1,6 @@
 ﻿import { ChangeDetectorRef, Component, DestroyRef, ElementRef, OnDestroy, OnInit, Renderer2, ViewChild, inject , ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { DownloadService } from '../../services/downloadservice/download.service';
 import { SharedDataService } from '../../services/sharedDataService/shared-data.service';
 import { AuthService } from '../../services/authservice/auth.service';
 import { SharemodalComponent } from '../../modal/sharemodal/sharemodal.component';
@@ -69,7 +68,6 @@ export class TitleBarComponent implements OnInit,OnDestroy{
     private route: ActivatedRoute,
     private router: Router,
     private audioService : AudioService,
-    private downloadService: DownloadService,
     private sharedService: SharedDataService,
     private cdr: ChangeDetectorRef,
     private wallService: WallService,
@@ -246,11 +244,6 @@ export class TitleBarComponent implements OnInit,OnDestroy{
     const downloadUrl = `download/${this.wallId}`;
     const windowOptions = 'toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,copyhistory=no,resizable=yes,width=1920,height=1080';
     window.open(downloadUrl, '_blank', windowOptions);
-  }
-
-  downloadWall(){
-    const pdfName = this.wallTitle;
-    this.downloadService.downloadContent('#main', pdfName);
   }
 
   toggleMute(){

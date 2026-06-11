@@ -1,4 +1,118 @@
-<div class="wall-page" id="main" [ngStyle]="{'background-image': 'url(' + selectedBackground + ')'}">
-  <app-title-bar></app-title-bar>
-  <app-wall-posts></app-wall-posts>
-</div>
+@if (loading) {
+  <div class="dl-state">
+    <div class="dl-spinner"></div>
+    <p>Gathering your memory…</p>
+  </div>
+} @else if (failed) {
+  <div class="dl-state">
+    <i class="bi bi-emoji-frown dl-state-icon"></i>
+    <p>We couldn't load this moment. Try opening it again.</p>
+    <button type="button" class="dl-btn dl-btn--ghost" (click)="closeTab()">Close</button>
+  </div>
+} @else {
+
+  <!-- Floating action bar — never printed -->
+  <div class="dl-toolbar">
+    <span class="dl-toolbar-title"><i class="bi bi-bookmark-heart-fill"></i> Memory ready</span>
+    <div class="dl-toolbar-actions">
+      <button type="button" class="dl-btn dl-btn--ghost" (click)="closeTab()">Close</button>
+      <button type="button" class="dl-btn dl-btn--primary" (click)="saveAsPdf()">
+        <i class="bi bi-download"></i> Save as PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- The printable document -->
+  <div class="dl-paper" id="memory">
+
+    <!-- Cover -->
+    <header class="dl-cover">
+      <div class="dl-cover-bg" [style.background-image]="'url(' + bgUrl + ')'"></div>
+      <div class="dl-cover-scrim"></div>
+      <div class="dl-cover-body">
+        <span class="dl-cover-kicker"><i class="bi bi-stars"></i> A Momenta keepsake</span>
+        <h1 class="dl-cover-title">{{ wall?.title || 'Our Moment' }}</h1>
+        @if (wall?.description) {
+          <p class="dl-cover-desc">{{ wall?.description }}</p>
+        }
+        <div class="dl-cover-meta">
+          <span><i class="bi bi-chat-heart"></i> {{ posts.length }} {{ posts.length === 1 ? 'message' : 'messages' }}</span>
+          <span class="dl-dot">•</span>
+          <span><i class="bi bi-emoji-smile"></i> {{ totalReactions }} {{ totalReactions === 1 ? 'reaction' : 'reactions' }}</span>
+          <span class="dl-dot">•</span>
+          <span><i class="bi bi-calendar3"></i> {{ generatedOn | date: 'MMMM d, y' }}</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Posts -->
+    @if (posts.length) {
+      <div class="dl-grid">
+        @for (post of posts; track trackPost($index, post)) {
+          <article class="dl-card">
+            <div class="dl-card-head">
+              <span class="dl-ava">
+                @if (post.avatar) {
+                  <img [src]="post.avatar" alt="" referrerpolicy="no-referrer" />
+                } @else {
+                  <span class="dl-ava-fallback">{{ post.initials }}</span>
+                }
+              </span>
+              <div class="dl-card-who">
+                <span class="dl-card-author">{{ post.author }}</span>
+                <span class="dl-card-date">{{ post.date | date: 'MMM d, y · h:mm a' }}</span>
+              </div>
+            </div>
+
+            @if (post.content) {
+              <p class="dl-card-text">{{ post.content }}</p>
+            }
+
+            @if (post.mediaUrl) {
+              <div class="dl-media" [class.dl-media--play]="post.badge === 'Video'">
+                <img [src]="post.mediaUrl" alt="" referrerpolicy="no-referrer" />
+                @if (post.badge) {
+                  <span class="dl-media-badge" [ngClass]="'dl-media-badge--' + post.badge.toLowerCase()">
+                    @if (post.badge === 'Video') { <i class="bi bi-play-fill"></i> }
+                    @else if (post.badge === 'GIF') { <i class="bi bi-filetype-gif"></i> }
+                    @else { <i class="bi bi-sticky"></i> }
+                    {{ post.badge }}
+                  </span>
+                }
+                @if (post.badge === 'Video') {
+                  <span class="dl-media-play"><i class="bi bi-play-circle-fill"></i></span>
+                }
+              </div>
+            } @else if (post.badge === 'Video' || post.badge === 'GIF') {
+              <div class="dl-media dl-media--placeholder">
+                <i class="bi" [ngClass]="post.badge === 'Video' ? 'bi-camera-video' : 'bi-filetype-gif'"></i>
+                <span>{{ post.badge }} preview unavailable</span>
+              </div>
+            }
+
+            @if (post.reactions.length) {
+              <div class="dl-reactions">
+                @for (r of post.reactions; track r.label) {
+                  <span class="dl-reaction" [title]="r.label">
+                    <i class="bi {{ r.icon }}"></i>{{ r.count }}
+                  </span>
+                }
+              </div>
+            }
+          </article>
+        }
+      </div>
+    } @else {
+      <div class="dl-empty">
+        <i class="bi bi-wind"></i>
+        <p>This moment has no messages yet.</p>
+      </div>
+    }
+
+    <!-- Footer -->
+    <footer class="dl-foot">
+      <span><i class="bi bi-bookmark-heart"></i> Made with Momenta</span>
+    </footer>
+
+  </div>
+}
