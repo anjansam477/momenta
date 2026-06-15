@@ -1,4 +1,5 @@
 ﻿const wallService = require("../services/wall-service");
+const wallRepository = require("../repositories/wall-repository");
 const analyticsRepository = require('../repositories/analytics-repository');
 const reactionsRepository = require("../repositories/reactions-repository");
 const authMiddleware = require("../middleware/auth");
@@ -87,7 +88,7 @@ exports.removeWall = asyncHandler(async (req, res) => {
 
 exports.viewReceiverWall = asyncHandler(async (req, res) => {
   const { token } = req.params;
-  const decoded = authMiddleware.getEmailAndWallIdFromToken(token);
+  const decoded = await authMiddleware.getReceiverFromToken(token);
   if (!decoded) return Response.respondError(res, new Error(Response.errorMessage.INVALID_TOKEN));
   const result = await wallService.getWall(decoded.wallId, decoded.email);
   return Response.respondOk(res, result);
@@ -109,7 +110,8 @@ exports.generateInviteLink = asyncHandler(async (req, res) => {
   const { wallId } = req.params;
   const { email, wallTitle } = req.body;
   if (!email) return Response.respondError(res, new Error('Email is required'));
-  const token = authMiddleware.generateTokenForReceiver(email, wallId);
+  const version = await wallRepository.getViewTokenVersion(wallId).catch(() => 0);
+  const token = authMiddleware.generateTokenForReceiver(email, wallId, version || 0);
   const inviteUrl = `${process.env.UI_BASE_URL}/moment/${wallId}?token=${token}`;
   const inviterName = req.user?.firstname ? `${req.user.firstname} ${req.user.lastname || ''}`.trim() : 'Someone';
   try {
@@ -119,6 +121,14 @@ exports.generateInviteLink = asyncHandler(async (req, res) => {
     await mailService._sendDirect({ to: email, subject: `${inviterName} invited you to "${wallTitle || 'a Momenta moment'}"`, html });
   } catch (_) { /* non-blocking — still return token */ }
   return Response.respondOk(res, { token });
+});
+
+// Owner/maintainer revokes every receiver link previously shared for this wall
+// (e.g. a link leaked). Recipients need a freshly re-sent link to regain access.
+exports.rotateViewLinks = asyncHandler(async (req, res) => {
+  const { wallId } = req.params;
+  const version = await wallService.rotateViewLinks(wallId);
+  return Response.respondOk(res, { message: 'Shared links revoked', viewTokenVersion: version });
 });
 
 exports.acceptInvite = asyncHandler(async (req, res) => {

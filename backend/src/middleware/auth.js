@@ -5,8 +5,9 @@ const config = require("../config/security-config");
 const { client: redisClient } = require("../utils/redis");
 const Response = require("../utils/error-handler");
 const userRepository = require("../repositories/user-repository");
+const wallRepository = require("../repositories/wall-repository");
 const logger = require("../utils/logger");
-const { jwtBlacklistCheckFailures } = require("../utils/metrics");
+const { jwtBlacklistCheckFailures, viewTokenVersionCheckFailures } = require("../utils/metrics");
 
 const BLACKLIST_PREFIX = "jwt:bl:";
 
@@ -24,26 +25,60 @@ exports.getEmailFromToken = (token) => {
   }
 };
 
-exports.generateTokenForReceiver = (email, wallId) => {
-  // Shared-wall receiver links are intentionally PERMANENT — recipients keep
-  // access to a wall they were shared with (the whole point of the shared page).
-  // No `expiresIn` => the token never expires. Revocation, if ever needed, is via
-  // rotating `deliveredKey` (invalidates all receiver links at once).
-  const token = jwt.sign({ email, wallId }, config.deliveredKey);
+exports.generateTokenForReceiver = (email, wallId, version = 0) => {
+  // Shared-wall receiver links are intentionally PERMANENT (no `expiresIn`) —
+  // recipients keep access to a wall they were shared with. The embedded `v` is
+  // the wall's receiver-link epoch at mint time; verifyToken rejects the link
+  // once the owner rotates that epoch (per-wall revocation). Global revocation is
+  // still possible by rotating `deliveredKey`.
+  const token = jwt.sign({ email, wallId, v: version }, config.deliveredKey);
   return token;
 };
+
+// Pure comparison so it can be unit-tested without a DB/JWT. A token is current
+// when its epoch matches the wall's, treating missing values as 0 (so links
+// minted before versioning, and never-rotated walls, both stay valid).
+const isVersionCurrent = (currentVersion, tokenVersion) =>
+  (currentVersion || 0) === (tokenVersion || 0);
+exports.isVersionCurrent = isVersionCurrent;
+
+// Look up the wall's current epoch and compare. Fails OPEN on a DB error (same
+// policy as the JWT blacklist) and on a missing wall (access fails downstream
+// anyway) — only a definite epoch mismatch rejects the link.
+async function isViewTokenCurrent(wallId, tokenVersion) {
+  try {
+    const current = await wallRepository.getViewTokenVersion(wallId);
+    if (current === null) return true;
+    return isVersionCurrent(current, tokenVersion);
+  } catch (err) {
+    viewTokenVersionCheckFailures.inc();
+    logger.warn({ err: err.message }, "View-token version check failed — failing open");
+    return true;
+  }
+}
 
 exports.getEmailAndWallIdFromToken = (token) => {
   try {
     const decoded = jwt.verify(token, config.deliveredKey);
     return {
       email: decoded.email,
-      wallId: decoded.wallId
+      wallId: decoded.wallId,
+      v: decoded.v,
     };
   } catch (error) {
     return null;
   }
 }
+
+// Full receiver-token validation: signature + per-wall epoch. Returns the decoded
+// payload when the link is still current, or null if forged/expired/rotated. Use
+// this (not the bare decode) wherever a receiver link grants wall access.
+exports.getReceiverFromToken = async (token) => {
+  const decoded = exports.getEmailAndWallIdFromToken(token);
+  if (!decoded) return null;
+  if (decoded.wallId && !(await isViewTokenCurrent(decoded.wallId, decoded.v))) return null;
+  return decoded;
+};
 
 async function isBlacklisted(iat) {
   try {
@@ -90,6 +125,9 @@ exports.verifyToken = asyncHandler(async (req, res, next) => {
       token = req.headers.authorization.split(" ")[1];
       const decoded = jwt.verify(token, config.deliveredKey);
       if (await isBlacklisted(decoded.iat)) {
+        throw new Error(Response.errorMessage.INVALID_TOKEN);
+      }
+      if (decoded.wallId && !(await isViewTokenCurrent(decoded.wallId, decoded.v))) {
         throw new Error(Response.errorMessage.INVALID_TOKEN);
       }
       req.email = decoded.email;

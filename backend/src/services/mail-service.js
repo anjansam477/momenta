@@ -1,6 +1,7 @@
 const nodemailer = require("nodemailer");
 const cron = require("node-cron");
 const mailRepository = require("../repositories/mail-repository");
+const wallRepository = require("../repositories/wall-repository");
 const { emailTemplates } = require("../templates/email-templates");
 const Response = require("../utils/error-handler");
 const logger = require("../utils/logger");
@@ -15,8 +16,8 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// In-process map for SCHEDULE type: wallId → { timerId, jobId }
-const scheduledTimers = new Map();
+// Cron handle for the durable scheduled-delivery poller (one per process).
+let schedulerTask = null;
 
 async function sendMail({ to, cc, subject, html }) {
   const mailOptions = {
@@ -62,14 +63,14 @@ class MailService {
       }
 
       // One job per wall. Replace any existing pending schedule for this wall so a
-      // re-schedule doesn't leave orphan jobs/timers firing duplicate emails.
+      // re-schedule doesn't leave orphan jobs firing duplicate emails.
       const existing = await mailRepository.getSchedulesByWallIdAndType(wallId, "SCHEDULE");
-      if (existing) {
-        this._clearTimer(wallId);
-        await mailRepository.cancelByWallId(wallId);
-      }
+      if (existing) await mailRepository.cancelByWallId(wallId);
 
-      const job = await mailRepository.createJob({
+      // Just persist the job. The durable poller (startScheduler) claims and
+      // delivers it when due — no in-process timer, so it works across multiple
+      // instances and survives restarts.
+      return mailRepository.createJob({
         type,
         wallId,
         recipients: { primary, cc: cc || [] },
@@ -79,11 +80,6 @@ class MailService {
         template,
         templateData: templateData || {},
       });
-
-      const delay = Math.max(new Date(scheduledDate).getTime() - Date.now(), 0);
-      const timerId = setTimeout(() => this._deliverScheduledJob(job._id), delay);
-      scheduledTimers.set(String(wallId), { timerId, jobId: job._id });
-      return job;
     }
 
     // Immediate send (ACCESS, etc.) — one email to everyone, body already rendered.
@@ -109,27 +105,60 @@ class MailService {
     return job;
   }
 
-  /**
-   * Deliver a scheduled job, reading the freshest copy from the DB so it reflects
-   * any recipient removals / cancellation since the timer was set. Each recipient
-   * gets their own rendered email (and unique view token), so this is fully
-   * restart-safe — nothing depends on an in-process closure.
-   */
-  async _deliverScheduledJob(jobId) {
-    try {
-      const job = await mailRepository.getJobById(jobId);
-      if (!job || job.status !== "pending") return;
+  // ── Durable scheduled-delivery poller ─────────────────────────────────────
 
+  /**
+   * Start the minute-by-minute poller. Each tick claims every due job atomically
+   * (pending → sending) and delivers it. The atomic claim means multiple API
+   * instances can run this safely — only one delivers each job — and a restart
+   * simply resumes from the DB. Runs once immediately, then on a cron schedule.
+   */
+  startScheduler() {
+    if (schedulerTask) return;
+    this._processDueJobs().catch((err) => logger.warn({ err: err.message }, "Initial mail sweep failed"));
+    schedulerTask = cron.schedule("* * * * *", () => {
+      this._processDueJobs().catch((err) => logger.warn({ err: err.message }, "Mail sweep failed"));
+    });
+    logger.info("Scheduled-mail poller started");
+  }
+
+  stopScheduler() {
+    if (schedulerTask) { schedulerTask.stop(); schedulerTask = null; }
+  }
+
+  /** Claim and deliver every currently-due scheduled job. */
+  async _processDueJobs() {
+    const now = new Date();
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const job = await mailRepository.claimDueJob(now);
+      if (!job) break;
+      await this._deliverClaimedJob(job);
+    }
+  }
+
+  /**
+   * Deliver a job that has already been atomically claimed (status "sending").
+   * Each recipient gets their own rendered email + unique view token, so delivery
+   * is fully restart-safe. On failure the job is requeued until maxRetries.
+   */
+  async _deliverClaimedJob(job) {
+    try {
       const recipients = job.recipients?.primary || [];
       if (!recipients.length) {
         await mailRepository.cancelByWallId(job.wallId);
         return;
       }
 
+      // Mint links at the wall's current epoch so a later rotation revokes them.
+      // Fail open to 0 on a lookup error — a DB hiccup must not drop the email.
+      const viewTokenVersion = job.template
+        ? (await wallRepository.getViewTokenVersion(job.wallId).catch(() => 0)) || 0
+        : 0;
       for (const recipient of recipients) {
         let html = job.htmlContent;
         if (job.template) {
-          const token = auth.generateTokenForReceiver(recipient, job.wallId);
+          const token = auth.generateTokenForReceiver(recipient, job.wallId, viewTokenVersion);
           html = emailTemplates[job.template]({
             ...(job.templateData || {}),
             token,
@@ -138,18 +167,15 @@ class MailService {
         }
         await sendMail({ to: recipient, cc: job.recipients?.cc || [], subject: job.subject, html });
       }
-      await mailRepository.markSent(jobId);
+      await mailRepository.markSent(job._id);
     } catch (err) {
-      logger.error({ err: err.message, jobId }, "Scheduled mail delivery failed");
-      await mailRepository.markFailed(jobId, err.message);
-    } finally {
-      scheduledTimers.forEach((v, k) => { if (String(v.jobId) === String(jobId)) scheduledTimers.delete(k); });
+      logger.error({ err: err.message, jobId: job._id }, "Scheduled mail delivery failed");
+      if ((job.retryCount || 0) + 1 < (job.maxRetries || 3)) {
+        await mailRepository.requeueJob(job._id);
+      } else {
+        await mailRepository.markFailed(job._id, err.message);
+      }
     }
-  }
-
-  _clearTimer(wallId) {
-    const entry = scheduledTimers.get(String(wallId));
-    if (entry) { clearTimeout(entry.timerId); scheduledTimers.delete(String(wallId)); }
   }
 
   async getScheduledByWallId(wallId) {
@@ -160,11 +186,10 @@ class MailService {
 
   async removeRecipient(wallId, recipient) {
     await mailRepository.removeRecipient(wallId, recipient);
-    // The job is rendered per-recipient at fire time from the DB, so dropping a
-    // recipient needs no timer reset. If none remain, cancel the whole schedule.
+    // The job is rendered per-recipient at delivery time from the DB, so dropping
+    // a recipient needs no extra work. If none remain, cancel the whole schedule.
     const job = await mailRepository.getSchedulesByWallIdAndType(wallId, "SCHEDULE");
     if (!job?.recipients?.primary?.length) {
-      this._clearTimer(wallId);
       await mailRepository.cancelByWallId(wallId);
     }
   }
@@ -173,7 +198,6 @@ class MailService {
     const job = await mailRepository.getSchedulesByWallIdAndType(wallId, "SCHEDULE");
     if (!job) throw new Error(Response.generateMessage(Response.errorMessage.INVALID_REQUEST, "scheduled mail"));
     if (new Date(job.scheduledAt) <= new Date()) throw new Error(Response.errorMessage.SOMETHING_WENT_WRONG);
-    this._clearTimer(wallId);
     await mailRepository.cancelByWallId(wallId);
     return true;
   }
@@ -191,32 +215,6 @@ class MailService {
       subject: "Enquiry or Issue",
       html: `<p><b>From:</b> ${name} (${sender})</p><p>${message}</p>`,
     });
-  }
-
-  // ── Startup: resume any pending scheduled jobs ────────────────────────────
-  async resumePendingJobs() {
-    try {
-      const now = new Date();
-      const pending = await mailRepository.getPendingScheduledAfter(now);
-      for (const job of pending) {
-        const delay = Math.max(new Date(job.scheduledAt).getTime() - Date.now(), 0);
-        const timerId = setTimeout(() => this._deliverScheduledJob(job._id), delay);
-        scheduledTimers.set(String(job.wallId), { timerId, jobId: job._id });
-        logger.info({ wallId: job.wallId, scheduledAt: job.scheduledAt }, "Resumed pending mail job");
-      }
-      // mark past-due pending jobs as failed
-      await mailRepository.markPastDuePendingAsFailed(now);
-      logger.info(`Mail scheduler ready — ${pending.length} job(s) resumed`);
-    } catch (err) {
-      logger.warn({ err: err.message }, "Could not resume pending mail jobs");
-    }
-  }
-
-  // Clear all in-process scheduled delivery timers (used on graceful shutdown).
-  // Jobs stay "pending" in the DB and are resumed on next startup.
-  clearAllTimers() {
-    scheduledTimers.forEach((entry) => clearTimeout(entry.timerId));
-    scheduledTimers.clear();
   }
 }
 

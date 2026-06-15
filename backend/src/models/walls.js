@@ -20,6 +20,10 @@ const wallSchema = new mongoose.Schema(
     },
     anyoneCanView: { type: Boolean, default: false },
     anyoneCanPost: { type: Boolean, default: false },
+    // Per-wall receiver-link epoch. Receiver view tokens embed the version that
+    // was current when minted; bumping this (rotateViewToken) invalidates every
+    // previously shared link for THIS wall only, without touching other walls.
+    viewTokenVersion: { type: Number, default: 0 },
     postConfig: {
       allowText:       { type: Boolean, default: true },
       allowImage:      { type: Boolean, default: true },

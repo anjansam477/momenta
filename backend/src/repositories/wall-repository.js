@@ -188,6 +188,28 @@ class WallRepository {
     if (!result) throw new Error("Saved wall not found");
   }
 
+  // Current receiver-link epoch. Returns 0 for a wall minted before this field
+  // existed, or null if the wall no longer exists. Reuses the wall cache when warm.
+  async getViewTokenVersion(wallId) {
+    const cached = await getWallCache(wallId);
+    if (cached) return cached.viewTokenVersion || 0;
+    const wall = await Wall.findById(wallId).select("viewTokenVersion").lean();
+    return wall ? (wall.viewTokenVersion || 0) : null;
+  }
+
+  // Invalidate every previously shared receiver link for this wall by bumping its
+  // epoch. Returns the new version. Clears the wall cache so verify reads the bump.
+  async rotateViewToken(wallId) {
+    const wall = await Wall.findByIdAndUpdate(
+      wallId,
+      { $inc: { viewTokenVersion: 1 } },
+      { new: true }
+    );
+    if (!wall) throw new Error(Response.generateMessage(Response.errorMessage.INVALID_REQUEST, "wall"));
+    await invalidateWallCache(wallId);
+    return wall.viewTokenVersion;
+  }
+
   async recordInteraction(wallId, userEmail) {
     await WallInteraction.findOneAndUpdate(
       { wallId, userEmail },

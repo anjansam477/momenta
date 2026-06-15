@@ -103,6 +103,10 @@ class WallService {
     }
   }
 
+  async rotateViewLinks(wallId) {
+    return wallRepository.rotateViewToken(wallId);
+  }
+
   async setAccess(wallId, updateData, userEmail) {
     if (updateData.maintainerEmails) {
       await wallRepository.setMembers(wallId, updateData.maintainerEmails, "maintainer", userEmail);

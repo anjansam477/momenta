@@ -30,10 +30,19 @@ const jwtBlacklistCheckFailures = new client.Counter({
   help: "JWT blacklist checks that failed open due to Redis being unavailable",
 });
 
+// Incremented when the per-wall view-token version check can't reach the DB and
+// fails open — i.e. rotated (revoked) receiver links may be honored during that
+// window. Alert on this.
+const viewTokenVersionCheckFailures = new client.Counter({
+  name: "momenta_view_token_version_check_failures_total",
+  help: "View-token version checks that failed open due to the DB being unavailable",
+});
+
 module.exports = {
   postsCreated,
   wallsCreated,
   notificationsDelivered,
   socketConnections,
   jwtBlacklistCheckFailures,
+  viewTokenVersionCheckFailures,
 };
