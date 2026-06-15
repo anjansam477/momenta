@@ -1,6 +1,6 @@
 const ExcelJS = require("exceljs");
 const path = require('path');
-const moment = require('moment');
+const { format } = require('date-fns');
 const fs = require('fs-extra');
 const { eventpath } = require("../../environment-config");
 
@@ -34,7 +34,7 @@ exports.getEventsbyOrganization = async (req, res) => {
                     if (row[key] && typeof row[key] === 'number' && row[key] > 25569) {
                         if (isDateMatchingToday(row[key])) {
                             isMatching = true;
-                            const formattedDate = moment(ExcelDateToJSDate(row[key])).format('DD/MM/YYYY');
+                            const formattedDate = format(ExcelDateToJSDate(row[key]), 'dd/MM/yyyy');
                             row[key] = formattedDate;
                         }
                     }
@@ -79,8 +79,8 @@ function extractOrganizationName(emailId) {
 }
 
 function isDateMatchingToday(excelDate) {
-    const formattedDate = moment(ExcelDateToJSDate(excelDate)).format('DD/MM');
-    const today = moment().format('DD/MM');
+    const formattedDate = format(ExcelDateToJSDate(excelDate), 'dd/MM');
+    const today = format(new Date(), 'dd/MM');
 
     return formattedDate === today;
 }

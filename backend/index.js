@@ -41,6 +41,7 @@ const requestContext = require("./src/middleware/request-context");
 const { validateEnv } = require("./src/config/validate-env");
 const { socketConnections } = require("./src/utils/metrics");
 const { startCounterReconciliation, stopCounterReconciliation } = require("./src/jobs/reconcile-counters");
+const { startMediaCleanup, stopMediaCleanup } = require("./src/jobs/media-cleanup");
 
 // ── Prometheus metrics setup ──────────────────────────────────────────────────
 const promClient = require("prom-client");
@@ -312,6 +313,10 @@ async function start() {
     giphyService.seedPopularTerms().catch(() => {});
     // Periodic counter reconciliation (drift self-heal)
     startCounterReconciliation();
+    // Durable scheduled-mail poller (multi-instance safe, restart safe)
+    mailService.startScheduler();
+    // Orphaned-media sweep (reports by default; deletes only when explicitly enabled)
+    startMediaCleanup();
   });
 }
 
@@ -346,7 +351,8 @@ async function shutdown(signal) {
 
   // 3. Stop scheduled jobs + clear in-process mail timers (jobs remain pending in DB).
   await safe("cron-jobs", () => stopCounterReconciliation());
-  await safe("mail-timers", () => mailService.clearAllTimers());
+  await safe("media-cleanup", () => stopMediaCleanup());
+  await safe("mail-scheduler", () => mailService.stopScheduler());
 
   // 4. Disconnect Kafka producer + consumers (no-op if Kafka disabled).
   await safe("kafka-consumers", () => disconnectConsumers());
