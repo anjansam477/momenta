@@ -73,7 +73,7 @@ services:
           memory: 64M
 
   mongo_madness:
-    image: mongo:latest
+    image: mongo:7.0
     environment:
       # Official image vars are MONGO_INITDB_ROOT_* (no "DB") — required for the
       # entrypoint to create the root user on first init.
@@ -149,6 +149,7 @@ services:
     image: prom/prometheus:latest
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'

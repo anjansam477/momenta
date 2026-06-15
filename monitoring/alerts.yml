@@ -1,0 +1,46 @@
+groups:
+  - name: momenta-api
+    rules:
+      # The API scrape target is unreachable — process down or crashed.
+      - alert: APIDown
+        expr: up{job="momenta-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Momenta API is down"
+          description: "Prometheus cannot scrape the API (up == 0) for over 1 minute."
+
+      # More than 5% of requests are returning 5xx over the last 5 minutes.
+      - alert: HighHttp5xxRate
+        expr: |
+          sum(rate(http_request_duration_seconds_count{status_code=~"5.."}[5m]))
+          /
+          sum(rate(http_request_duration_seconds_count[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Elevated 5xx error rate"
+          description: "Over 5% of HTTP requests have failed with 5xx for 5 minutes."
+
+      # 95th-percentile request latency above 1s sustained.
+      - alert: HighRequestLatencyP95
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High p95 request latency"
+          description: "p95 HTTP latency has been above 1s for 10 minutes."
+
+      # Node event loop / memory pressure (default prom-client metric).
+      - alert: HighProcessMemory
+        expr: process_resident_memory_bytes > 1.7e9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API memory near the container limit"
+          description: "Resident memory above ~1.7GB (container limit is 2GB) for 10 minutes."
