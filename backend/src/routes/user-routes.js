@@ -11,7 +11,7 @@ router.post("/account/create", signupLimiter, validateUserSignup, user_controlle
 router.post("/account/login", loginLimiter, validateUserLogin, user_controller.userLogin);
 router.post("/account/logout", auth.expireToken);
 router.post("/account/password/reset", forgotPasswordLimiter, validateForgotPassword, user_controller.forgotPassword);
-router.put("/account/password/update", validateUpdatePassword, user_controller.updatePassword);
+router.put("/account/password/update", forgotPasswordLimiter, validateUpdatePassword, user_controller.updatePassword);
 router.get("/account/verify", validateUserToken, user_controller.verifyUserEmail);
 router.post("/account/verify", generateTokenLimiter, validateUserByEmail, user_controller.generateVerificationToken);
 
@@ -23,6 +23,6 @@ router.delete("/:id", verifyToken, validateUserById, user_controller.deleteUser)
 router.put("/:userId", verifyToken, validateUserById, checkUpdateData, user_controller.updateUser);
 
 router.get("/profile/:userId", verifyToken, validateUserById, user_controller.removeProfilePicture)
-router.put("/profile/picture/:userId", profilePictureUpload, validateUserById, user_controller.uploadProfilePicture);
+router.put("/profile/picture/:userId", verifyToken, profilePictureUpload, validateUserById, user_controller.uploadProfilePicture);
 
 module.exports = router;

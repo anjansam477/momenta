@@ -125,6 +125,14 @@ exports.validateUserById = asyncHandler(async (req, res, next) => {
     if (!user) {
       throw new Error(Response.generateMessage(Response.errorMessage.INVALID_REQUEST, 'user'));
     }
+    // Ownership: a user may only act on their own account. Every route using this
+    // runs verifyToken first (so req.email is the caller). Prevents acting on
+    // another user's id (update / delete / profile picture).
+    if (req.email && user.email && user.email.toLowerCase() !== req.email.toLowerCase()) {
+      const err = new Error(Response.generateMessage(Response.errorMessage.NO_ACCESS, 'user'));
+      err.statusCode = Response.statusCodes?.Forbidden ?? 403;
+      return Response.respondError(res, err);
+    }
     req.user = user;
     next();
   } catch (error) {

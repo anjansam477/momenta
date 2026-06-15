@@ -1,4 +1,5 @@
 const Response = require("../../utils/error-handler");
+const { sanitizePostContent } = require("../../utils/sanitize-content");
 
 const POST_CONTENT_MAX_LENGTH = 10000;
 const POST_AUTHOR_NAME_MIN_LENGTH = 3;
@@ -36,18 +37,23 @@ function normalizePostAuthor({ firstName, lastName, email }) {
 }
 
 function validatePostContent(content, hasFile = false) {
-  const normalizedContent = content == null ? "" : String(content);
-  const hasContent = stripHtml(normalizedContent).length > 0 || hasInlineImage(normalizedContent);
+  const raw = content == null ? "" : String(content);
+
+  // Reject oversized payloads before doing work.
+  if (raw.length > POST_CONTENT_MAX_LENGTH) {
+    throw new Error(`Post content should be ${POST_CONTENT_MAX_LENGTH} characters or less.`);
+  }
+
+  // Sanitize on write so stored content is safe regardless of how it's later
+  // rendered (innerHTML, email, export). This is the server-side source of truth.
+  const sanitized = sanitizePostContent(raw);
+  const hasContent = stripHtml(sanitized).length > 0 || hasInlineImage(sanitized);
 
   if (!hasContent && !hasFile) {
     throw new Error(Response.generateMessage(Response.errorMessage.PARAMS_REQUIRED, "content or media"));
   }
 
-  if (normalizedContent.length > POST_CONTENT_MAX_LENGTH) {
-    throw new Error(`Post content should be ${POST_CONTENT_MAX_LENGTH} characters or less.`);
-  }
-
-  return normalizedContent;
+  return sanitized;
 }
 
 function normalizePostCreatePayload({ content, firstName, lastName, file, email }) {

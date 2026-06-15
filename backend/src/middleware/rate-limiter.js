@@ -81,6 +81,32 @@ const reactionLimiter = rateLimit({
   handler: makeHandler(),
 });
 
+// Media upload guard (per user) — blunts disk-fill abuse on the upload endpoint.
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  keyGenerator: byUser,
+  store: makeRedisStore("rl:upload:"),
+  handler: makeHandler(),
+});
+
+// Scheduled-mail guard (per user) — stops spam-scheduling of deliveries.
+const scheduleMailLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  keyGenerator: byUser,
+  store: makeRedisStore("rl:schedmail:"),
+  handler: makeHandler(),
+});
+
+// Public Giphy analytics passthrough guard (per IP).
+const giphyLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  store: makeRedisStore("rl:giphy:"),
+  handler: makeHandler(),
+});
+
 module.exports = {
   mailLimiter,
   forgotPasswordLimiter,
@@ -89,4 +115,7 @@ module.exports = {
   signupLimiter,
   postWriteLimiter,
   reactionLimiter,
+  uploadLimiter,
+  scheduleMailLimiter,
+  giphyLimiter,
 };
