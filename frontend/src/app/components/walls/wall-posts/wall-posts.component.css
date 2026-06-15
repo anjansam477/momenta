@@ -410,6 +410,12 @@
     box-shadow: 0 4px 20px rgba(20, 46, 62, 0.07), 0 1px 4px rgba(0,0,0,0.04);
     transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 200ms ease, border-color 200ms ease;
     animation: cardEntrance 0.4s cubic-bezier(0.34, 1.2, 0.64, 1) both;
+    /* Masonry-compatible windowing: the browser skips layout/paint for off-screen
+       cards (so a 500-post wall doesn't render 500 cards' worth of work) while
+       keeping them in the DOM. `contain-intrinsic-block-size` is bound per card
+       from the post's estimatedHeight to reserve space and avoid scroll jump. */
+    content-visibility: auto;
+    contain-intrinsic-block-size: 300px;
 }
 
 @keyframes cardEntrance {

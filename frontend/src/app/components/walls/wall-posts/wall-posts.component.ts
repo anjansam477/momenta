@@ -8,10 +8,11 @@ import { DomSanitizer, SafeHtml, SafeUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../../services/authservice/auth.service';
-import { MediaService } from '../../../services/mediaservice/media.service';
 import { PostService } from '../../../services/postservice/post.service';
+import { MasonryLayoutService } from './masonry-layout.service';
+import { PostMediaService } from './post-media.service';
 import { SharedDataService } from '../../../services/sharedDataService/shared-data.service';
-import { Subject, Observable, map, catchError, of, filter, shareReplay, debounceTime, distinctUntilChanged } from 'rxjs';
+import { Subject, Observable, filter, debounceTime, distinctUntilChanged } from 'rxjs';
 import { Post } from '../../../models/post.model';
 import { Params } from '@angular/router';
 import { Wall } from '../../../shared/models';
@@ -94,12 +95,13 @@ export class WallPostsComponent implements OnInit, AfterViewInit {
     private router: Router,
     private toastr: ToastrService,
     private sanitizer: DomSanitizer,
-    private mediaService: MediaService,
     private authService: AuthService,
     private postService: PostService,
     private sharedService: SharedDataService,
     private wallService: WallService,
     private socketService: SocketService,
+    private layout: MasonryLayoutService,
+    private media: PostMediaService,
     private cdr: ChangeDetectorRef
   ) {
     this.destroyRef.onDestroy(() => {
@@ -161,19 +163,13 @@ export class WallPostsComponent implements OnInit, AfterViewInit {
   }
 
   
-  arrayBufferToBlob(buffer: Array<number>, contentType: string): string {
-    const arrayBuffer = new Uint8Array(buffer).buffer;
-    const blob = new Blob([arrayBuffer], { type: contentType });
-    return URL.createObjectURL(blob);
-  }
-
-  updateColumnsWithNewPosts(newPosts: Post | Post[]) {  
+  updateColumnsWithNewPosts(newPosts: Post | Post[]) {
     const postsArray = Array.isArray(newPosts) ? newPosts : [newPosts];
-  
+
     postsArray.forEach(post => {
         post.profilePicture = '';
-        post.estimatedHeight = this.estimatePostHeight(post);
-        const shortestColumn = this.getShortestColumn(this.columns);
+        post.estimatedHeight = this.layout.estimatePostHeight(post);
+        const shortestColumn = this.layout.getShortestColumn(this.columns);
         shortestColumn.push({ ...post });
       });
     this.columns = [...this.columns];
@@ -185,8 +181,8 @@ export class WallPostsComponent implements OnInit, AfterViewInit {
   
     const updatePostProfilePicture = (post: Post) => {
       post.profilePicture = '';
-      post.estimatedHeight = this.estimatePostHeight(post);
-      this.getShortestColumn(columns).push({ ...post });
+      post.estimatedHeight = this.layout.estimatePostHeight(post);
+      this.layout.getShortestColumn(columns).push({ ...post });
       this.columns = [...columns];
     };
 
@@ -237,32 +233,6 @@ export class WallPostsComponent implements OnInit, AfterViewInit {
     }
   };
 
-  estimatePostHeight(post: Post): number {
-    const baseHeight = 100;
-    const contentLengthHeight = post.content ? post.content.length * 0.5 : 0;
-    const imageHeight = 300;
-    
-    let contentImagesHeight = 0;
-  
-    if (post.content) {
-      const div = document.createElement('div');
-      div.innerHTML = post.content;
-      const images = Array.from(div.querySelectorAll('img'));
-      for (const element of images) {
-        contentImagesHeight += imageHeight;
-      }
-    }
-  
-    const resolvedMediaUrl = post.media?.url || post.mediaUrl;
-    const mediaHeight = (resolvedMediaUrl && resolvedMediaUrl !== '#' && resolvedMediaUrl !== '') ? imageHeight : 0;
-  
-    return baseHeight + contentLengthHeight + contentImagesHeight + mediaHeight;
-  }
-  
-  getColumnHeight(column: Post[]): number {
-    return column.reduce((total, post) => total + (post.estimatedHeight || 0), 0);
-  }
-
   trackByColumn(index: number): number {
     return index;
   }
@@ -270,11 +240,7 @@ export class WallPostsComponent implements OnInit, AfterViewInit {
   trackByPost(index: number, post: Post): string {
     return post._id;
   }
-  
-  getShortestColumn(columns: Post[][]): Post[] {
-    return columns.reduce((shortest, column) => this.getColumnHeight(column) < this.getColumnHeight(shortest) ? column : shortest, columns[0]);
-  }
-  
+
   isLoggedIn(): void {
     if (this.currentPage != 'download') {
       this.userEmail = this.authService.getEmail();
@@ -510,37 +476,19 @@ export class WallPostsComponent implements OnInit, AfterViewInit {
   }
 
   isImage(fileType: string, url: string): boolean {
-    if (fileType === 'image' && !url.endsWith('.gif')) {
-      return true;
-    }
-    return false;
+    return this.media.isImage(fileType, url);
   }
 
   isVideo(fileType: string): boolean {
-    if (fileType === 'video') {
-      return true;
-    }
-    return false;
+    return this.media.isVideo(fileType);
   }
 
   isGif(fileType: string, url: string): boolean {
-    if (fileType === 'image' && url.toLowerCase().endsWith('.gif')) {
-      return true;
-    }
-    return false;
+    return this.media.isGif(fileType, url);
   }
 
   myUrl(mediaUrl: string): Observable<SafeUrl> {
-    return this.mediaService.retrieveFile(mediaUrl).pipe(
-      map((blobData: Blob) => {
-        const blobUrl = URL.createObjectURL(blobData);
-        return this.sanitizer.bypassSecurityTrustUrl(blobUrl);
-      }),
-      catchError((error) => {
-        console.error('Error fetching media:', error);
-        return of('');
-      })
-    );
+    return this.media.resolve(mediaUrl);
   }
 
   setPostId(postId: string) {

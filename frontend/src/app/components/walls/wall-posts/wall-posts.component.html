@@ -53,7 +53,7 @@
     @for (column of columns; track $index; let i = $index) {
         <div class="column">
             @for (post of column; track post._id) {
-                <article class="post" [ngClass]="{'reported': (post.openReportCount ?? post.reportedBy?.length ?? 0)}" [id]="'post-' + post._id">
+                <article class="post" [ngClass]="{'reported': (post.openReportCount ?? post.reportedBy?.length ?? 0)}" [id]="'post-' + post._id" [style.contain-intrinsic-block-size.px]="post.estimatedHeight || 300">
                     <div class="post-top">
                         @if (post.pinned) {
                             <div class="pin-badge"><i class="bi bi-pin-angle-fill"></i></div>
