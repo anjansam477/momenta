@@ -144,6 +144,15 @@ class PostRepository {
     return posts;
   }
 
+  // Every media path still referenced by a post (any status), for the media-cleanup
+  // sweep. Includes the new `media` shape and the legacy `mediaUrl` field.
+  async getAllMediaUrls() {
+    return Post.find(
+      { $or: [{ "media.url": { $nin: [null, "", "#"] } }, { "media.thumbnailUrl": { $nin: [null, "", "#"] } }, { mediaUrl: { $nin: [null, "", "#"] } }] },
+      { "media.url": 1, "media.thumbnailUrl": 1, mediaUrl: 1 }
+    ).lean();
+  }
+
   async approvePost(postId) {
     const post = await Post.findByIdAndUpdate(postId, { status: "active" }, { new: true });
     if (!post) throw new Error(Response.generateMessage(Response.errorMessage.INVALID_REQUEST, "post"));
