@@ -4774,36 +4774,6 @@ html body {
 [data-theme="dark"] ::-webkit-scrollbar-thumb { background: #4A6580 !important; border-radius: 4px; }
 [data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #10A7A4 !important; }
 
-/* ── ngx-chips tag-input dark mode ── */
-[data-theme="dark"] .ng2-tag-input,
-[data-theme="dark"] tag-input .ng2-tag-input {
-    background: #1E2D3D !important;
-    border-color: #10A7A4 !important;
-    border-bottom-color: #10A7A4 !important;
-}
-[data-theme="dark"] .ng2-tag-input__text-input,
-[data-theme="dark"] tag-input input {
-    background: transparent !important;
-    color: #E2EAF2 !important;
-}
-[data-theme="dark"] .ng2-tag-input__text-input::placeholder,
-[data-theme="dark"] tag-input input::placeholder { color: #6B8AA3 !important; }
-[data-theme="dark"] tag {
-    background: rgba(16,167,164,0.2) !important;
-    color: #10A7A4 !important;
-    border: 1px solid rgba(16,167,164,0.3) !important;
-}
-[data-theme="dark"] tag .tag__text { color: #E2EAF2 !important; }
-[data-theme="dark"] tag delete-icon svg path { fill: #9BB0C4 !important; }
-[data-theme="dark"] tag-input-dropdown .ng2-dropdown-menu {
-    background: #1A2635 !important;
-    border-color: #243447 !important;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important;
-}
-[data-theme="dark"] tag-input-dropdown .ng2-menu-item { color: #E2EAF2 !important; }
-[data-theme="dark"] tag-input-dropdown .ng2-menu-item:hover,
-[data-theme="dark"] tag-input-dropdown .ng2-menu-item--selected { background: #1E2D3D !important; }
-
 /* ══ QoL: cursor pointer on all interactive elements ══ */
 button:not(:disabled),
 .btn:not(:disabled),
@@ -4847,16 +4817,19 @@ a,
   transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
-/* ══ QoL: focus rings for keyboard accessibility ══ */
+/* ══ QoL: focus rings for keyboard accessibility ══
+   Keyboard-only (:focus-visible) so mouse clicks stay clean. A single 2px ring —
+   no heavy double box-shadow — keeps it crisp on inputs and buttons alike. */
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible,
 button:focus-visible,
+a:focus-visible,
 .form-control:focus-visible,
 [tabindex]:focus-visible {
   outline: 2px solid #10a7a4 !important;
   outline-offset: 2px !important;
-  box-shadow: 0 0 0 3px rgba(16, 167, 164, 0.15) !important;
+  border-radius: 4px;
 }
 
 /* ══ QoL: text overflow ellipsis for titles ══ */
@@ -4917,4 +4890,36 @@ button.submitting {
   background-color: #1A2635 !important;
   color: #E2EAF2 !important;
   border-color: #243447 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   POLISH
+   ══════════════════════════════════════════════════════════════ */
+
+/* Subtle, tactile press on buttons — makes clicks feel responsive without
+   being noisy. Scoped to real buttons/CTAs, motion-safe (see reduced-motion). */
+.btn:not(:disabled):active,
+button.cc-btn:not(:disabled):active,
+.dl-btn:not(:disabled):active {
+  transform: translateY(0.5px) scale(0.98);
+}
+.btn,
+button.cc-btn,
+.dl-btn {
+  transition: transform 0.08s ease, background-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+}
+
+/* ══ Accessibility: respect the OS "reduce motion" setting ══
+   Animations and transitions are essentially neutralised for users who ask for
+   it (vestibular comfort), while keeping the UI fully functional. JS-driven
+   confetti is gated separately in the animation service. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

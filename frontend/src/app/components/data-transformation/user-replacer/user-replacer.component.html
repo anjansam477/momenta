@@ -2,7 +2,7 @@
 <div class="creator-info">
     <div class="avatar">
         @if (profilePicture) {
-            <img [src]="profilePicture" alt="Creator" referrerpolicy="no-referrer" />
+            <img [src]="profilePicture" alt="Creator" referrerpolicy="no-referrer" loading="lazy" decoding="async" />
         } @else {
             <span class="avatar-fallback">{{ getInitials() }}</span>
         }
@@ -18,7 +18,7 @@
 <div class="post_user">
     <div class="user-pic">
         @if (profilePicture) {
-            <img [src]="profilePicture" referrerpolicy="no-referrer">
+            <img [src]="profilePicture" referrerpolicy="no-referrer" loading="lazy" decoding="async">
         } @else {
             <span class="avatar-fallback">{{ getInitials() }}</span>
         }
@@ -34,7 +34,7 @@
 <div class="user-list-item">
     <div class="add_people-pic profile-pic">
         @if (profilePicture) {
-            <img [src]="profilePicture" referrerpolicy="no-referrer">
+            <img [src]="profilePicture" referrerpolicy="no-referrer" loading="lazy" decoding="async">
         } @else {
             <span class="avatar-fallback">{{ getInitials() }}</span>
         }

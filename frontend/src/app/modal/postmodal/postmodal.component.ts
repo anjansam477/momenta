@@ -265,7 +265,7 @@ export class PostmodalComponent implements OnInit, AfterViewInit {
           this.cdr.markForCheck();
       },
       error: (err) => {
-        console.error('Error fetching wall details', err);
+        handleHttpError(err, this.toastr);
       }
     });
   }

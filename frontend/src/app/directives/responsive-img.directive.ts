@@ -6,8 +6,8 @@ import { MediaService } from '../services/mediaservice/media.service';
  * `srcset`, so the browser picks the smallest variant that fits the layout.
  *
  * `crossorigin="anonymous"` + the API's `Access-Control-Allow-Origin` header keep
- * the pixels canvas-readable, so the PDF export (html2canvas) still works when
- * the API is on a different origin (e.g. the dev server).
+ * the pixels canvas-readable (useful for any canvas-based processing) when the API
+ * is on a different origin (e.g. the dev server).
  *
  * Usage: `<img [appResponsiveImg]="post.media?.url" alt="...">`
  */

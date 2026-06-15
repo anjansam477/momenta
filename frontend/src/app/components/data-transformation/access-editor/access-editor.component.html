@@ -51,7 +51,7 @@
             (mousedown)="pick(s)" (mouseenter)="activeIdx = i">
             <span class="ae-ava">
               @if (s.picture) {
-                <img [src]="s.picture" alt="" referrerpolicy="no-referrer" />
+                <img [src]="s.picture" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" />
               } @else {
                 <span class="ae-ava-fallback">{{ initials({ email: s.email || '', name: s.fullName || s.name || '', picture: '' }) }}</span>
               }
@@ -79,7 +79,7 @@
           <div class="ae-chip" @pop>
             <span class="ae-ava">
               @if (c.picture) {
-                <img [src]="c.picture" alt="" referrerpolicy="no-referrer" />
+                <img [src]="c.picture" alt="" referrerpolicy="no-referrer" loading="lazy" decoding="async" />
               } @else {
                 <span class="ae-ava-fallback">{{ initials(c) }}</span>
               }

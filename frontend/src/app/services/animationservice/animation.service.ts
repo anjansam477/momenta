@@ -102,6 +102,13 @@ export class AnimationService {
  
 
   triggerConfetti(animation: { id?: string; duration: number; interval?: number; confettiData: ConfettiParticle[]; }) {
+    // Respect the OS "reduce motion" preference — skip the confetti burst entirely
+    // for users who are sensitive to motion.
+    if (typeof window !== 'undefined' &&
+        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+
     const functionLookup: { [key: string]: () => number } = {
       random: () => Math.random(),
       increment: this.createStepper(0, 0.15),

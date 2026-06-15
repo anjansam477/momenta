@@ -16,6 +16,8 @@ import { WallService } from '../../services/wallservice/wall.service';
 import { Wall } from '../../shared/models';
 import { AccessEditorComponent } from '../data-transformation/access-editor/access-editor.component';
 import { WALL_STATUS } from '../../constants/wall.constants';
+import { ToastrService } from 'ngx-toastr';
+import { handleHttpError } from '../../utils/error-handler.util';
 
 /** Access list for a wall — emails + domains allowed to view/post. */
 interface AccessList {
@@ -96,7 +98,8 @@ export class SettingsComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private sharedDataService: SharedDataService,
-    private wallService: WallService
+    private wallService: WallService,
+    private toastr: ToastrService
   ) {
     const bool = (v = false) => new FormControl(v, { nonNullable: true });
     this.wallForm = new FormGroup<WallSettingsForm>({
@@ -227,7 +230,7 @@ export class SettingsComponent implements OnInit {
         this.closeModal.emit();
       },
       error: (err) => {
-        console.error(`Error updating`, err);
+        handleHttpError(err, this.toastr);
       },
     });
   }
