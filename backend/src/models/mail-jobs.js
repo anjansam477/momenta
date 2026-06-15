@@ -9,7 +9,7 @@ const mailJobSchema = new mongoose.Schema(
       cc:      { type: [String], default: [] },
     },
     scheduledAt:  { type: Date, default: null },
-    status:       { type: String, enum: ["pending", "sent", "failed", "cancelled"], default: "pending" },
+    status:       { type: String, enum: ["pending", "sending", "sent", "failed", "cancelled"], default: "pending" },
     // Persisted so a scheduled job can be (re)rendered at delivery time — survives
     // restarts. SCHEDULE jobs render per-recipient from `template`/`templateData`;
     // immediate jobs (ACCESS) carry a ready `htmlContent`.

@@ -23,7 +23,13 @@ function loadService() {
   delete require.cache[mailServicePath];
 
   fakeModule(nodemailerPath, {
-    createTransport: () => ({ sendMail: async (opts) => { sent.push(opts); return { messageId: 'x' }; } }),
+    createTransport: () => ({
+      sendMail: async (opts) => {
+        if (store.failSend) throw new Error('smtp down');
+        sent.push(opts);
+        return { messageId: 'x' };
+      },
+    }),
   });
   fakeModule(mailRepoPath, {
     createJob: async (data) => {
@@ -33,13 +39,15 @@ function loadService() {
       return job;
     },
     getSchedulesByWallIdAndType: async () => store.existing ?? null,
-    getJobById: async (id) => (store.job && String(store.job._id) === String(id) ? store.job : null),
+    claimDueJob: async () => {
+      const j = store.due && store.due.length ? store.due.shift() : null;
+      return j || null;
+    },
     cancelByWallId: async () => { store.cancelled = true; },
     removeRecipient: async () => {},
     markSent: async (id) => { store.sentJobId = id; },
     markFailed: async (id, err) => { store.failed = { id, err }; },
-    getPendingScheduledAfter: async () => [],
-    markPastDuePendingAsFailed: async () => {},
+    requeueJob: async (id) => { store.requeued = id; },
   });
   fakeModule(authPath, { generateTokenForReceiver: (email) => `token-${email}` });
   fakeModule(templatesPath, {
@@ -52,67 +60,71 @@ function loadService() {
   return require(mailServicePath);
 }
 
-test('SCHEDULE creates ONE job holding every recipient (not one per recipient)', async () => {
-  const svc = loadService();
-  const future = new Date(Date.now() + 60 * 60 * 1000);
-
-  await svc.scheduleEmail({
-    type: 'SCHEDULE',
-    primary: ['a@x.com', 'b@x.com', 'c@x.com'],
-    cc: [],
-    subject: 'Birthday',
-    wallId: 'wall-1',
-    scheduledDate: future,
-    template: 'scheduledDelivery',
-    templateData: { creatorName: 'Owner', wallName: 'Birthday' },
-  });
-  svc.clearAllTimers();
-
-  assert.equal(created.length, 1, 'exactly one job created');
-  assert.deepEqual(created[0].recipients.primary, ['a@x.com', 'b@x.com', 'c@x.com']);
-  assert.equal(created[0].template, 'scheduledDelivery');
-  assert.equal(created[0].subject, 'Birthday');
-});
-
-test('delivery renders a unique per-recipient email and marks the job sent', async () => {
-  const svc = loadService();
-  const future = new Date(Date.now() + 60 * 60 * 1000);
-
-  await svc.scheduleEmail({
+function scheduleArgs() {
+  return {
     type: 'SCHEDULE',
     primary: ['a@x.com', 'b@x.com', 'c@x.com'],
     cc: ['owner@x.com'],
     subject: 'Birthday',
     wallId: 'wall-1',
-    scheduledDate: future,
+    scheduledDate: new Date(Date.now() + 60 * 60 * 1000),
     template: 'scheduledDelivery',
     templateData: { creatorName: 'Owner', wallName: 'Birthday' },
-  });
-  svc.clearAllTimers();
+  };
+}
 
-  await svc._deliverScheduledJob(store.job._id);
+test('SCHEDULE persists ONE job with every recipient and arms no timer', async () => {
+  const svc = loadService();
+  await svc.scheduleEmail(scheduleArgs());
+
+  assert.equal(created.length, 1, 'exactly one job created');
+  assert.deepEqual(created[0].recipients.primary, ['a@x.com', 'b@x.com', 'c@x.com']);
+  assert.equal(created[0].status, 'pending');
+  assert.equal(sent.length, 0, 'nothing sent at schedule time');
+});
+
+test('the poller claims a due job and delivers a unique email per recipient', async () => {
+  const svc = loadService();
+  await svc.scheduleEmail(scheduleArgs());
+  // Make the created job "due" for the next claim.
+  store.due = [store.job];
+
+  await svc._processDueJobs();
 
   assert.equal(sent.length, 3, 'one email per recipient');
   assert.deepEqual(sent.map((m) => m.to), ['a@x.com', 'b@x.com', 'c@x.com']);
-  // Each carries its own unique token rendered from the template.
   assert.ok(sent[0].html.includes('token-a@x.com'));
-  assert.ok(sent[1].html.includes('token-b@x.com'));
   assert.ok(sent[2].html.includes('token-c@x.com'));
-  assert.equal(store.sentJobId, store.job._id, 'job marked sent once');
+  assert.equal(store.sentJobId, store.job._id, 'job marked sent');
 });
 
-test('a cancelled job does not deliver', async () => {
+test('nothing is delivered when no job is due', async () => {
   const svc = loadService();
-  const future = new Date(Date.now() + 60 * 60 * 1000);
-  await svc.scheduleEmail({
-    type: 'SCHEDULE', primary: ['a@x.com'], cc: [], subject: 'T', wallId: 'w',
-    scheduledDate: future, template: 'scheduledDelivery', templateData: {},
-  });
-  svc.clearAllTimers();
-  store.job.status = 'cancelled';
+  store.due = [];
+  await svc._processDueJobs();
+  assert.equal(sent.length, 0);
+});
 
-  await svc._deliverScheduledJob(store.job._id);
-  assert.equal(sent.length, 0, 'nothing sent for a cancelled job');
+test('a failed send with retries left is requeued, not failed', async () => {
+  const svc = loadService();
+  store.failSend = true;
+  await svc._deliverClaimedJob({
+    _id: 'job-1', wallId: 'w', subject: 'T', template: 'scheduledDelivery',
+    templateData: {}, recipients: { primary: ['a@x.com'], cc: [] }, retryCount: 0, maxRetries: 3,
+  });
+  assert.equal(store.requeued, 'job-1', 'requeued for another attempt');
+  assert.equal(store.failed, undefined, 'not marked failed yet');
+});
+
+test('a failed send with no retries left is marked failed', async () => {
+  const svc = loadService();
+  store.failSend = true;
+  await svc._deliverClaimedJob({
+    _id: 'job-9', wallId: 'w', subject: 'T', template: 'scheduledDelivery',
+    templateData: {}, recipients: { primary: ['a@x.com'], cc: [] }, retryCount: 2, maxRetries: 3,
+  });
+  assert.equal(store.failed?.id, 'job-9');
+  assert.equal(store.requeued, undefined);
 });
 
 test('getScheduledByWallId returns all recipients', async () => {

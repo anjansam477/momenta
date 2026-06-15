@@ -44,14 +44,25 @@ class MailRepository {
     );
   }
 
-  async getPendingScheduledAfter(date) {
-    return MailJob.find({ type: "SCHEDULE", status: "pending", scheduledAt: { $gt: date } }).lean();
+  /**
+   * Atomically claim one due scheduled job (pending → sending). The atomic
+   * findOneAndUpdate guarantees that, even with multiple API instances polling,
+   * exactly one wins each job — no double-sends. Returns null when nothing is due.
+   */
+  async claimDueJob(now) {
+    return MailJob.findOneAndUpdate(
+      { type: "SCHEDULE", status: "pending", scheduledAt: { $lte: now } },
+      { $set: { status: "sending" } },
+      { new: true, sort: { scheduledAt: 1 } }
+    ).lean();
   }
 
-  async markPastDuePendingAsFailed(date) {
-    return MailJob.updateMany(
-      { type: "SCHEDULE", status: "pending", scheduledAt: { $lte: date } },
-      { $set: { status: "failed" } }
+  /** Return a job to the pending queue (used when a delivery attempt fails but retries remain). */
+  async requeueJob(jobId) {
+    return MailJob.findByIdAndUpdate(
+      jobId,
+      { $set: { status: "pending" }, $inc: { retryCount: 1 } },
+      { new: true }
     );
   }
 }
